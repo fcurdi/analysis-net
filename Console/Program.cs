@@ -1,379 +1,402 @@
 ﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
 
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using Backend.Analyses;
+using Backend.Model;
+using Backend.Serialization;
+using Backend.Transformations;
+using Backend.Utils;
+using MetadataGenerator;
 //using CCIProvider;
 using MetadataProvider;
 using Model;
 using Model.Types;
-using Backend.Analyses;
-using Backend.Serialization;
-using Backend.Transformations;
-using Backend.Utils;
-using Backend.Model;
-using Tac = Model.ThreeAddressCode.Instructions;
 using Bytecode = Model.Bytecode;
+using Tac = Model.ThreeAddressCode.Instructions;
 
 namespace Console
 {
-	class Program
-	{
-		private Host host;
-
-		public Program(Host host)
-		{
-			this.host = host;
-		}
-		
-		public void VisitMethods()
-		{
-			var allDefinedMethods = from a in host.Assemblies
-									from t in a.RootNamespace.GetAllTypes()
-									from m in t.Members.OfType<MethodDefinition>()
-									where m.HasBody
-									select m;
+    class Program
+    {
+        private Host host;
 
-			foreach (var method in allDefinedMethods)
-			{
-				VisitMethod(method);
-			}
-		}
-
-		private void VisitMethod(MethodDefinition method)
-		{
-			System.Console.WriteLine(method.ToSignatureString());
+        public Program(Host host)
+        {
+            this.host = host;
+        }
 
-			var methodBodyBytecode = method.Body;
-			var disassembler = new Disassembler(method);
-			var methodBody = disassembler.Execute();			
-			method.Body = methodBody;
+        public void VisitMethods()
+        {
+            var allDefinedMethods = from a in host.Assemblies
+                                    from t in a.RootNamespace.GetAllTypes()
+                                    from m in t.Members.OfType<MethodDefinition>()
+                                    where m.HasBody
+                                    select m;
 
-			var cfAnalysis = new ControlFlowAnalysis(method.Body);
-			//var cfg = cfAnalysis.GenerateNormalControlFlow();
-			var cfg = cfAnalysis.GenerateExceptionalControlFlow();
+            foreach (var method in allDefinedMethods)
+            {
+                VisitMethod(method);
+            }
+        }
 
-			var dgml_CFG = DGMLSerializer.Serialize(cfg);
-
-			var domAnalysis = new DominanceAnalysis(cfg);
-			domAnalysis.Analyze();
-			domAnalysis.GenerateDominanceTree();
+        private void VisitMethod(MethodDefinition method)
+        {
+            System.Console.WriteLine(method.ToSignatureString());
 
-			var loopAnalysis = new NaturalLoopAnalysis(cfg);
-			loopAnalysis.Analyze();
+            var methodBodyBytecode = method.Body;
+            var disassembler = new Disassembler(method);
+            var methodBody = disassembler.Execute();
+            method.Body = methodBody;
 
-			var domFrontierAnalysis = new DominanceFrontierAnalysis(cfg);
-			domFrontierAnalysis.Analyze();
+            var cfAnalysis = new ControlFlowAnalysis(method.Body);
+            //var cfg = cfAnalysis.GenerateNormalControlFlow();
+            var cfg = cfAnalysis.GenerateExceptionalControlFlow();
 
-			var splitter = new WebAnalysis(cfg);
-			splitter.Analyze();
-			splitter.Transform();
+            var dgml_CFG = DGMLSerializer.Serialize(cfg);
 
-			methodBody.UpdateVariables();
+            var domAnalysis = new DominanceAnalysis(cfg);
+            domAnalysis.Analyze();
+            domAnalysis.GenerateDominanceTree();
 
-			var typeAnalysis = new TypeInferenceAnalysis(cfg, method.ReturnType);
-			typeAnalysis.Analyze();
+            var loopAnalysis = new NaturalLoopAnalysis(cfg);
+            loopAnalysis.Analyze();
 
-			// Copy Propagation
-			var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(cfg);
-			forwardCopyAnalysis.Analyze();
-			forwardCopyAnalysis.Transform(methodBody);
+            var domFrontierAnalysis = new DominanceFrontierAnalysis(cfg);
+            domFrontierAnalysis.Analyze();
 
-			var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(cfg);
-			backwardCopyAnalysis.Analyze();
-			backwardCopyAnalysis.Transform(methodBody);
+            var splitter = new WebAnalysis(cfg);
+            splitter.Analyze();
+            splitter.Transform();
 
-			// Points-To
-			var pointsTo = new PointsToAnalysis(cfg, method);
-			var result = pointsTo.Analyze();
+            methodBody.UpdateVariables();
 
-			var ptg = result[cfg.Exit.Id].Output;
-			//ptg.RemoveVariablesExceptParameters();
-			ptg.RemoveTemporalVariables();
+            var typeAnalysis = new TypeInferenceAnalysis(cfg, method.ReturnType);
+            typeAnalysis.Analyze();
 
-			var dgml_PTG = DGMLSerializer.Serialize(ptg);
+            // Copy Propagation
+            var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(cfg);
+            forwardCopyAnalysis.Analyze();
+            forwardCopyAnalysis.Transform(methodBody);
 
-			// Live Variables
-			var liveVariables = new LiveVariablesAnalysis(cfg);
-			var livenessInfo = liveVariables.Analyze();
+            var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(cfg);
+            backwardCopyAnalysis.Analyze();
+            backwardCopyAnalysis.Transform(methodBody);
 
-			// SSA
-			var ssa = new StaticSingleAssignment(methodBody, cfg);
-			ssa.Transform();
-			ssa.Prune(livenessInfo);
+            // Points-To
+            var pointsTo = new PointsToAnalysis(cfg, method);
+            var result = pointsTo.Analyze();
 
-			methodBody.UpdateVariables();
+            var ptg = result[cfg.Exit.Id].Output;
+            //ptg.RemoveVariablesExceptParameters();
+            ptg.RemoveTemporalVariables();
 
-			//var dot = DOTSerializer.Serialize(cfg);
-			//var dgml = DGMLSerializer.Serialize(cfg);
+            var dgml_PTG = DGMLSerializer.Serialize(ptg);
 
-			//dgml = DGMLSerializer.Serialize(host, typeDefinition);
-		}
+            // Live Variables
+            var liveVariables = new LiveVariablesAnalysis(cfg);
+            var livenessInfo = liveVariables.Analyze();
 
-		private static void RunSomeTests()
-		{
-			const string root = @"..\..\..";
-			//const string root = @"C:"; // casa
-			//const string root = @"C:\Users\Edgar\Projects"; // facu
+            // SSA
+            var ssa = new StaticSingleAssignment(methodBody, cfg);
+            ssa.Transform();
+            ssa.Prune(livenessInfo);
 
-			const string input = root + @"\Test\bin\Debug\Test.dll";
+            methodBody.UpdateVariables();
 
-			var host = new Host();
-			//host.Assemblies.Add(assembly);
+            //var dot = DOTSerializer.Serialize(cfg);
+            //var dgml = DGMLSerializer.Serialize(cfg);
 
-			PlatformTypes.Resolve(host);
+            //dgml = DGMLSerializer.Serialize(host, typeDefinition);
+        }
 
-			var loader = new Loader(host);
-			loader.LoadAssembly(input);
-			//loader.LoadCoreAssembly();
+        private static void RunSomeTests()
+        {
+            const string root = @"..\..\..";
+            //const string root = @"C:"; // casa
+            //const string root = @"C:\Users\Edgar\Projects"; // facu
 
-			var type = new BasicType("ExamplesPointsTo")
-			{
-				ContainingAssembly = new AssemblyReference("Test"),
-				ContainingNamespace = "Test"
-			};
+            const string input = root + @"\Test\bin\Debug\Test.dll";
 
-			var typeDefinition = host.ResolveReference(type);
+            var host = new Host();
+            //host.Assemblies.Add(assembly);
 
-			var method = new MethodReference("Example1", PlatformTypes.Void)
-			{
-				ContainingType = type,
-			};
+            PlatformTypes.Resolve(host);
 
-			//var methodDefinition = host.ResolveReference(method) as MethodDefinition;
+            var loader = new Loader(host);
+            loader.LoadAssembly(input);
+            //loader.LoadCoreAssembly();
 
-			var program = new Program(host);
-			program.VisitMethods();
+            var type = new BasicType("ExamplesPointsTo")
+            {
+                ContainingAssembly = new AssemblyReference("Test"),
+                ContainingNamespace = "Test"
+            };
 
-			// Testing method calls inlining
-			var methodDefinition = host.ResolveReference(method) as MethodDefinition;
-			var methodCalls = methodDefinition.Body.Instructions.OfType<Tac.MethodCallInstruction>().ToList();
+            var typeDefinition = host.ResolveReference(type);
 
-			foreach (var methodCall in methodCalls)
-			{
-				var callee = host.ResolveReference(methodCall.Method) as MethodDefinition;
-				methodDefinition.Body.Inline(methodCall, callee.Body);
-			}
+            var method = new MethodReference("Example1", PlatformTypes.Void)
+            {
+                ContainingType = type,
+            };
 
-			methodDefinition.Body.UpdateVariables();
+            //var methodDefinition = host.ResolveReference(method) as MethodDefinition;
 
-			type = new BasicType("ExamplesCallGraph")
-			{
-				ContainingAssembly = new AssemblyReference("Test"),
-				ContainingNamespace = "Test"
-			};
+            var program = new Program(host);
+            program.VisitMethods();
 
-			method = new MethodReference("Example1", PlatformTypes.Void)
-			{
-				ContainingType = type,
-			};
+            // Testing method calls inlining
+            var methodDefinition = host.ResolveReference(method) as MethodDefinition;
+            var methodCalls = methodDefinition.Body.Instructions.OfType<Tac.MethodCallInstruction>().ToList();
 
-			methodDefinition = host.ResolveReference(method) as MethodDefinition;
+            foreach (var methodCall in methodCalls)
+            {
+                var callee = host.ResolveReference(methodCall.Method) as MethodDefinition;
+                methodDefinition.Body.Inline(methodCall, callee.Body);
+            }
 
-			var ch = new ClassHierarchy();
-			ch.Analyze(host);
+            methodDefinition.Body.UpdateVariables();
 
-			var dgml = DGMLSerializer.Serialize(ch);
+            type = new BasicType("ExamplesCallGraph")
+            {
+                ContainingAssembly = new AssemblyReference("Test"),
+                ContainingNamespace = "Test"
+            };
 
-			var chcga = new ClassHierarchyAnalysis(ch);
-			var roots = host.GetRootMethods();
-			var cg = chcga.Analyze(host, roots);
+            method = new MethodReference("Example1", PlatformTypes.Void)
+            {
+                ContainingType = type,
+            };
 
-			dgml = DGMLSerializer.Serialize(cg);
-		}
+            methodDefinition = host.ResolveReference(method) as MethodDefinition;
 
-		private static void RunGenericsTests()
-		{
-			const string root = @"..\..\..";
-			const string input = root + @"\Test\bin\Debug\Test.dll";
-
-			var host = new Host();
+            var ch = new ClassHierarchy();
+            ch.Analyze(host);
 
-			PlatformTypes.Resolve(host);
-
-			var loader = new Loader(host);
-			loader.LoadAssembly(input);
-			//loader.LoadCoreAssembly();
+            var dgml = DGMLSerializer.Serialize(ch);
 
-			var assembly = new AssemblyReference("Test");
+            var chcga = new ClassHierarchyAnalysis(ch);
+            var roots = host.GetRootMethods();
+            var cg = chcga.Analyze(host, roots);
 
-			var typeA = new GenericParameterReference(GenericParameterKind.Type, 0);
-			var typeB = new GenericParameterReference(GenericParameterKind.Type, 1);
+            dgml = DGMLSerializer.Serialize(cg);
+        }
 
-			var typeNestedClass = new BasicType("NestedClass")
-			{
-				ContainingAssembly = assembly,
-				ContainingNamespace = "Test",
-				GenericParameterCount = 2,
-				ContainingType = new BasicType("ExamplesGenerics")
-				{
-					ContainingAssembly = assembly,
-					ContainingNamespace = "Test",
-					GenericParameterCount = 1
-				}				
-			};
-
-			//typeNestedClass.ContainingType.GenericArguments.Add(typeA);
-			//typeNestedClass.GenericArguments.Add(typeB);
-
-			var typeDefinition = host.ResolveReference(typeNestedClass);
-
-			if (typeDefinition == null)
-			{
-				System.Console.WriteLine("[Error] Cannot resolve type:\n{0}", typeNestedClass);
-			}
-
-			var typeK = new GenericParameterReference(GenericParameterKind.Method, 0);
-			var typeV = new GenericParameterReference(GenericParameterKind.Method, 1);
-
-			var typeKeyValuePair = new BasicType("KeyValuePair")
-			{
-				ContainingAssembly = new AssemblyReference("mscorlib"),
-				ContainingNamespace = "System.Collections.Generic",
-				GenericParameterCount = 2
-			};
+        private static void RunGenericsTests()
+        {
+            const string root = @"..\..\..";
+            const string input = root + @"\Test\bin\Debug\Test.dll";
+
+            var host = new Host();
 
-			typeKeyValuePair.GenericArguments.Add(typeK);
-			typeKeyValuePair.GenericArguments.Add(typeV);
+            PlatformTypes.Resolve(host);
+
+            var loader = new Loader(host);
+            loader.LoadAssembly(input);
+            //loader.LoadCoreAssembly();
 
-			var methodExampleGenericMethod = new MethodReference("ExampleGenericMethod", typeKeyValuePair)
-			{
-				ContainingType = typeNestedClass,
-				GenericParameterCount = 2
-			};
+            var assembly = new AssemblyReference("Test");
 
-			//methodExampleGenericMethod.GenericArguments.Add(typeK);
-			//methodExampleGenericMethod.GenericArguments.Add(typeV);
+            var typeA = new GenericParameterReference(GenericParameterKind.Type, 0);
+            var typeB = new GenericParameterReference(GenericParameterKind.Type, 1);
 
-			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(0, typeA));
-			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(1, typeB));
-			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(2, typeK));
-			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(3, typeV));
-			methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(4, typeKeyValuePair));
-
-			var methodDefinition = host.ResolveReference(methodExampleGenericMethod) as MethodDefinition;
-
-			if (methodDefinition == null)
-			{
-				System.Console.WriteLine("[Error] Cannot resolve method:\n{0}", methodExampleGenericMethod);
-			}
+            var typeNestedClass = new BasicType("NestedClass")
+            {
+                ContainingAssembly = assembly,
+                ContainingNamespace = "Test",
+                GenericParameterCount = 2,
+                ContainingType = new BasicType("ExamplesGenerics")
+                {
+                    ContainingAssembly = assembly,
+                    ContainingNamespace = "Test",
+                    GenericParameterCount = 1
+                }
+            };
+
+            //typeNestedClass.ContainingType.GenericArguments.Add(typeA);
+            //typeNestedClass.GenericArguments.Add(typeB);
+
+            var typeDefinition = host.ResolveReference(typeNestedClass);
+
+            if (typeDefinition == null)
+            {
+                System.Console.WriteLine("[Error] Cannot resolve type:\n{0}", typeNestedClass);
+            }
+
+            var typeK = new GenericParameterReference(GenericParameterKind.Method, 0);
+            var typeV = new GenericParameterReference(GenericParameterKind.Method, 1);
+
+            var typeKeyValuePair = new BasicType("KeyValuePair")
+            {
+                ContainingAssembly = new AssemblyReference("mscorlib"),
+                ContainingNamespace = "System.Collections.Generic",
+                GenericParameterCount = 2
+            };
 
-			var methodExample = new MethodReference("Example", PlatformTypes.Void)
-			{
-				ContainingType = new BasicType("ExamplesGenericReferences")
-				{
-					ContainingAssembly = assembly,
-					ContainingNamespace = "Test"
-				}
-			};
-
-			methodDefinition = host.ResolveReference(methodExample) as MethodDefinition;
-
-			if (methodDefinition == null)
-			{
-				System.Console.WriteLine("[Error] Cannot resolve method:\n{0}", methodExample);
-			}
-
-			var calls = methodDefinition.Body.Instructions.OfType<Bytecode.MethodCallInstruction>();
-
-			foreach (var call in calls)
-			{
-				methodDefinition = host.ResolveReference(call.Method) as MethodDefinition;
-
-				if (methodDefinition == null)
-				{
-					System.Console.WriteLine("[Error] Cannot resolve method:\n{0}", call.Method);
-				}
-			}
-		}
-
-		private static void RunInterPointsToTests()
-		{
-			const string root = @"..\..\..";
-			const string input = root + @"\Test\bin\Debug\Test.dll";
-
-			var host = new Host();
-
-			PlatformTypes.Resolve(host);
-
-			var loader = new Loader(host);
-			loader.LoadAssembly(input);
-			//loader.LoadCoreAssembly();
-
-			var methodReference = new MethodReference("Example6", PlatformTypes.Void)
-			//var methodReference = new MethodReference("Example6", PlatformTypes.Void)
-			//var methodReference = new MethodReference("ExampleDelegateCaller", PlatformTypes.Void)
-			{
-				ContainingType = new BasicType("ExamplesPointsTo", TypeKind.ReferenceType)
-				{
-					ContainingAssembly = new AssemblyReference("Test"),
-					ContainingNamespace = "Test"
-				}
-			};
-
-			//var parameter = new MethodParameterReference(0, PlatformTypes.Boolean);
-			//methodReference.Parameters.Add(parameter);
-			//parameter = new MethodParameterReference(1, PlatformTypes.Boolean);
-			//methodReference.Parameters.Add(parameter);
-
-			//methodReference.ReturnType = new BasicType("Node", TypeKind.ReferenceType)
-			//{
-			//	ContainingAssembly = new AssemblyReference("Test"),
-			//	ContainingNamespace = "Test"
-			//};
-
-			methodReference.Resolve(host);
-
-			var programInfo = new ProgramAnalysisInfo();
-			var pta = new InterPointsToAnalysis(programInfo);
-
-			var cg = pta.Analyze(methodReference.ResolvedMethod);
-			var dgml_CG = DGMLSerializer.Serialize(cg);
-
-			//System.IO.File.WriteAllText(@"cg.dgml", dgml_CG);
-
-			var esca = new EscapeAnalysis(programInfo, cg);
-			var escapeResult = esca.Analyze();
-
-			var fea = new FieldEffectsAnalysis(programInfo, cg);
-			var effectsResult = fea.Analyze();
-
-			foreach (var method in cg.Methods)
-			{
-				MethodAnalysisInfo methodInfo;
-				var ok = programInfo.TryGet(method, out methodInfo);
-				if (!ok) continue;
-
-				InterPointsToInfo pti;
-				ok = methodInfo.TryGet(InterPointsToAnalysis.INFO_IPTA_RESULT, out pti);
-
-				if (ok)
-				{
-					var ptg = pti.Output;
-					ptg.RemoveTemporalVariables();
-					//ptg.RemoveVariablesExceptParameters();
-					var dgml_PTG = DGMLSerializer.Serialize(ptg);
-
-					//System.IO.File.WriteAllText(@"ptg.dgml", dgml_PTG);
-				}
-
-				EscapeInfo escapeInfo;
-				ok = escapeResult.TryGetValue(method, out escapeInfo);
-
-				FieldEffectsInfo effectsInfo;
-				ok = effectsResult.TryGetValue(method, out effectsInfo);
-			}
-		}
-
-		static void Main(string[] args)
-		{
-			//RunSomeTests();
-			//RunGenericsTests();
-			RunInterPointsToTests();
-
-			System.Console.WriteLine("Done!");
-			System.Console.ReadKey();
-		}
-	}
+            typeKeyValuePair.GenericArguments.Add(typeK);
+            typeKeyValuePair.GenericArguments.Add(typeV);
+
+            var methodExampleGenericMethod = new MethodReference("ExampleGenericMethod", typeKeyValuePair)
+            {
+                ContainingType = typeNestedClass,
+                GenericParameterCount = 2
+            };
+
+            //methodExampleGenericMethod.GenericArguments.Add(typeK);
+            //methodExampleGenericMethod.GenericArguments.Add(typeV);
+
+            methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(0, typeA));
+            methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(1, typeB));
+            methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(2, typeK));
+            methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(3, typeV));
+            methodExampleGenericMethod.Parameters.Add(new MethodParameterReference(4, typeKeyValuePair));
+
+            var methodDefinition = host.ResolveReference(methodExampleGenericMethod) as MethodDefinition;
+
+            if (methodDefinition == null)
+            {
+                System.Console.WriteLine("[Error] Cannot resolve method:\n{0}", methodExampleGenericMethod);
+            }
+
+            var methodExample = new MethodReference("Example", PlatformTypes.Void)
+            {
+                ContainingType = new BasicType("ExamplesGenericReferences")
+                {
+                    ContainingAssembly = assembly,
+                    ContainingNamespace = "Test"
+                }
+            };
+
+            methodDefinition = host.ResolveReference(methodExample) as MethodDefinition;
+
+            if (methodDefinition == null)
+            {
+                System.Console.WriteLine("[Error] Cannot resolve method:\n{0}", methodExample);
+            }
+
+            var calls = methodDefinition.Body.Instructions.OfType<Bytecode.MethodCallInstruction>();
+
+            foreach (var call in calls)
+            {
+                methodDefinition = host.ResolveReference(call.Method) as MethodDefinition;
+
+                if (methodDefinition == null)
+                {
+                    System.Console.WriteLine("[Error] Cannot resolve method:\n{0}", call.Method);
+                }
+            }
+        }
+
+        private static void RunInterPointsToTests()
+        {
+            const string root = @"..\..\..";
+            const string input = root + @"\Test\bin\Debug\Test.dll";
+
+            var host = new Host();
+
+            PlatformTypes.Resolve(host);
+
+            var loader = new Loader(host);
+            loader.LoadAssembly(input);
+            //loader.LoadCoreAssembly();
+
+            var methodReference = new MethodReference("Example6", PlatformTypes.Void)
+            //var methodReference = new MethodReference("Example6", PlatformTypes.Void)
+            //var methodReference = new MethodReference("ExampleDelegateCaller", PlatformTypes.Void)
+            {
+                ContainingType = new BasicType("ExamplesPointsTo", TypeKind.ReferenceType)
+                {
+                    ContainingAssembly = new AssemblyReference("Test"),
+                    ContainingNamespace = "Test"
+                }
+            };
+
+            //var parameter = new MethodParameterReference(0, PlatformTypes.Boolean);
+            //methodReference.Parameters.Add(parameter);
+            //parameter = new MethodParameterReference(1, PlatformTypes.Boolean);
+            //methodReference.Parameters.Add(parameter);
+
+            //methodReference.ReturnType = new BasicType("Node", TypeKind.ReferenceType)
+            //{
+            //	ContainingAssembly = new AssemblyReference("Test"),
+            //	ContainingNamespace = "Test"
+            //};
+
+            methodReference.Resolve(host);
+
+            var programInfo = new ProgramAnalysisInfo();
+            var pta = new InterPointsToAnalysis(programInfo);
+
+            var cg = pta.Analyze(methodReference.ResolvedMethod);
+            var dgml_CG = DGMLSerializer.Serialize(cg);
+
+            //System.IO.File.WriteAllText(@"cg.dgml", dgml_CG);
+
+            var esca = new EscapeAnalysis(programInfo, cg);
+            var escapeResult = esca.Analyze();
+
+            var fea = new FieldEffectsAnalysis(programInfo, cg);
+            var effectsResult = fea.Analyze();
+
+            foreach (var method in cg.Methods)
+            {
+                MethodAnalysisInfo methodInfo;
+                var ok = programInfo.TryGet(method, out methodInfo);
+                if (!ok) continue;
+
+                InterPointsToInfo pti;
+                ok = methodInfo.TryGet(InterPointsToAnalysis.INFO_IPTA_RESULT, out pti);
+
+                if (ok)
+                {
+                    var ptg = pti.Output;
+                    ptg.RemoveTemporalVariables();
+                    //ptg.RemoveVariablesExceptParameters();
+                    var dgml_PTG = DGMLSerializer.Serialize(ptg);
+
+                    //System.IO.File.WriteAllText(@"ptg.dgml", dgml_PTG);
+                }
+
+                EscapeInfo escapeInfo;
+                ok = escapeResult.TryGetValue(method, out escapeInfo);
+
+                FieldEffectsInfo effectsInfo;
+                ok = effectsResult.TryGetValue(method, out effectsInfo);
+            }
+        }
+
+        private static void DisassembleAndThenAssemble()
+        {
+            const string input = @"../../../Examples/bin/Debug/Examples.dll";
+
+            var host = new Host();
+
+            PlatformTypes.Resolve(host);
+
+            var loader = new MetadataProvider.Loader(host);
+            loader.LoadAssembly(input);
+
+            var generator = new Generator();
+
+            foreach (var assembly in host.Assemblies)
+            {
+                generator.Generate(assembly);
+            }
+
+            System.Console.WriteLine("Done!");
+
+        }
+
+        static void Main(string[] args)
+        {
+
+            DisassembleAndThenAssemble();
+
+            //RunSomeTests();
+            //RunGenericsTests();
+            //RunInterPointsToTests();
+
+            System.Console.WriteLine("Done!");
+            System.Console.ReadKey();
+        }
+    }
 }

@@ -2,7 +2,7 @@
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{C836D6AD-2A48-4FFF-A958-023C48A65478}</ProjectGuid>
@@ -64,6 +64,10 @@
     <ProjectReference Include="..\Model\Model.csproj">
       <Project>{f08216ad-e55c-44b1-a253-ab8b024b7597}</Project>
       <Name>Model</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MetadataGenerator\MetadataGenerator.csproj">
+      <Project>{D5B2B96D-DB11-4618-B820-F0FCD82F9FD3}</Project>
+      <Name>MetadataGenerator</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

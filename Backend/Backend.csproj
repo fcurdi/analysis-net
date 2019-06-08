@@ -79,6 +79,7 @@
     <Compile Include="Utils\ProgramAnalysisInfo.cs" />
     <Compile Include="Utils\Subset.cs" />
     <Compile Include="Utils\UniqueIDGenerator.cs" />
+    <Compile Include="Transformations\Assembler.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Model\Model.csproj">
