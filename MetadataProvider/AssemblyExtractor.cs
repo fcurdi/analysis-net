@@ -243,8 +243,6 @@ namespace MetadataProvider
 				currentType.Types.Add(type);
 			}
 
-			type.Kind = GetTypeDefinitionKind(typedef.Attributes);
-			type.TypeKind = type.Kind.ToTypeKind();
 			type.ContainingType = currentType;
 			type.ContainingAssembly = assembly;
 			type.ContainingNamespace = currentNamespace;
@@ -257,6 +255,10 @@ namespace MetadataProvider
 
 			ExtractBaseType(typedef.BaseType);
 
+			type.Kind = GetTypeDefinitionKind(typedef.Attributes, type.Base);
+			type.TypeKind = type.Kind.ToTypeKind();
+			type.Visibility = GetVisibilityKind(typedef.Attributes);
+
 			foreach (var handle in typedef.GetInterfaceImplementations())
 			{
 				ExtractInterfaceImplementation(handle);
@@ -265,6 +267,12 @@ namespace MetadataProvider
 			foreach (var handle in typedef.GetFields())
 			{
 				ExtractField(handle);
+			}
+
+			if (type.Kind == TypeDefinitionKind.Enum)
+			{
+				var valueField = type.Fields.Single(f => f.Name == "value__");
+				type.UnderlayingType = valueField.Type as IBasicType;
 			}
 
 			foreach (var handle in typedef.GetMethods())
@@ -282,17 +290,123 @@ namespace MetadataProvider
 			currentType = currentType.ContainingType;
 		}
 
-		private static TypeDefinitionKind GetTypeDefinitionKind(SR.TypeAttributes attributes)
+		private static TypeDefinitionKind GetTypeDefinitionKind(SR.TypeAttributes attributes, IBasicType baseType)
 		{
 			var result = TypeDefinitionKind.Unknown;
 
-			if (attributes.HasFlag(SR.TypeAttributes.Class))
+			if (attributes.HasFlag(SR.TypeAttributes.Interface))
+			{
+				result = TypeDefinitionKind.Interface;
+			}
+			else if (attributes.HasFlag(SR.TypeAttributes.Class))
 			{
 				result = TypeDefinitionKind.Class;
 			}
-			else if (attributes.HasFlag(SR.TypeAttributes.Interface))
+
+			if (baseType != null)
 			{
-				result = TypeDefinitionKind.Interface;
+				if (baseType.Equals(PlatformTypes.ValueType))
+				{
+					result = TypeDefinitionKind.Struct;
+				}
+				else if (baseType.Equals(PlatformTypes.Enum))
+				{
+					result = TypeDefinitionKind.Enum;
+				}
+				else if (baseType.Equals(PlatformTypes.MulticastDelegate) ||
+						 baseType.Equals(PlatformTypes.Delegate))
+				{
+					result = TypeDefinitionKind.Delegate;
+				}
+			}
+
+			return result;
+		}
+
+		private static VisibilityKind GetVisibilityKind(SR.TypeAttributes attributes)
+		{
+			var result = VisibilityKind.Unknown;
+
+			if (attributes.HasFlag(SR.TypeAttributes.NestedFamORAssem))
+			{
+				result = VisibilityKind.Internal | VisibilityKind.Protected;
+			}
+			else if (attributes.HasFlag(SR.TypeAttributes.NestedAssembly))
+			{
+				result = VisibilityKind.Internal;
+			}
+			else if (attributes.HasFlag(SR.TypeAttributes.NestedFamily))
+			{
+				result = VisibilityKind.Protected;
+			}
+			else if (attributes.HasFlag(SR.TypeAttributes.NestedPrivate))
+			{
+				result = VisibilityKind.Private;
+			}
+			else if (attributes.HasFlag(SR.TypeAttributes.NestedPublic) ||
+					 attributes.HasFlag(SR.TypeAttributes.Public))
+			{
+				result = VisibilityKind.Public;
+			}
+			else if (attributes.HasFlag(SR.TypeAttributes.NotPublic))
+			{
+				result = VisibilityKind.Internal;
+			}
+
+			return result;
+		}
+
+		private static VisibilityKind GetVisibilityKind(SR.FieldAttributes attributes)
+		{
+			var result = VisibilityKind.Unknown;
+
+			if (attributes.HasFlag(SR.FieldAttributes.Public))
+			{
+				result = VisibilityKind.Public;
+			}
+			else if (attributes.HasFlag(SR.FieldAttributes.FamORAssem))
+			{
+				result = VisibilityKind.Internal | VisibilityKind.Protected;
+			}
+			else if (attributes.HasFlag(SR.FieldAttributes.Assembly))
+			{
+				result = VisibilityKind.Internal;
+			}
+			else if (attributes.HasFlag(SR.FieldAttributes.Family))
+			{
+				result = VisibilityKind.Protected;
+			}
+			else if (attributes.HasFlag(SR.FieldAttributes.Private))
+			{
+				result = VisibilityKind.Private;
+			}
+
+			return result;
+		}
+
+		private static VisibilityKind GetVisibilityKind(SR.MethodAttributes attributes)
+		{
+			var result = VisibilityKind.Unknown;
+
+			if (attributes.HasFlag(SR.MethodAttributes.Public))
+			{
+				result = VisibilityKind.Public;
+			}
+			else if (attributes.HasFlag(SR.MethodAttributes.FamORAssem))
+			{
+				result = VisibilityKind.Internal | VisibilityKind.Protected;
+			}
+			else if (attributes.HasFlag(SR.MethodAttributes.Assembly))
+			{
+				result = VisibilityKind.Internal;
+			}
+			else if (attributes.HasFlag(SR.MethodAttributes.Family))
+			{
+				result = VisibilityKind.Protected;
+			}
+			else if (attributes.HasFlag(SR.MethodAttributes.Private))
+			{
+				result = VisibilityKind.Private;
 			}
 
 			return result;
@@ -355,8 +469,31 @@ namespace MetadataProvider
 			field.ContainingType = currentType;
 			field.Type = fielddef.DecodeSignature(signatureTypeProvider, defGenericContext);
 			field.IsStatic = fielddef.Attributes.HasFlag(SR.FieldAttributes.Static);
+			field.Visibility = GetVisibilityKind(fielddef.Attributes);
+			field.Value = ExtractFieldDefaultValue(fielddef);
 
 			currentType.Fields.Add(field);
+		}
+
+		private Constant ExtractFieldDefaultValue(SRM.FieldDefinition fielddef)
+		{
+			Constant result = null;
+			var hasDefaultValue = fielddef.Attributes.HasFlag(SR.FieldAttributes.HasDefault);
+
+			if (hasDefaultValue)
+			{
+				var defaultValueHandle = fielddef.GetDefaultValue();
+				var constant = metadata.GetConstant(defaultValueHandle);
+				var reader = metadata.GetBlobReader(constant.Value);
+				var value = reader.ReadConstant(constant.TypeCode);
+
+				result = new Constant(value)
+				{
+					Type = TypeHelper.ToType(constant.TypeCode)
+				};
+			}
+
+			return result;
 		}
 
 		private void ExtractMethod(SRM.MethodDefinitionHandle methoddefHandle)
@@ -365,6 +502,7 @@ namespace MetadataProvider
 			var method = GetDefinedMethod(methoddefHandle);
 
 			method.ContainingType = currentType;
+			method.Visibility = GetVisibilityKind(methoddef.Attributes);
 			method.IsStatic = methoddef.Attributes.HasFlag(SR.MethodAttributes.Static);
 			method.IsAbstract = methoddef.Attributes.HasFlag(SR.MethodAttributes.Abstract);
 			method.IsVirtual = methoddef.Attributes.HasFlag(SR.MethodAttributes.Virtual);
@@ -403,7 +541,7 @@ namespace MetadataProvider
 			var parameter = new MethodParameter((ushort)parameterdef.SequenceNumber, parameterName, type)
 			{
 				Kind = GetParameterKind(parameterdef.Attributes, type),
-				DefaultValue = ExtractParameterDefaultValue(parameterdef, type)
+				DefaultValue = ExtractParameterDefaultValue(parameterdef)
 			};
 
 			currentMethod.Parameters.Add(parameter);
@@ -426,7 +564,7 @@ namespace MetadataProvider
 			return result;
 		}
 
-		private Constant ExtractParameterDefaultValue(SRM.Parameter parameterdef, IType type)
+		private Constant ExtractParameterDefaultValue(SRM.Parameter parameterdef)
 		{
 			Constant result = null;
 			var hasDefaultValue = parameterdef.Attributes.HasFlag(SR.ParameterAttributes.HasDefault);
@@ -440,7 +578,7 @@ namespace MetadataProvider
 
 				result = new Constant(value)
 				{
-					Type = type
+					Type = TypeHelper.ToType(constant.TypeCode)
 				};
 			}
 

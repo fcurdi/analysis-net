@@ -7,6 +7,15 @@ using System.Text;
 
 namespace Test
 {
+	enum Days { Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday }
+
+	delegate int MyDelegate(int n);
+
+	interface IMyInterface
+	{
+		void SomeMethod(int m);
+	}
+
 	struct Point
 	{
 		public int x, y;
@@ -31,6 +40,10 @@ namespace Test
 		public int F1;
 		private static int F2 = 0;
 		private bool F3;
+
+		protected bool F4;
+		internal bool F5;
+		protected internal bool F6;
 
 		public void ExampleBugCopyPropagation()
 		{
