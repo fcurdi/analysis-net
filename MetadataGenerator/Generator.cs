@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
@@ -40,11 +41,11 @@ namespace MetadataGenerator
 
                 var mscorlibAssemblyRef = metadata.AddAssemblyReference(
                     name: metadata.GetOrAddString("mscorlib"),
-                    version: new Version(4, 0, 0, 0),
-                    culture: default(StringHandle),
-                    publicKeyOrToken: metadata.GetOrAddBlob(ImmutableArray.Create<byte>(0xB7, 0x7A, 0x5C, 0x56, 0x19, 0x34, 0xE0, 0x89)),
-                    flags: default(AssemblyFlags),
-                    hashValue: default(BlobHandle));
+                    version: new Version(4, 0, 0, 0), //FIXME ??
+                    culture: default(StringHandle), //FIXME ??
+                     publicKeyOrToken: metadata.GetOrAddBlob(ImmutableArray.Create<byte>(0xB7, 0x7A, 0x5C, 0x56, 0x19, 0x34, 0xE0, 0x89)),//FIXME ??
+                    flags: default(AssemblyFlags), //FIXME ??
+                    hashValue: default(BlobHandle));//FIXME ??
 
                 var systemObjectTypeRef = metadata.AddTypeReference(
                     resolutionScope: mscorlibAssemblyRef,
@@ -54,87 +55,71 @@ namespace MetadataGenerator
                 var systemEnumTypeRef = metadata.AddTypeReference(
                     resolutionScope: mscorlibAssemblyRef,
                     @namespace: metadata.GetOrAddString("System"),
-                    name: metadata.GetOrAddString("Enum"));
+                    name: metadata.GetOrAddString("enum")); //FIXME ->> es "Enum" pero rompe
 
                 var ilBuilder = new BlobBuilder();
                 var methodBodyStream = new MethodBodyStreamEncoder(ilBuilder);
+                var metadataTokensMethodsOffset = 1;
+                var metadataTokensFieldsOffset = 1;
                 foreach (var namezpace in assembly.RootNamespace.Namespaces)
                 {
                     foreach (var typeDefinition in namezpace.Types)
                     {
                         TypeAttributes typeAttributes;
                         MethodDefinitionHandle? firstMethodHandle = null;
+                        FieldDefinitionHandle? firstFieldHandle = null;
                         EntityHandle baseType;
                         if (typeDefinition.Kind.Equals(Model.Types.TypeDefinitionKind.Class))
                         {
 
                             foreach (var method in typeDefinition.Methods)
                             {
-                                var methodSignature = new BlobBuilder();
-                                new BlobEncoder(methodSignature).
-                                    MethodSignature().
-                                    Parameters(
-                                        method.Parameters.Count,
-                                        returnType =>
-                                        {
-                                            if (method.ReturnType.Equals(Model.Types.PlatformTypes.Void))
-                                            {
-                                                returnType.Void();
-                                            }
-                                            else
-                                            {
-                                                EncodeType(method.ReturnType, returnType.Type());
-                                            }
-
-                                        },
-                                        parameters =>
-                                        {
-                                            foreach (var parameter in method.Parameters)
-                                            {
-                                                EncodeType(parameter.Type, parameters.AddParameter().Type());
-                                            }
-
-                                        });
-
-                                var instructions = new InstructionEncoder(new BlobBuilder());
-
-                                instructions.OpCode(ILOpCode.Nop);
-                                instructions.OpCode(ILOpCode.Ret);
-
-                                var methodAttributes =
-                                    (method.IsAbstract ? MethodAttributes.Abstract : 0) |
-                                    (method.IsStatic ? MethodAttributes.Static : 0) |
-                                    (method.IsVirtual ? MethodAttributes.Virtual : 0) |
-                                    // (method.IsExternal ? MethodAttributes.) | // FIXME
-                                    (method.IsConstructor ? MethodAttributes.SpecialName | MethodAttributes.RTSpecialName : 0) |
-                                    MethodAttributes.Public | // FIXME: how to know?
-                                    MethodAttributes.HideBySig; // FIXME: ?
-
-                                var methodDefinitionHandle = metadata.AddMethodDefinition(
-                                    attributes: methodAttributes,
-                                    implAttributes: MethodImplAttributes.IL | MethodImplAttributes.Managed, //FIXME
-                                    name: metadata.GetOrAddString(method.Name),
-                                    signature: metadata.GetOrAddBlob(methodSignature),
-                                    bodyOffset: methodBodyStream.AddMethodBody(instructions),
-                                    parameterList: default(ParameterHandle)); //FIXME
-
+                                var methodHandle = generateMethod(metadata, ref methodBodyStream, method);
                                 if (!firstMethodHandle.HasValue)
                                 {
-                                    firstMethodHandle = methodDefinitionHandle;
+                                    firstMethodHandle = methodHandle;
                                 }
 
                             }
 
-                            typeAttributes = //FIXME
-                                  TypeAttributes.Class |
-                                  TypeAttributes.Public |
-                                  TypeAttributes.BeforeFieldInit;
+                            metadataTokensMethodsOffset += typeDefinition.Methods.Count;
+                            typeAttributes = ClassTypeAttributesFor(typeDefinition);
                             baseType = systemObjectTypeRef;
                         }
                         else if (typeDefinition.Kind.Equals(Model.Types.TypeDefinitionKind.Enum))
                         {
-                            typeAttributes = TypeAttributes.BeforeFieldInit | TypeAttributes.Public;
+                            typeAttributes = EnumTypeAttributesFor(typeDefinition);
                             baseType = systemEnumTypeRef;
+
+                            var fieldSignatureBlobBuilder = new BlobBuilder();
+                            new BlobEncoder(fieldSignatureBlobBuilder)
+                                .FieldSignature()
+                                .Int32(); //FIXME hay que sacarlo del field.type
+
+                            metadataTokensFieldsOffset++;
+
+                            firstFieldHandle = metadata.AddFieldDefinition(
+                                attributes: FieldAttributes.Public | FieldAttributes.SpecialName | FieldAttributes.RTSpecialName,
+                                name: metadata.GetOrAddString("value_"),
+                                signature: metadata.GetOrAddBlob(fieldSignatureBlobBuilder));
+
+                            typeDefinition.Fields
+                                .Where(field => !field.Name.Equals("value_"))
+                                .ToList()
+                                .ForEach(field =>
+                                {
+                                    fieldSignatureBlobBuilder.Clear();
+                                    new BlobEncoder(fieldSignatureBlobBuilder)
+                                        .FieldSignature()
+                                        .Int32(); //FIXME hay que sacarlo del field.type
+
+                                    var fieldDefinitionHandle = metadata.AddFieldDefinition(
+                                        attributes: FieldAttributes.Public | FieldAttributes.Static | FieldAttributes.Literal,
+                                        name: metadata.GetOrAddString(field.Name),
+                                        signature: metadata.GetOrAddBlob(fieldSignatureBlobBuilder));
+
+                                    metadataTokensFieldsOffset++;
+                                });
                         }
                         else
                         {
@@ -146,8 +131,22 @@ namespace MetadataGenerator
                             @namespace: metadata.GetOrAddString(namezpace.Name),
                             name: metadata.GetOrAddString(typeDefinition.Name),
                             baseType: baseType,
-                            fieldList: MetadataTokens.FieldDefinitionHandle(1), //FIXME
-                            methodList: firstMethodHandle ?? MetadataTokens.MethodDefinitionHandle(1));
+                            fieldList: firstFieldHandle ?? MetadataTokens.FieldDefinitionHandle(metadataTokensFieldsOffset),
+                            //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los fields incorrectos
+
+
+                            /// If the type declares fields the handle of the first one, otherwise the handle of the first field declared by the next type definition.
+                            /// If no type defines any fields in the module, <see cref="MetadataTokens.FieldDefinitionHandle(int)"/>(1).
+
+
+                            methodList: firstMethodHandle ?? MetadataTokens.MethodDefinitionHandle(metadataTokensMethodsOffset));
+                        //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los metodos incorrectos
+
+                        /// If the type declares methods the handle of the first one, otherwise the handle of the first method declared by the next type definition.
+                        /// If no type defines any methods in the module, <see cref="MetadataTokens.MethodDefinitionHandle(int)"/>(1).
+
+
+
                     }
                 }
                 var peHeaderBuilder = new PEHeaderBuilder(imageCharacteristics: Characteristics.Dll);
@@ -163,6 +162,88 @@ namespace MetadataGenerator
                 peBlob.WriteContentTo(peStream);
             }
 
+        }
+
+        private static TypeAttributes EnumTypeAttributesFor(Model.Types.TypeDefinition typeDefinition)
+        {
+            return TypeAttributes.Class |
+                (Model.Types.VisibilityKind.Public.Equals(typeDefinition.Visibility) ? TypeAttributes.Public : TypeAttributes.NotPublic) |
+                TypeAttributes.Sealed;
+        }
+
+        private static TypeAttributes ClassTypeAttributesFor(Model.Types.TypeDefinition typeDefinition)
+        {
+            return TypeAttributes.Class |
+                  TypeAttributes.BeforeFieldInit |
+                  (Model.Types.VisibilityKind.Public.Equals(typeDefinition.Visibility) ? TypeAttributes.Public : TypeAttributes.NotPublic);
+        }
+
+        private MethodDefinitionHandle generateMethod(MetadataBuilder metadata, ref MethodBodyStreamEncoder methodBodyStream, Model.Types.MethodDefinition method)
+        {
+            var methodSignature = new BlobBuilder();
+            new BlobEncoder(methodSignature).
+                MethodSignature().
+                Parameters(
+                    method.Parameters.Count,
+                    returnType =>
+                    {
+                        if (method.ReturnType.Equals(Model.Types.PlatformTypes.Void))
+                        {
+                            returnType.Void();
+                        }
+                        else
+                        {
+                            EncodeType(method.ReturnType, returnType.Type());
+                        }
+
+                    },
+                    parameters =>
+                    {
+                        foreach (var parameter in method.Parameters)
+                        {
+                            EncodeType(parameter.Type, parameters.AddParameter().Type());
+                        }
+
+                    });
+
+            var instructions = new InstructionEncoder(new BlobBuilder());
+
+            instructions.OpCode(ILOpCode.Nop);
+            instructions.OpCode(ILOpCode.Ret);
+
+            var methodAttributes =
+                (method.IsAbstract ? MethodAttributes.Abstract : 0) |
+                (method.IsStatic ? MethodAttributes.Static : 0) |
+                (method.IsVirtual ? MethodAttributes.Virtual : 0) |
+                // (method.IsExternal ? MethodAttributes.) | // FIXME
+                (method.IsConstructor ? MethodAttributes.SpecialName | MethodAttributes.RTSpecialName : 0) |
+                MethodAttributes.HideBySig;
+
+            switch (method.Visibility)
+            {
+                case Model.Types.VisibilityKind.Public:
+                    methodAttributes |= MethodAttributes.Public;
+                    break;
+                case Model.Types.VisibilityKind.Private:
+                    methodAttributes |= MethodAttributes.Private;
+                    break;
+                case Model.Types.VisibilityKind.Protected:
+                    methodAttributes |= MethodAttributes.Family;
+                    break;
+                case Model.Types.VisibilityKind.Internal:
+                    methodAttributes |= MethodAttributes.Assembly;
+                    break;
+                default:
+                    throw method.Visibility.ToUnknownValueException();
+            }
+
+            return metadata.AddMethodDefinition(
+                attributes: methodAttributes,
+                implAttributes: MethodImplAttributes.IL | MethodImplAttributes.Managed, //FIXME
+                name: metadata.GetOrAddString(method.Name),
+                signature: metadata.GetOrAddBlob(methodSignature),
+                bodyOffset: methodBodyStream.AddMethodBody(instructions),
+                parameterList: default(ParameterHandle)); //FIXME
         }
 
         //FIXME: names, type of parameters
@@ -183,6 +264,7 @@ namespace MetadataGenerator
             //}
 
             //FIXME incomplete
+
             if (returnType.Equals(Model.Types.PlatformTypes.Boolean))
             {
                 signatureTypeEncoder.Boolean();
@@ -216,9 +298,13 @@ namespace MetadataGenerator
             {
                 signatureTypeEncoder.String();
             }
+            else if (returnType.Equals(Model.Types.PlatformTypes.Single))
+            {
+                signatureTypeEncoder.Single();
+            }
             else
             {
-                throw signatureTypeEncoder.ToUnknownValueException();
+                throw new Exception("Unknown value:" + returnType.ToString());
             }
 
         }
