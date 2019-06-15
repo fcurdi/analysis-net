@@ -3,8 +3,8 @@
 
     public enum AtTheBeginingEnum
     {
-        CONSTANT1,
-        CONSTANT2
+        CONSTANT1 = 10,
+        CONSTANT2 = 12
     }
 
     public class EmptyClass

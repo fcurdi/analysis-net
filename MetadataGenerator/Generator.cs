@@ -55,7 +55,7 @@ namespace MetadataGenerator
                 var systemEnumTypeRef = metadata.AddTypeReference(
                     resolutionScope: mscorlibAssemblyRef,
                     @namespace: metadata.GetOrAddString("System"),
-                    name: metadata.GetOrAddString("enum")); //FIXME ->> es "Enum" pero rompe
+                    name: metadata.GetOrAddString("Enum"));
 
                 var ilBuilder = new BlobBuilder();
                 var methodBodyStream = new MethodBodyStreamEncoder(ilBuilder);
@@ -65,10 +65,8 @@ namespace MetadataGenerator
                 {
                     foreach (var typeDefinition in namezpace.Types)
                     {
-                        TypeAttributes typeAttributes;
                         MethodDefinitionHandle? firstMethodHandle = null;
                         FieldDefinitionHandle? firstFieldHandle = null;
-                        EntityHandle baseType;
                         if (typeDefinition.Kind.Equals(Model.Types.TypeDefinitionKind.Class))
                         {
 
@@ -83,14 +81,24 @@ namespace MetadataGenerator
                             }
 
                             metadataTokensMethodsOffset += typeDefinition.Methods.Count;
-                            typeAttributes = ClassTypeAttributesFor(typeDefinition);
-                            baseType = systemObjectTypeRef;
+
+                            metadata.AddTypeDefinition(
+                                attributes: ClassTypeAttributesFor(typeDefinition),
+                                @namespace: metadata.GetOrAddString(namezpace.Name),
+                                name: metadata.GetOrAddString(typeDefinition.Name),
+                                baseType: systemObjectTypeRef, //FIXME  podria ser una subclase de otra cosa
+                                fieldList: firstFieldHandle ?? MetadataTokens.FieldDefinitionHandle(metadataTokensFieldsOffset),
+                                //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los fields incorrectos
+                                /// If the type declares fields the handle of the first one, otherwise the handle of the first field declared by the next type definition.
+                                /// If no type defines any fields in the module, <see cref="MetadataTokens.FieldDefinitionHandle(int)"/>(1).
+                                methodList: firstMethodHandle ?? MetadataTokens.MethodDefinitionHandle(metadataTokensMethodsOffset));
+                            //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los metodos incorrectos
+                            /// If the type declares methods the handle of the first one, otherwise the handle of the first method declared by the next type definition.
+                            /// If no type defines any methods in the module, <see cref="MetadataTokens.MethodDefinitionHandle(int)"/>(1).
+
                         }
                         else if (typeDefinition.Kind.Equals(Model.Types.TypeDefinitionKind.Enum))
                         {
-                            typeAttributes = EnumTypeAttributesFor(typeDefinition);
-                            baseType = systemEnumTypeRef;
-
                             var fieldSignatureBlobBuilder = new BlobBuilder();
                             new BlobEncoder(fieldSignatureBlobBuilder)
                                 .FieldSignature()
@@ -100,23 +108,39 @@ namespace MetadataGenerator
 
                             firstFieldHandle = metadata.AddFieldDefinition(
                                 attributes: FieldAttributes.Public | FieldAttributes.SpecialName | FieldAttributes.RTSpecialName,
-                                name: metadata.GetOrAddString("value_"),
+                                name: metadata.GetOrAddString("value__"),
                                 signature: metadata.GetOrAddBlob(fieldSignatureBlobBuilder));
 
+                            var selfTypeDefinitionHandle = metadata.AddTypeDefinition(
+                                attributes: EnumTypeAttributesFor(typeDefinition),
+                                @namespace: metadata.GetOrAddString(namezpace.Name),
+                                name: metadata.GetOrAddString(typeDefinition.Name),
+                                baseType: systemEnumTypeRef,
+                                fieldList: firstFieldHandle.Value,
+                                //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los fields incorrectos
+                                /// If the type declares fields the handle of the first one, otherwise the handle of the first field declared by the next type definition.
+                                /// If no type defines any fields in the module, <see cref="MetadataTokens.FieldDefinitionHandle(int)"/>(1).
+                                methodList: MetadataTokens.MethodDefinitionHandle(metadataTokensMethodsOffset));
+                            //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los metodos incorrectos
+                            /// If the type declares methods the handle of the first one, otherwise the handle of the first method declared by the next type definition.
+                            /// If no type defines any methods in the module, <see cref="MetadataTokens.MethodDefinitionHandle(int)"/>(1).
+
                             typeDefinition.Fields
-                                .Where(field => !field.Name.Equals("value_"))
+                                .Where(field => !field.Name.Equals("value__"))
                                 .ToList()
                                 .ForEach(field =>
                                 {
                                     fieldSignatureBlobBuilder.Clear();
                                     new BlobEncoder(fieldSignatureBlobBuilder)
                                         .FieldSignature()
-                                        .Int32(); //FIXME hay que sacarlo del field.type
+                                        .Type(selfTypeDefinitionHandle, true);
 
-                                    var fieldDefinitionHandle = metadata.AddFieldDefinition(
-                                        attributes: FieldAttributes.Public | FieldAttributes.Static | FieldAttributes.Literal,
-                                        name: metadata.GetOrAddString(field.Name),
-                                        signature: metadata.GetOrAddBlob(fieldSignatureBlobBuilder));
+                                    metadata.AddConstant(
+                                        metadata.AddFieldDefinition(
+                                            attributes: FieldAttributes.Public | FieldAttributes.Static | FieldAttributes.Literal,
+                                            name: metadata.GetOrAddString(field.Name),
+                                            signature: metadata.GetOrAddBlob(fieldSignatureBlobBuilder)),
+                                        field.Value.Value);
 
                                     metadataTokensFieldsOffset++;
                                 });
@@ -125,27 +149,6 @@ namespace MetadataGenerator
                         {
                             throw new Exception();
                         }
-
-                        metadata.AddTypeDefinition(
-                            attributes: typeAttributes,
-                            @namespace: metadata.GetOrAddString(namezpace.Name),
-                            name: metadata.GetOrAddString(typeDefinition.Name),
-                            baseType: baseType,
-                            fieldList: firstFieldHandle ?? MetadataTokens.FieldDefinitionHandle(metadataTokensFieldsOffset),
-                            //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los fields incorrectos
-
-
-                            /// If the type declares fields the handle of the first one, otherwise the handle of the first field declared by the next type definition.
-                            /// If no type defines any fields in the module, <see cref="MetadataTokens.FieldDefinitionHandle(int)"/>(1).
-
-
-                            methodList: firstMethodHandle ?? MetadataTokens.MethodDefinitionHandle(metadataTokensMethodsOffset));
-                        //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los metodos incorrectos
-
-                        /// If the type declares methods the handle of the first one, otherwise the handle of the first method declared by the next type definition.
-                        /// If no type defines any methods in the module, <see cref="MetadataTokens.MethodDefinitionHandle(int)"/>(1).
-
-
 
                     }
                 }
