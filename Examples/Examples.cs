@@ -3,18 +3,18 @@
 
     public enum AtTheBeginingEnum
     {
-        CONSTANT1 = 10,
-        CONSTANT2 = 12
+        CONSTANT1,
+        CONSTANT2
     }
 
     public class EmptyClass
     {
     }
 
-    public enum AtTheMiddleEnum
+    public enum AtTheMiddleEnumOfBytes : byte
     {
-        CONSTANT1,
-        CONSTANT2
+        CONSTANT1 = 10,
+        CONSTANT2 = 20
     }
 
     public class ClassWithMethods
@@ -43,10 +43,10 @@
 
     }
 
-    public enum AtTheEndEnum
+    public enum AtTheEndEnumOfUShorts : ushort
     {
-        CONSTANT1,
-        CONSTANT2
+        CONSTANT1 = 1,
+        CONSTANT2 = 2
     }
 
 
@@ -54,10 +54,10 @@
 
 namespace SecondNamespace
 {
-    public enum AnotheEnum
+    public enum EnumOfLongValues : long
     {
-        CONSTANT1,
-        CONSTANT2
+        CONSTANT = 2L,
+        CONSTANT2 = 50L
     }
 
     public class AnotherClassWithMethods

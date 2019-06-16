@@ -100,9 +100,10 @@ namespace MetadataGenerator
                         else if (typeDefinition.Kind.Equals(Model.Types.TypeDefinitionKind.Enum))
                         {
                             var fieldSignatureBlobBuilder = new BlobBuilder();
-                            new BlobEncoder(fieldSignatureBlobBuilder)
-                                .FieldSignature()
-                                .Int32(); //FIXME hay que sacarlo del field.type
+                            EncodeType(
+                                typeDefinition.Fields.First().Type,
+                                new BlobEncoder(fieldSignatureBlobBuilder)
+                                .FieldSignature());
 
                             metadataTokensFieldsOffset++;
 
@@ -250,7 +251,7 @@ namespace MetadataGenerator
         }
 
         //FIXME: names, type of parameters
-        private void EncodeType(Model.Types.IType returnType, SignatureTypeEncoder signatureTypeEncoder)
+        private void EncodeType(Model.Types.IType type, SignatureTypeEncoder signatureTypeEncoder)
         {
 
             // reflection? FIXME
@@ -267,47 +268,61 @@ namespace MetadataGenerator
             //}
 
             //FIXME incomplete
-
-            if (returnType.Equals(Model.Types.PlatformTypes.Boolean))
+            if (type.Equals(Model.Types.PlatformTypes.Boolean))
             {
                 signatureTypeEncoder.Boolean();
             }
-            else if (returnType.Equals(Model.Types.PlatformTypes.Byte))
+            else if (type.Equals(Model.Types.PlatformTypes.Byte))
             {
                 signatureTypeEncoder.Byte();
             }
-            else if (returnType.Equals(Model.Types.PlatformTypes.Char))
+            else if (type.Equals(Model.Types.PlatformTypes.SByte))
+            {
+                signatureTypeEncoder.SByte();
+            }
+            else if (type.Equals(Model.Types.PlatformTypes.Char))
             {
                 signatureTypeEncoder.Char();
             }
-            else if (returnType.Equals(Model.Types.PlatformTypes.Double))
+            else if (type.Equals(Model.Types.PlatformTypes.Double))
             {
                 signatureTypeEncoder.Double();
             }
-            else if (returnType.Equals(Model.Types.PlatformTypes.Int16))
+            else if (type.Equals(Model.Types.PlatformTypes.Int16))
             {
                 signatureTypeEncoder.Int16();
             }
-            else if (returnType.Equals(Model.Types.PlatformTypes.Int32))
+            else if (type.Equals(Model.Types.PlatformTypes.UInt16))
+            {
+                signatureTypeEncoder.UInt16();
+            }
+            else if (type.Equals(Model.Types.PlatformTypes.Int32))
             {
                 signatureTypeEncoder.Int32();
             }
-            else if (returnType.Equals(Model.Types.PlatformTypes.Int64))
+            else if (type.Equals(Model.Types.PlatformTypes.UInt32))
+            {
+                signatureTypeEncoder.UInt32();
+            }
+            else if (type.Equals(Model.Types.PlatformTypes.Int64))
             {
                 signatureTypeEncoder.Int64();
             }
-
-            else if (returnType.Equals(Model.Types.PlatformTypes.String))
+            else if (type.Equals(Model.Types.PlatformTypes.UInt64))
+            {
+                signatureTypeEncoder.UInt64();
+            }
+            else if (type.Equals(Model.Types.PlatformTypes.String))
             {
                 signatureTypeEncoder.String();
             }
-            else if (returnType.Equals(Model.Types.PlatformTypes.Single))
+            else if (type.Equals(Model.Types.PlatformTypes.Single))
             {
                 signatureTypeEncoder.Single();
             }
             else
             {
-                throw new Exception("Unknown value:" + returnType.ToString());
+                throw new Exception("Unknown value:" + type.ToString());
             }
 
         }
