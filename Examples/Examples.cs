@@ -60,13 +60,37 @@ namespace SecondNamespace
         CONSTANT2 = 50L
     }
 
-    public class AnotherClassWithMethods
+    public class ClassImplementingInterface : ISampleInterface
+    {
+        public int Prop
+        {
+            get
+            {
+                return Prop;
+            }
+            set
+            {
+                this.Prop = value;
+            }
+        }
+
+        public void DoSomething()
+        {
+        }
+
+    }
+
+    public interface ISampleInterface
     {
 
-        public string Hello()
+        void DoSomething();
+
+        int Prop
         {
-            return "Hello";
+            get;
+            set;
         }
+
 
     }
 

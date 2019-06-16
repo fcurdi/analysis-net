@@ -72,7 +72,7 @@ namespace MetadataGenerator
 
                             foreach (var method in typeDefinition.Methods)
                             {
-                                var methodHandle = generateMethod(metadata, ref methodBodyStream, method);
+                                var methodHandle = GenerateMethod(metadata, ref methodBodyStream, method);
                                 if (!firstMethodHandle.HasValue)
                                 {
                                     firstMethodHandle = methodHandle;
@@ -146,9 +146,35 @@ namespace MetadataGenerator
                                     metadataTokensFieldsOffset++;
                                 });
                         }
-                        else
+                        else if (typeDefinition.Kind.Equals(Model.Types.TypeDefinitionKind.Interface))
                         {
-                            throw new Exception();
+
+
+                            foreach (var method in typeDefinition.Methods)
+                            {
+                                var methodHandle = GenerateMethod(metadata, ref methodBodyStream, method);
+                                if (!firstMethodHandle.HasValue)
+                                {
+                                    firstMethodHandle = methodHandle;
+                                }
+                            }
+
+                            metadataTokensMethodsOffset += typeDefinition.Methods.Count;
+
+                            metadata.AddTypeDefinition(
+                                attributes: InterfaceTypeAttributesFor(typeDefinition),
+                                @namespace: metadata.GetOrAddString(namezpace.Name),
+                                name: metadata.GetOrAddString(typeDefinition.Name),
+                                baseType: default(EntityHandle),
+                                fieldList: default(FieldDefinitionHandle), //FIXME props
+                                                                           //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los fields incorrectos
+                                                                           /// If the type declares fields the handle of the first one, otherwise the handle of the first field declared by the next type definition.
+                                                                           /// If no type defines any fields in the module, <see cref="MetadataTokens.FieldDefinitionHandle(int)"/>(1).
+                                methodList: firstMethodHandle ?? MetadataTokens.MethodDefinitionHandle(metadataTokensMethodsOffset));
+                            //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los metodos incorrectos
+                            /// If the type declares methods the handle of the first one, otherwise the handle of the first method declared by the next type definition.
+                            /// If no type defines any methods in the module, <see cref="MetadataTokens.MethodDefinitionHandle(int)"/>(1).
+
                         }
 
                     }
@@ -182,7 +208,12 @@ namespace MetadataGenerator
                   (Model.Types.VisibilityKind.Public.Equals(typeDefinition.Visibility) ? TypeAttributes.Public : TypeAttributes.NotPublic);
         }
 
-        private MethodDefinitionHandle generateMethod(MetadataBuilder metadata, ref MethodBodyStreamEncoder methodBodyStream, Model.Types.MethodDefinition method)
+        private static TypeAttributes InterfaceTypeAttributesFor(Model.Types.TypeDefinition typeDefinition)
+        {
+            return TypeAttributes.Interface | TypeAttributes.Public | TypeAttributes.Abstract;
+        }
+
+        private MethodDefinitionHandle GenerateMethod(MetadataBuilder metadata, ref MethodBodyStreamEncoder methodBodyStream, Model.Types.MethodDefinition method)
         {
             var methodSignature = new BlobBuilder();
             new BlobEncoder(methodSignature).
@@ -219,8 +250,9 @@ namespace MetadataGenerator
                 (method.IsAbstract ? MethodAttributes.Abstract : 0) |
                 (method.IsStatic ? MethodAttributes.Static : 0) |
                 (method.IsVirtual ? MethodAttributes.Virtual : 0) |
-                // (method.IsExternal ? MethodAttributes.) | // FIXME
+                // MethodAttributes.NewSlot | FIXME how to know? needed for interface method at least
                 (method.IsConstructor ? MethodAttributes.SpecialName | MethodAttributes.RTSpecialName : 0) |
+                (method.Name.Equals("get_Prop") || method.Name.Equals("set_Prop") ? MethodAttributes.SpecialName : 0) | //FIXME
                 MethodAttributes.HideBySig;
 
             switch (method.Visibility)
