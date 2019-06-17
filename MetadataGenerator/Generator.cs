@@ -101,7 +101,7 @@ namespace MetadataGenerator
                         {
                             var fieldSignatureBlobBuilder = new BlobBuilder();
                             EncodeType(
-                                typeDefinition.Fields.First().Type,
+                                typeDefinition.Fields.First().Type, //FIXME first if empty
                                 new BlobEncoder(fieldSignatureBlobBuilder)
                                 .FieldSignature());
 
@@ -155,12 +155,32 @@ namespace MetadataGenerator
                                 var methodHandle = GenerateMethod(metadata, ref methodBodyStream, method);
                                 if (!firstMethodHandle.HasValue)
                                 {
+
                                     firstMethodHandle = methodHandle;
                                 }
                             }
 
                             metadataTokensMethodsOffset += typeDefinition.Methods.Count;
 
+                            /* //FIXME properties
+                            var propertySignatureBlogBuilder = new BlobBuilder();
+                            new BlobEncoder(propertySignatureBlogBuilder)
+                                .PropertySignature(isInstanceProperty: true) //FIXME when false?
+                                .Parameters(
+                                0,
+                                returnType =>
+                                {
+                                    returnType.Type().Int32();
+                                },
+                                parameters =>
+                                {
+                                });
+
+                            metadata.AddProperty(
+                                attributes: PropertyAttributes.None,
+                                name: metadata.GetOrAddString("get_Prop"),
+                                signature: metadata.GetOrAddBlob(propertySignatureBlogBuilder));
+                                */
                             metadata.AddTypeDefinition(
                                 attributes: InterfaceTypeAttributesFor(typeDefinition),
                                 @namespace: metadata.GetOrAddString(namezpace.Name),
@@ -174,7 +194,6 @@ namespace MetadataGenerator
                             //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los metodos incorrectos
                             /// If the type declares methods the handle of the first one, otherwise the handle of the first method declared by the next type definition.
                             /// If no type defines any methods in the module, <see cref="MetadataTokens.MethodDefinitionHandle(int)"/>(1).
-
                         }
 
                     }
@@ -216,9 +235,9 @@ namespace MetadataGenerator
         private MethodDefinitionHandle GenerateMethod(MetadataBuilder metadata, ref MethodBodyStreamEncoder methodBodyStream, Model.Types.MethodDefinition method)
         {
             var methodSignature = new BlobBuilder();
-            new BlobEncoder(methodSignature).
-                MethodSignature().
-                Parameters(
+            new BlobEncoder(methodSignature)
+                .MethodSignature(isInstanceMethod: true) //FIXME when false?
+                .Parameters(
                     method.Parameters.Count,
                     returnType =>
                     {
