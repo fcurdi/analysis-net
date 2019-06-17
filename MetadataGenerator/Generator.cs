@@ -82,6 +82,51 @@ namespace MetadataGenerator
 
                             metadataTokensMethodsOffset += typeDefinition.Methods.Count;
 
+                            // Field initial values are assigned either on ctor or cctor (if static)
+                            typeDefinition.Fields //TODO extract method? duplicated code for enum
+                                .ToList()
+                                .ForEach(field =>
+                                {
+                                    var fieldSignatureBlobBuilder = new BlobBuilder();
+                                    EncodeType(
+                                        field.Type,
+                                        new BlobEncoder(fieldSignatureBlobBuilder)
+                                        .FieldSignature());
+
+                                    var fieldAttributes =
+                                    (field.IsStatic ? FieldAttributes.Static : 0);
+                                    // (field is readonly ? FieldAttributes.InitOnly : 0); //FIXME how to know if readonly?
+                                    switch (field.Visibility) //TODO extract, duplicated
+                                    {
+
+                                        case Model.Types.VisibilityKind.Public:
+                                            fieldAttributes |= FieldAttributes.Public;
+                                            break;
+                                        case Model.Types.VisibilityKind.Private:
+                                            fieldAttributes |= FieldAttributes.Private;
+                                            break;
+                                        case Model.Types.VisibilityKind.Protected:
+                                            fieldAttributes |= FieldAttributes.Family;
+                                            break;
+                                        case Model.Types.VisibilityKind.Internal:
+                                            fieldAttributes |= FieldAttributes.Assembly;
+                                            break;
+                                        default:
+                                            throw field.Visibility.ToUnknownValueException();
+                                    }
+                                    var fieldDefinitionHandle = metadata.AddFieldDefinition(
+                                        attributes: fieldAttributes,
+                                        name: metadata.GetOrAddString(field.Name),
+                                        signature: metadata.GetOrAddBlob(fieldSignatureBlobBuilder));
+
+                                    if (!firstFieldHandle.HasValue)
+                                    {
+                                        firstFieldHandle = fieldDefinitionHandle;
+                                    }
+
+                                    metadataTokensFieldsOffset++;
+                                });
+
                             metadata.AddTypeDefinition(
                                 attributes: ClassTypeAttributesFor(typeDefinition),
                                 @namespace: metadata.GetOrAddString(namezpace.Name),
@@ -377,6 +422,5 @@ namespace MetadataGenerator
             }
 
         }
-
     }
 }

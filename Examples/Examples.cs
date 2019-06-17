@@ -13,12 +13,17 @@
 
     public enum AtTheMiddleEnumOfBytes : byte
     {
-        CONSTANT1 = 10,
-        CONSTANT2 = 20
+        Byte10 = 10,
+        Byte20 = 20
     }
 
-    public class ClassWithMethods
+    public class ComplexClass
     {
+
+        static readonly double staticDouble = 5.27;
+        private readonly int readOnlyIntField = 212;
+        public string unassignedString;
+
         public void DoNothing() { }
 
         private int Sum(int arg1, int arg2)
@@ -45,8 +50,8 @@
 
     public enum AtTheEndEnumOfUShorts : ushort
     {
-        CONSTANT1 = 1,
-        CONSTANT2 = 2
+        USHORT1 = 1,
+        USHORT2 = 2
     }
 
 
@@ -56,8 +61,8 @@ namespace SecondNamespace
 {
     public enum EnumOfLongValues : long
     {
-        CONSTANT = 2L,
-        CONSTANT2 = 50L
+        LONG2 = 2L,
+        LONG50 = 50L
     }
 
     public class ClassImplementingInterface : ISampleInterface
