@@ -69,10 +69,37 @@ namespace MetadataGenerator
                         FieldDefinitionHandle? firstFieldHandle = null;
                         if (typeDefinition.Kind.Equals(Model.Types.TypeDefinitionKind.Class))
                         {
+                            //TODO metadata.AddInterfaceImplementation() if applies
+                            //TODO metadata.AddNestedType() if applies
+
+                            /* TODO Properties: works but model is missing Property concept
+                            var propertySignatureBlogBuilder = new BlobBuilder();
+                            new BlobEncoder(propertySignatureBlogBuilder)
+                                .PropertySignature(isInstanceProperty: true) //FIXME when false
+                                .Parameters(
+                                0,
+                                returnType => returnType.Type().Int32(), //FIXME backingField type
+                                parameters => { });
+                                                        
+                                                       
+                            var propertyDefinitionHandle = metadata.AddProperty(
+                                attributes: PropertyAttributes.None, //FIXME
+                                name: metadata.GetOrAddString(""), //FIXME property name
+                                signature: metadata.GetOrAddBlob(propertySignatureBlogBuilder));
+
+                            // asociate methods (get, set) to property
+                            metadata.AddMethodSemantics(
+                                propertyDefinitionHandle,
+                                method.Name.StartsWith("get_") ? MethodSemanticsAttributes.Getter : MethodSemanticsAttributes.Setter, //FIXME,
+                                methodHandle); //getter/setter
+                            metadata.AddPropertyMap(typeDefinitionHandle, propertyDefinitionHandle);
+                            
+                            */
 
                             foreach (var method in typeDefinition.Methods)
                             {
                                 var methodHandle = GenerateMethod(metadata, ref methodBodyStream, method);
+
                                 if (!firstMethodHandle.HasValue)
                                 {
                                     firstMethodHandle = methodHandle;
@@ -127,7 +154,7 @@ namespace MetadataGenerator
                                     metadataTokensFieldsOffset++;
                                 });
 
-                            metadata.AddTypeDefinition(
+                            var typeDefinitionHandle = metadata.AddTypeDefinition(
                                 attributes: ClassTypeAttributesFor(typeDefinition),
                                 @namespace: metadata.GetOrAddString(namezpace.Name),
                                 name: metadata.GetOrAddString(typeDefinition.Name),
@@ -139,7 +166,7 @@ namespace MetadataGenerator
                                 methodList: firstMethodHandle ?? MetadataTokens.MethodDefinitionHandle(metadataTokensMethodsOffset));
                             //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los metodos incorrectos
                             /// If the type declares methods the handle of the first one, otherwise the handle of the first method declared by the next type definition.
-                            /// If no type defines any methods in the module, <see cref="MetadataTokens.MethodDefinitionHandle(int)"/>(1).
+                            /// If no type defines any methods in the module, <see cref="MetadataTokens.MethodDefinitionHandle(int)"/>(1)
 
                         }
                         else if (typeDefinition.Kind.Equals(Model.Types.TypeDefinitionKind.Enum))
@@ -193,6 +220,7 @@ namespace MetadataGenerator
                         }
                         else if (typeDefinition.Kind.Equals(Model.Types.TypeDefinitionKind.Interface))
                         {
+                            //TODO properties
 
 
                             foreach (var method in typeDefinition.Methods)
@@ -207,25 +235,6 @@ namespace MetadataGenerator
 
                             metadataTokensMethodsOffset += typeDefinition.Methods.Count;
 
-                            /* //FIXME properties
-                            var propertySignatureBlogBuilder = new BlobBuilder();
-                            new BlobEncoder(propertySignatureBlogBuilder)
-                                .PropertySignature(isInstanceProperty: true) //FIXME when false?
-                                .Parameters(
-                                0,
-                                returnType =>
-                                {
-                                    returnType.Type().Int32();
-                                },
-                                parameters =>
-                                {
-                                });
-
-                            metadata.AddProperty(
-                                attributes: PropertyAttributes.None,
-                                name: metadata.GetOrAddString("get_Prop"),
-                                signature: metadata.GetOrAddBlob(propertySignatureBlogBuilder));
-                                */
                             metadata.AddTypeDefinition(
                                 attributes: InterfaceTypeAttributesFor(typeDefinition),
                                 @namespace: metadata.GetOrAddString(namezpace.Name),
@@ -238,7 +247,7 @@ namespace MetadataGenerator
                                 methodList: firstMethodHandle ?? MetadataTokens.MethodDefinitionHandle(metadataTokensMethodsOffset));
                             //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los metodos incorrectos
                             /// If the type declares methods the handle of the first one, otherwise the handle of the first method declared by the next type definition.
-                            /// If no type defines any methods in the module, <see cref="MetadataTokens.MethodDefinitionHandle(int)"/>(1).
+                            /// If no type defines any methods in the module, <see cref="MetadataTokens.MethodDefinitionHandle(int)"/>(1)
                         }
 
                     }
@@ -281,7 +290,7 @@ namespace MetadataGenerator
         {
             var methodSignature = new BlobBuilder();
             new BlobEncoder(methodSignature)
-                .MethodSignature(isInstanceMethod: true) //FIXME when false?
+                .MethodSignature(isInstanceMethod: !method.IsStatic) //FIXME ?
                 .Parameters(
                     method.Parameters.Count,
                     returnType =>
@@ -302,7 +311,6 @@ namespace MetadataGenerator
                         {
                             EncodeType(parameter.Type, parameters.AddParameter().Type());
                         }
-
                     });
 
             var instructions = new InstructionEncoder(new BlobBuilder());
@@ -314,9 +322,9 @@ namespace MetadataGenerator
                 (method.IsAbstract ? MethodAttributes.Abstract : 0) |
                 (method.IsStatic ? MethodAttributes.Static : 0) |
                 (method.IsVirtual ? MethodAttributes.Virtual : 0) |
-                // MethodAttributes.NewSlot | FIXME how to know? needed for interface method at least
+                (method.ContainingType.Kind.Equals(Model.Types.TypeDefinitionKind.Interface) ? MethodAttributes.NewSlot : 0) | // FIXME not entirely correct
                 (method.IsConstructor ? MethodAttributes.SpecialName | MethodAttributes.RTSpecialName : 0) |
-                (method.Name.Equals("get_Prop") || method.Name.Equals("set_Prop") ? MethodAttributes.SpecialName : 0) | //FIXME
+                (method.Name.StartsWith("get_") || method.Name.StartsWith("set_") ? MethodAttributes.SpecialName : 0) | //FIXME
                 MethodAttributes.HideBySig;
 
             switch (method.Visibility)

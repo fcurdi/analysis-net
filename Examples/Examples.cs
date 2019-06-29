@@ -7,6 +7,19 @@
         CONSTANT2
     }
 
+    public class ClassWithProperties
+    {
+        public double AutoImplementedProperty { get; set; }
+        public char AnotherAutoImplementedProperty { get; }
+
+        public int PropertyWithBackingField { get => backingField; set => backingField = value; }
+        private int backingField;
+
+        public string AnotherPropertyWithBackingField { get => otherBackingField; }
+        private string otherBackingField;
+
+    }
+
     public class EmptyClass
     {
     }
@@ -28,6 +41,7 @@
 
         private int Sum(int arg1, int arg2)
         {
+
             return arg1 + arg2;
         }
 
@@ -46,6 +60,16 @@
             return arg;
         }
 
+        static void StaticMethod() { }
+
+    }
+
+    public abstract class AbstractClass
+    {
+
+        public virtual void VirtualMethod() { }
+
+        public abstract void AbstractMethod();
     }
 
     public enum AtTheEndEnumOfUShorts : ushort
@@ -67,18 +91,6 @@ namespace SecondNamespace
 
     public class ClassImplementingInterface : ISampleInterface
     {
-        public int Prop
-        {
-            get
-            {
-                return Prop;
-            }
-            set
-            {
-                this.Prop = value;
-            }
-        }
-
         public void DoSomething()
         {
         }
@@ -90,11 +102,7 @@ namespace SecondNamespace
 
         void DoSomething();
 
-        int Prop
-        {
-            get;
-            set;
-        }
+        // todo properties
 
 
     }
