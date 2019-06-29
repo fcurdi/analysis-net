@@ -69,7 +69,6 @@ namespace MetadataGenerator
                         FieldDefinitionHandle? firstFieldHandle = null;
                         if (typeDefinition.Kind.Equals(Model.Types.TypeDefinitionKind.Class))
                         {
-                            //TODO metadata.AddInterfaceImplementation() if applies
                             //TODO metadata.AddNestedType() if applies
 
                             /* TODO Properties: works but model is missing Property concept
@@ -81,7 +80,6 @@ namespace MetadataGenerator
                                 returnType => returnType.Type().Int32(), //FIXME backingField type
                                 parameters => { });
                                                         
-                                                       
                             var propertyDefinitionHandle = metadata.AddProperty(
                                 attributes: PropertyAttributes.None, //FIXME
                                 name: metadata.GetOrAddString(""), //FIXME property name
@@ -168,6 +166,19 @@ namespace MetadataGenerator
                             /// If the type declares methods the handle of the first one, otherwise the handle of the first method declared by the next type definition.
                             /// If no type defines any methods in the module, <see cref="MetadataTokens.MethodDefinitionHandle(int)"/>(1)
 
+
+                            foreach (var interfaze in typeDefinition.Interfaces)
+                            {
+                                metadata.AddInterfaceImplementation(
+                                    type: typeDefinitionHandle,
+                                    implementedInterface: metadata.AddTypeReference( //FIXME multiple classes could implement same interface
+                                                                                     //FIXME so should addTypeReference only once. check MetadataTokens for reference?
+                                        resolutionScope: default(TypeReferenceHandle),
+                                        @namespace: metadata.GetOrAddString(interfaze.ContainingNamespace),
+                                        name: metadata.GetOrAddString(interfaze.Name)));
+                            }
+
+
                         }
                         else if (typeDefinition.Kind.Equals(Model.Types.TypeDefinitionKind.Enum))
                         {
@@ -240,10 +251,10 @@ namespace MetadataGenerator
                                 @namespace: metadata.GetOrAddString(namezpace.Name),
                                 name: metadata.GetOrAddString(typeDefinition.Name),
                                 baseType: default(EntityHandle),
-                                fieldList: default(FieldDefinitionHandle), //FIXME props
-                                                                           //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los fields incorrectos
-                                                                           /// If the type declares fields the handle of the first one, otherwise the handle of the first field declared by the next type definition.
-                                                                           /// If no type defines any fields in the module, <see cref="MetadataTokens.FieldDefinitionHandle(int)"/>(1).
+                                fieldList: default(FieldDefinitionHandle),
+                                //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los fields incorrectos
+                                /// If the type declares fields the handle of the first one, otherwise the handle of the first field declared by the next type definition.
+                                /// If no type defines any fields in the module, <see cref="MetadataTokens.FieldDefinitionHandle(int)"/>(1).
                                 methodList: firstMethodHandle ?? MetadataTokens.MethodDefinitionHandle(metadataTokensMethodsOffset));
                             //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los metodos incorrectos
                             /// If the type declares methods the handle of the first one, otherwise the handle of the first method declared by the next type definition.

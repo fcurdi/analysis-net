@@ -102,7 +102,7 @@ namespace SecondNamespace
 
         void DoSomething();
 
-        // todo properties
+        // todo  interface can have properties
 
 
     }
