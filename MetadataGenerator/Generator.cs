@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
@@ -16,6 +17,7 @@ namespace MetadataGenerator
 
         private static readonly Guid s_guid = new Guid("97F4DBD4-F6D1-4FAD-91B3-1001F92068E5"); //FIXME: ??
         private static readonly BlobContentId s_contentId = new BlobContentId(s_guid, 0x04030201); //FIXME: ??
+        private IDictionary<string, AssemblyReferenceHandle> assemblyReferences = new Dictionary<string, AssemblyReferenceHandle>();
 
         public void Generate(Assembly assembly)
         {
@@ -32,30 +34,26 @@ namespace MetadataGenerator
                     flags: AssemblyFlags.PublicKey, // FIXME ??
                     hashAlgorithm: AssemblyHashAlgorithm.Sha1); // FIXME ??
 
+                //FIXME see references in IlSpy generated vs original
+                //FIXME: assemblyName => assemblyRef could result in false positive?
+                foreach (var assemblyReference in assembly.References)
+                {
+                    assemblyReferences.Add(assemblyReference.Name, metadata.AddAssemblyReference(
+                            name: metadata.GetOrAddString(assemblyReference.Name),
+                            version: new Version(4, 0, 0, 0), //FIXME ??
+                            culture: metadata.GetOrAddString("neutral"), //FIXME ??
+                            publicKeyOrToken: metadata.GetOrAddBlob(ImmutableArray.Create<byte>(0xB7, 0x7A, 0x5C, 0x56, 0x19, 0x34, 0xE0, 0x89)),//FIXME ??
+                            flags: default(AssemblyFlags), //FIXME ??
+                            hashValue: default(BlobHandle))//FIXME ??
+                    );
+                }
+
                 metadata.AddModule(
                     generation: 0, // FIXME ??
                     moduleName: metadata.GetOrAddString($"{assembly.Name}.dll"),
                     mvid: metadata.GetOrAddGuid(s_guid), // FIXME ??
                     encId: default(GuidHandle), // FIXME ??
                     encBaseId: default(GuidHandle)); // FIXME ??
-
-                var mscorlibAssemblyRef = metadata.AddAssemblyReference(
-                    name: metadata.GetOrAddString("mscorlib"),
-                    version: new Version(4, 0, 0, 0), //FIXME ??
-                    culture: default(StringHandle), //FIXME ??
-                     publicKeyOrToken: metadata.GetOrAddBlob(ImmutableArray.Create<byte>(0xB7, 0x7A, 0x5C, 0x56, 0x19, 0x34, 0xE0, 0x89)),//FIXME ??
-                    flags: default(AssemblyFlags), //FIXME ??
-                    hashValue: default(BlobHandle));//FIXME ??
-
-                var systemObjectTypeRef = metadata.AddTypeReference(
-                    resolutionScope: mscorlibAssemblyRef,
-                    @namespace: metadata.GetOrAddString("System"),
-                    name: metadata.GetOrAddString("Object"));
-
-                var systemEnumTypeRef = metadata.AddTypeReference(
-                    resolutionScope: mscorlibAssemblyRef,
-                    @namespace: metadata.GetOrAddString("System"),
-                    name: metadata.GetOrAddString("Enum"));
 
                 var ilBuilder = new BlobBuilder();
                 var methodBodyStream = new MethodBodyStreamEncoder(ilBuilder);
@@ -156,7 +154,7 @@ namespace MetadataGenerator
                                 attributes: ClassTypeAttributesFor(typeDefinition),
                                 @namespace: metadata.GetOrAddString(namezpace.Name),
                                 name: metadata.GetOrAddString(typeDefinition.Name),
-                                baseType: systemObjectTypeRef, //FIXME  podria ser una subclase de otra cosa
+                                baseType: BaseType(assembly, metadata, typeDefinition),
                                 fieldList: firstFieldHandle ?? MetadataTokens.FieldDefinitionHandle(metadataTokensFieldsOffset),
                                 //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los fields incorrectos
                                 /// If the type declares fields the handle of the first one, otherwise the handle of the first field declared by the next type definition.
@@ -199,7 +197,7 @@ namespace MetadataGenerator
                                 attributes: EnumTypeAttributesFor(typeDefinition),
                                 @namespace: metadata.GetOrAddString(namezpace.Name),
                                 name: metadata.GetOrAddString(typeDefinition.Name),
-                                baseType: systemEnumTypeRef,
+                                baseType: BaseType(assembly, metadata, typeDefinition),
                                 fieldList: firstFieldHandle.Value,
                                 //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los fields incorrectos
                                 /// If the type declares fields the handle of the first one, otherwise the handle of the first field declared by the next type definition.
@@ -278,6 +276,17 @@ namespace MetadataGenerator
 
         }
 
+        //FIXME name
+        //FIXME: comparing to the name of the current assembly could result in a false positive?
+        //FIXME: this posibly adds the type reference more than once
+        private TypeReferenceHandle BaseType(Assembly assembly, MetadataBuilder metadata, Model.Types.TypeDefinition typeDefinition)
+        {
+            return metadata.AddTypeReference(
+                resolutionScope: typeDefinition.Base.ContainingAssembly.Name.Equals(assembly.Name) ? default(AssemblyReferenceHandle) : assemblyReferences[typeDefinition.Base.ContainingAssembly.Name],
+                @namespace: metadata.GetOrAddString(typeDefinition.Base.ContainingNamespace),
+                name: metadata.GetOrAddString(typeDefinition.Base.Name));
+        }
+
         private static TypeAttributes EnumTypeAttributesFor(Model.Types.TypeDefinition typeDefinition)
         {
             return TypeAttributes.Class |
@@ -288,7 +297,8 @@ namespace MetadataGenerator
         private static TypeAttributes ClassTypeAttributesFor(Model.Types.TypeDefinition typeDefinition)
         {
             return TypeAttributes.Class |
-                  TypeAttributes.BeforeFieldInit |
+                  //TODO: static => abstract & sealed and no BeforeFieldInitBeforeFieldInit
+                  TypeAttributes.BeforeFieldInit | //FIXME: when?
                   (Model.Types.VisibilityKind.Public.Equals(typeDefinition.Visibility) ? TypeAttributes.Public : TypeAttributes.NotPublic);
         }
 
@@ -334,9 +344,9 @@ namespace MetadataGenerator
                 (method.IsStatic ? MethodAttributes.Static : 0) |
                 (method.IsVirtual ? MethodAttributes.Virtual : 0) |
                 (method.ContainingType.Kind.Equals(Model.Types.TypeDefinitionKind.Interface) ? MethodAttributes.NewSlot : 0) | // FIXME not entirely correct
-                (method.IsConstructor ? MethodAttributes.SpecialName | MethodAttributes.RTSpecialName : 0) |
+                (method.IsConstructor ? MethodAttributes.SpecialName | MethodAttributes.RTSpecialName : 0) | //FIXME should do the same for class constructor (cctor)
                 (method.Name.StartsWith("get_") || method.Name.StartsWith("set_") ? MethodAttributes.SpecialName : 0) | //FIXME
-                MethodAttributes.HideBySig;
+                MethodAttributes.HideBySig; //FIXME when?
 
             switch (method.Visibility)
             {

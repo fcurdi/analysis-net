@@ -1,4 +1,6 @@
-﻿namespace FirstNamespace
+﻿using System;
+
+namespace FirstNamespace
 {
 
     public enum AtTheBeginingEnum
@@ -24,6 +26,17 @@
     {
     }
 
+    public static class StaticClass
+    {
+        static readonly double StaticDouble;
+
+        static StaticClass()
+        {
+            StaticDouble = 0.5;
+        }
+
+    }
+
     public enum AtTheMiddleEnumOfBytes : byte
     {
         Byte10 = 10,
@@ -32,8 +45,6 @@
 
     public class ComplexClass
     {
-
-        static readonly double staticDouble = 5.27;
         private readonly int readOnlyIntField = 212;
         public string unassignedString;
 
@@ -104,7 +115,30 @@ namespace SecondNamespace
 
         // todo  interface can have properties
 
+    }
 
+}
+
+namespace ThirdNamespace
+{
+
+    public class BaseClass
+    {
+    }
+
+    public class DerivedClass : BaseClass
+    {
+
+    }
+
+
+    public class ClassDerivedFromSystemClass : Exception
+    {
+
+    }
+
+    public class ClassDerivedFromAccessibilityClass : Accessibility.CAccPropServicesClass
+    {
     }
 
 }
