@@ -143,3 +143,62 @@ namespace ThirdNamespace
     }
 
 }
+
+namespace FourthNamespace
+{
+    public struct EmptyStruct
+    {
+    }
+    public struct ComplexStruct : SecondNamespace.ISampleInterface
+    {
+        private readonly int x;
+
+        public void DoNothing()
+        {
+        }
+
+        public void DoSomething()
+        {
+        }
+
+        // todo  structs can have properties
+
+    }
+
+}
+
+namespace FifthNamespace
+{
+
+    public class ClassContainingNestedTypes
+    {
+        public class NestedClass
+        {
+        }
+
+        public enum NestedEnum
+        {
+            CONSTANT1 = 1
+        }
+
+        public struct NestedStruct
+        {
+        }
+    }
+
+    public struct StructContainingNestedTypes
+    {
+
+        public struct NestedStruct { }
+
+        public enum NestedEnum
+        {
+            CONSTANT1 = 1
+        }
+
+        public class NestedClass
+        {
+        }
+    }
+
+}

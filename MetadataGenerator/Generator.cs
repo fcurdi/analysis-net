@@ -148,7 +148,7 @@ namespace MetadataGenerator
                                     type: typeDefinitionHandle,
                                     implementedInterface: metadata.AddTypeReference( //FIXME multiple classes could implement same interface
                                                                                      //FIXME so should addTypeReference only once. check MetadataTokens for reference?
-                                        resolutionScope: default(TypeReferenceHandle),
+                                        resolutionScope: default(TypeReferenceHandle), //FIXME interface could be in another assembly
                                         @namespace: metadata.GetOrAddString(interfaze.ContainingNamespace),
                                         name: metadata.GetOrAddString(interfaze.Name)));
                             }
@@ -207,6 +207,58 @@ namespace MetadataGenerator
                                 baseType: typeDefinition.Base == null ? default(EntityHandle) : BaseType(assembly, metadata, typeDefinition),
                                 fieldList: firstFieldHandle ?? MetadataTokens.FieldDefinitionHandle(metadataTokensFieldsOffset),
                                 methodList: firstMethodHandle ?? MetadataTokens.MethodDefinitionHandle(metadataTokensMethodsOffset));
+                        }
+                        else if (typeDefinition.Kind.Equals(Model.Types.TypeDefinitionKind.Struct))
+                        {
+
+                            //FIXME: Exact same code that when handling class and similar to enum
+
+
+                            //TODO metadata.AddNestedType() if applies
+
+                            // Field initial values are assigned either on ctor or cctor (if static)
+                            typeDefinition.Fields
+                                .ToList()
+                                .ForEach(field =>
+                                {
+                                    var fieldSignatureBlobBuilder = new BlobBuilder();
+                                    TypeEncoder.Encode(
+                                         field.Type,
+                                         new BlobEncoder(fieldSignatureBlobBuilder)
+                                         .FieldSignature());
+
+                                    var fieldDefinitionHandle = metadata.AddFieldDefinition(
+                                        attributes: AttributesProvider.GetAttributesFor(field),
+                                        name: metadata.GetOrAddString(field.Name),
+                                        signature: metadata.GetOrAddBlob(fieldSignatureBlobBuilder));
+
+                                    if (!firstFieldHandle.HasValue)
+                                    {
+                                        firstFieldHandle = fieldDefinitionHandle;
+                                    }
+
+                                    metadataTokensFieldsOffset++;
+                                });
+
+                            var typeDefinitionHandle = metadata.AddTypeDefinition(
+                                attributes: typeAttributes,
+                                @namespace: metadata.GetOrAddString(namezpace.Name),
+                                name: metadata.GetOrAddString(typeDefinition.Name),
+                                baseType: typeDefinition.Base == null ? default(EntityHandle) : BaseType(assembly, metadata, typeDefinition),
+                                fieldList: firstFieldHandle ?? MetadataTokens.FieldDefinitionHandle(metadataTokensFieldsOffset),
+                                methodList: firstMethodHandle ?? MetadataTokens.MethodDefinitionHandle(metadataTokensMethodsOffset));
+
+                            foreach (var interfaze in typeDefinition.Interfaces)
+                            {
+                                metadata.AddInterfaceImplementation(
+                                    type: typeDefinitionHandle,
+                                    implementedInterface: metadata.AddTypeReference( //FIXME multiple classes could implement same interface
+                                                                                     //FIXME so should addTypeReference only once. check MetadataTokens for reference?
+                                        resolutionScope: default(TypeReferenceHandle), //FIXME interface could be in another assembly
+                                        @namespace: metadata.GetOrAddString(interfaze.ContainingNamespace),
+                                        name: metadata.GetOrAddString(interfaze.Name)));
+                            }
+
                         }
 
                     }
