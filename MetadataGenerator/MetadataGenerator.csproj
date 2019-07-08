@@ -27,6 +27,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Generator.cs" />
+    <Compile Include="MethodGenerator.cs" />
+    <Compile Include="TypeEncoder.cs" />
+    <Compile Include="AttributesProvider.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Model\Model.csproj">

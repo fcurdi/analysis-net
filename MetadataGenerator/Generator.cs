@@ -17,7 +17,7 @@ namespace MetadataGenerator
 
         private static readonly Guid s_guid = new Guid("97F4DBD4-F6D1-4FAD-91B3-1001F92068E5"); //FIXME: ??
         private static readonly BlobContentId s_contentId = new BlobContentId(s_guid, 0x04030201); //FIXME: ??
-        private IDictionary<string, AssemblyReferenceHandle> assemblyReferences = new Dictionary<string, AssemblyReferenceHandle>();
+        private readonly IDictionary<string, AssemblyReferenceHandle> assemblyReferences = new Dictionary<string, AssemblyReferenceHandle>();
 
         public void Generate(Assembly assembly)
         {
@@ -59,17 +59,30 @@ namespace MetadataGenerator
                 var methodBodyStream = new MethodBodyStreamEncoder(ilBuilder);
                 var metadataTokensMethodsOffset = 1;
                 var metadataTokensFieldsOffset = 1;
+                var methodGenerator = new MethodGenerator(metadata, ref methodBodyStream);
+
                 foreach (var namezpace in assembly.RootNamespace.Namespaces)
                 {
                     foreach (var typeDefinition in namezpace.Types)
                     {
                         MethodDefinitionHandle? firstMethodHandle = null;
                         FieldDefinitionHandle? firstFieldHandle = null;
-                        if (typeDefinition.Kind.Equals(Model.Types.TypeDefinitionKind.Class))
-                        {
-                            //TODO metadata.AddNestedType() if applies
 
-                            /* TODO Properties: works but model is missing Property concept
+                        var typeAttributes = AttributesProvider.GetAttributesFor(typeDefinition);
+
+                        foreach (var method in typeDefinition.Methods)
+                        {
+                            var methodHandle = methodGenerator.Generate(method);
+
+                            if (!firstMethodHandle.HasValue)
+                            {
+                                firstMethodHandle = methodHandle;
+                            }
+                            metadataTokensMethodsOffset++;
+                        }
+
+                        /* TODO Properties: works but model is missing Property concept
+                                                
                             var propertySignatureBlogBuilder = new BlobBuilder();
                             new BlobEncoder(propertySignatureBlogBuilder)
                                 .PropertySignature(isInstanceProperty: true) //FIXME when false
@@ -77,7 +90,7 @@ namespace MetadataGenerator
                                 0,
                                 returnType => returnType.Type().Int32(), //FIXME backingField type
                                 parameters => { });
-                                                        
+
                             var propertyDefinitionHandle = metadata.AddProperty(
                                 attributes: PropertyAttributes.None, //FIXME
                                 name: metadata.GetOrAddString(""), //FIXME property name
@@ -89,21 +102,13 @@ namespace MetadataGenerator
                                 method.Name.StartsWith("get_") ? MethodSemanticsAttributes.Getter : MethodSemanticsAttributes.Setter, //FIXME,
                                 methodHandle); //getter/setter
                             metadata.AddPropertyMap(typeDefinitionHandle, propertyDefinitionHandle);
-                            
-                            */
 
-                            foreach (var method in typeDefinition.Methods)
-                            {
-                                var methodHandle = GenerateMethod(metadata, ref methodBodyStream, method);
+                        */
 
-                                if (!firstMethodHandle.HasValue)
-                                {
-                                    firstMethodHandle = methodHandle;
-                                }
+                        if (typeDefinition.Kind.Equals(Model.Types.TypeDefinitionKind.Class))
+                        {
+                            //TODO metadata.AddNestedType() if applies
 
-                            }
-
-                            metadataTokensMethodsOffset += typeDefinition.Methods.Count;
 
                             // Field initial values are assigned either on ctor or cctor (if static)
                             typeDefinition.Fields //TODO extract method? duplicated code for enum
@@ -111,34 +116,13 @@ namespace MetadataGenerator
                                 .ForEach(field =>
                                 {
                                     var fieldSignatureBlobBuilder = new BlobBuilder();
-                                    EncodeType(
-                                        field.Type,
-                                        new BlobEncoder(fieldSignatureBlobBuilder)
-                                        .FieldSignature());
+                                    TypeEncoder.Encode(
+                                         field.Type,
+                                         new BlobEncoder(fieldSignatureBlobBuilder)
+                                         .FieldSignature());
 
-                                    var fieldAttributes =
-                                    (field.IsStatic ? FieldAttributes.Static : 0);
-                                    // (field is readonly ? FieldAttributes.InitOnly : 0); //FIXME how to know if readonly?
-                                    switch (field.Visibility) //TODO extract, duplicated
-                                    {
-
-                                        case Model.Types.VisibilityKind.Public:
-                                            fieldAttributes |= FieldAttributes.Public;
-                                            break;
-                                        case Model.Types.VisibilityKind.Private:
-                                            fieldAttributes |= FieldAttributes.Private;
-                                            break;
-                                        case Model.Types.VisibilityKind.Protected:
-                                            fieldAttributes |= FieldAttributes.Family;
-                                            break;
-                                        case Model.Types.VisibilityKind.Internal:
-                                            fieldAttributes |= FieldAttributes.Assembly;
-                                            break;
-                                        default:
-                                            throw field.Visibility.ToUnknownValueException();
-                                    }
                                     var fieldDefinitionHandle = metadata.AddFieldDefinition(
-                                        attributes: fieldAttributes,
+                                        attributes: AttributesProvider.GetAttributesFor(field),
                                         name: metadata.GetOrAddString(field.Name),
                                         signature: metadata.GetOrAddBlob(fieldSignatureBlobBuilder));
 
@@ -151,19 +135,12 @@ namespace MetadataGenerator
                                 });
 
                             var typeDefinitionHandle = metadata.AddTypeDefinition(
-                                attributes: ClassTypeAttributesFor(typeDefinition),
+                                attributes: typeAttributes,
                                 @namespace: metadata.GetOrAddString(namezpace.Name),
                                 name: metadata.GetOrAddString(typeDefinition.Name),
-                                baseType: BaseType(assembly, metadata, typeDefinition),
+                                baseType: typeDefinition.Base == null ? default(EntityHandle) : BaseType(assembly, metadata, typeDefinition),
                                 fieldList: firstFieldHandle ?? MetadataTokens.FieldDefinitionHandle(metadataTokensFieldsOffset),
-                                //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los fields incorrectos
-                                /// If the type declares fields the handle of the first one, otherwise the handle of the first field declared by the next type definition.
-                                /// If no type defines any fields in the module, <see cref="MetadataTokens.FieldDefinitionHandle(int)"/>(1).
                                 methodList: firstMethodHandle ?? MetadataTokens.MethodDefinitionHandle(metadataTokensMethodsOffset));
-                            //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los metodos incorrectos
-                            /// If the type declares methods the handle of the first one, otherwise the handle of the first method declared by the next type definition.
-                            /// If no type defines any methods in the module, <see cref="MetadataTokens.MethodDefinitionHandle(int)"/>(1)
-
 
                             foreach (var interfaze in typeDefinition.Interfaces)
                             {
@@ -181,7 +158,7 @@ namespace MetadataGenerator
                         else if (typeDefinition.Kind.Equals(Model.Types.TypeDefinitionKind.Enum))
                         {
                             var fieldSignatureBlobBuilder = new BlobBuilder();
-                            EncodeType(
+                            TypeEncoder.Encode(
                                 typeDefinition.Fields.First().Type, //FIXME first if empty
                                 new BlobEncoder(fieldSignatureBlobBuilder)
                                 .FieldSignature());
@@ -194,18 +171,12 @@ namespace MetadataGenerator
                                 signature: metadata.GetOrAddBlob(fieldSignatureBlobBuilder));
 
                             var selfTypeDefinitionHandle = metadata.AddTypeDefinition(
-                                attributes: EnumTypeAttributesFor(typeDefinition),
+                                attributes: typeAttributes,
                                 @namespace: metadata.GetOrAddString(namezpace.Name),
                                 name: metadata.GetOrAddString(typeDefinition.Name),
-                                baseType: BaseType(assembly, metadata, typeDefinition),
-                                fieldList: firstFieldHandle.Value,
-                                //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los fields incorrectos
-                                /// If the type declares fields the handle of the first one, otherwise the handle of the first field declared by the next type definition.
-                                /// If no type defines any fields in the module, <see cref="MetadataTokens.FieldDefinitionHandle(int)"/>(1).
-                                methodList: MetadataTokens.MethodDefinitionHandle(metadataTokensMethodsOffset));
-                            //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los metodos incorrectos
-                            /// If the type declares methods the handle of the first one, otherwise the handle of the first method declared by the next type definition.
-                            /// If no type defines any methods in the module, <see cref="MetadataTokens.MethodDefinitionHandle(int)"/>(1).
+                                baseType: typeDefinition.Base == null ? default(EntityHandle) : BaseType(assembly, metadata, typeDefinition),
+                                fieldList: firstFieldHandle ?? MetadataTokens.FieldDefinitionHandle(metadataTokensFieldsOffset),
+                                methodList: firstMethodHandle ?? MetadataTokens.MethodDefinitionHandle(metadataTokensMethodsOffset));
 
                             typeDefinition.Fields
                                 .Where(field => !field.Name.Equals("value__"))
@@ -219,7 +190,7 @@ namespace MetadataGenerator
 
                                     metadata.AddConstant(
                                         metadata.AddFieldDefinition(
-                                            attributes: FieldAttributes.Public | FieldAttributes.Static | FieldAttributes.Literal,
+                                            attributes: AttributesProvider.GetAttributesFor(field),
                                             name: metadata.GetOrAddString(field.Name),
                                             signature: metadata.GetOrAddBlob(fieldSignatureBlobBuilder)),
                                         field.Value.Value);
@@ -229,34 +200,13 @@ namespace MetadataGenerator
                         }
                         else if (typeDefinition.Kind.Equals(Model.Types.TypeDefinitionKind.Interface))
                         {
-                            //TODO properties
-
-
-                            foreach (var method in typeDefinition.Methods)
-                            {
-                                var methodHandle = GenerateMethod(metadata, ref methodBodyStream, method);
-                                if (!firstMethodHandle.HasValue)
-                                {
-
-                                    firstMethodHandle = methodHandle;
-                                }
-                            }
-
-                            metadataTokensMethodsOffset += typeDefinition.Methods.Count;
-
                             metadata.AddTypeDefinition(
-                                attributes: InterfaceTypeAttributesFor(typeDefinition),
+                                attributes: typeAttributes,
                                 @namespace: metadata.GetOrAddString(namezpace.Name),
                                 name: metadata.GetOrAddString(typeDefinition.Name),
-                                baseType: default(EntityHandle),
-                                fieldList: default(FieldDefinitionHandle),
-                                //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los fields incorrectos
-                                /// If the type declares fields the handle of the first one, otherwise the handle of the first field declared by the next type definition.
-                                /// If no type defines any fields in the module, <see cref="MetadataTokens.FieldDefinitionHandle(int)"/>(1).
+                                baseType: typeDefinition.Base == null ? default(EntityHandle) : BaseType(assembly, metadata, typeDefinition),
+                                fieldList: firstFieldHandle ?? MetadataTokens.FieldDefinitionHandle(metadataTokensFieldsOffset),
                                 methodList: firstMethodHandle ?? MetadataTokens.MethodDefinitionHandle(metadataTokensMethodsOffset));
-                            //FIXME ---> Por ahora funca pero MetadataTokens parece ser global. Si proceso mas de un assembly seguro accedo a los metodos incorrectos
-                            /// If the type declares methods the handle of the first one, otherwise the handle of the first method declared by the next type definition.
-                            /// If no type defines any methods in the module, <see cref="MetadataTokens.MethodDefinitionHandle(int)"/>(1)
                         }
 
                     }
@@ -287,169 +237,6 @@ namespace MetadataGenerator
                 name: metadata.GetOrAddString(typeDefinition.Base.Name));
         }
 
-        private static TypeAttributes EnumTypeAttributesFor(Model.Types.TypeDefinition typeDefinition)
-        {
-            return TypeAttributes.Class |
-                (Model.Types.VisibilityKind.Public.Equals(typeDefinition.Visibility) ? TypeAttributes.Public : TypeAttributes.NotPublic) |
-                TypeAttributes.Sealed;
-        }
 
-        private static TypeAttributes ClassTypeAttributesFor(Model.Types.TypeDefinition typeDefinition)
-        {
-            return TypeAttributes.Class |
-                  //TODO: static => abstract & sealed and no BeforeFieldInitBeforeFieldInit
-                  TypeAttributes.BeforeFieldInit | //FIXME: when?
-                  (Model.Types.VisibilityKind.Public.Equals(typeDefinition.Visibility) ? TypeAttributes.Public : TypeAttributes.NotPublic);
-        }
-
-        private static TypeAttributes InterfaceTypeAttributesFor(Model.Types.TypeDefinition typeDefinition)
-        {
-            return TypeAttributes.Interface | TypeAttributes.Public | TypeAttributes.Abstract;
-        }
-
-        private MethodDefinitionHandle GenerateMethod(MetadataBuilder metadata, ref MethodBodyStreamEncoder methodBodyStream, Model.Types.MethodDefinition method)
-        {
-            var methodSignature = new BlobBuilder();
-            new BlobEncoder(methodSignature)
-                .MethodSignature(isInstanceMethod: !method.IsStatic) //FIXME ?
-                .Parameters(
-                    method.Parameters.Count,
-                    returnType =>
-                    {
-                        if (method.ReturnType.Equals(Model.Types.PlatformTypes.Void))
-                        {
-                            returnType.Void();
-                        }
-                        else
-                        {
-                            EncodeType(method.ReturnType, returnType.Type());
-                        }
-
-                    },
-                    parameters =>
-                    {
-                        foreach (var parameter in method.Parameters)
-                        {
-                            EncodeType(parameter.Type, parameters.AddParameter().Type());
-                        }
-                    });
-
-            var instructions = new InstructionEncoder(new BlobBuilder());
-
-            instructions.OpCode(ILOpCode.Nop);
-            instructions.OpCode(ILOpCode.Ret);
-
-            var methodAttributes =
-                (method.IsAbstract ? MethodAttributes.Abstract : 0) |
-                (method.IsStatic ? MethodAttributes.Static : 0) |
-                (method.IsVirtual ? MethodAttributes.Virtual : 0) |
-                (method.ContainingType.Kind.Equals(Model.Types.TypeDefinitionKind.Interface) ? MethodAttributes.NewSlot : 0) | // FIXME not entirely correct
-                (method.IsConstructor ? MethodAttributes.SpecialName | MethodAttributes.RTSpecialName : 0) | //FIXME should do the same for class constructor (cctor)
-                (method.Name.StartsWith("get_") || method.Name.StartsWith("set_") ? MethodAttributes.SpecialName : 0) | //FIXME
-                MethodAttributes.HideBySig; //FIXME when?
-
-            switch (method.Visibility)
-            {
-                case Model.Types.VisibilityKind.Public:
-                    methodAttributes |= MethodAttributes.Public;
-                    break;
-                case Model.Types.VisibilityKind.Private:
-                    methodAttributes |= MethodAttributes.Private;
-                    break;
-                case Model.Types.VisibilityKind.Protected:
-                    methodAttributes |= MethodAttributes.Family;
-                    break;
-                case Model.Types.VisibilityKind.Internal:
-                    methodAttributes |= MethodAttributes.Assembly;
-                    break;
-                default:
-                    throw method.Visibility.ToUnknownValueException();
-            }
-
-            return metadata.AddMethodDefinition(
-                attributes: methodAttributes,
-                implAttributes: MethodImplAttributes.IL | MethodImplAttributes.Managed, //FIXME
-                name: metadata.GetOrAddString(method.Name),
-                signature: metadata.GetOrAddBlob(methodSignature),
-                bodyOffset: methodBodyStream.AddMethodBody(instructions),
-                parameterList: default(ParameterHandle)); //FIXME
-        }
-
-        //FIXME: names, type of parameters
-        private void EncodeType(Model.Types.IType type, SignatureTypeEncoder signatureTypeEncoder)
-        {
-
-            // reflection? FIXME
-            //var type = Model.Types.PlatformTypes.Values().FirstOrDefault(t => method.ReturnType.Equals(t));
-            //if (type == null)
-            //{
-            //    throw new Exception("Unknow return type");
-
-            //}
-            //else
-            //{
-            //    var returnTypeMethod = returnType.GetType().GetMethod(type.ToString());
-            //    returnTypeMethod.Invoke(returnType, new Object[] { });
-            //}
-
-            //FIXME incomplete
-            if (type.Equals(Model.Types.PlatformTypes.Boolean))
-            {
-                signatureTypeEncoder.Boolean();
-            }
-            else if (type.Equals(Model.Types.PlatformTypes.Byte))
-            {
-                signatureTypeEncoder.Byte();
-            }
-            else if (type.Equals(Model.Types.PlatformTypes.SByte))
-            {
-                signatureTypeEncoder.SByte();
-            }
-            else if (type.Equals(Model.Types.PlatformTypes.Char))
-            {
-                signatureTypeEncoder.Char();
-            }
-            else if (type.Equals(Model.Types.PlatformTypes.Double))
-            {
-                signatureTypeEncoder.Double();
-            }
-            else if (type.Equals(Model.Types.PlatformTypes.Int16))
-            {
-                signatureTypeEncoder.Int16();
-            }
-            else if (type.Equals(Model.Types.PlatformTypes.UInt16))
-            {
-                signatureTypeEncoder.UInt16();
-            }
-            else if (type.Equals(Model.Types.PlatformTypes.Int32))
-            {
-                signatureTypeEncoder.Int32();
-            }
-            else if (type.Equals(Model.Types.PlatformTypes.UInt32))
-            {
-                signatureTypeEncoder.UInt32();
-            }
-            else if (type.Equals(Model.Types.PlatformTypes.Int64))
-            {
-                signatureTypeEncoder.Int64();
-            }
-            else if (type.Equals(Model.Types.PlatformTypes.UInt64))
-            {
-                signatureTypeEncoder.UInt64();
-            }
-            else if (type.Equals(Model.Types.PlatformTypes.String))
-            {
-                signatureTypeEncoder.String();
-            }
-            else if (type.Equals(Model.Types.PlatformTypes.Single))
-            {
-                signatureTypeEncoder.Single();
-            }
-            else
-            {
-                throw new Exception("Unknown value:" + type.ToString());
-            }
-
-        }
     }
 }

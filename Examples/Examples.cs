@@ -47,6 +47,7 @@ namespace FirstNamespace
     {
         private readonly int readOnlyIntField = 212;
         public string unassignedString;
+        public const string CONST_STRING = "const";
 
         public void DoNothing() { }
 
