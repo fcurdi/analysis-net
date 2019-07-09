@@ -174,7 +174,6 @@ namespace MetadataGenerator
                                     @namespace: metadata.GetOrAddString(interfaze.ContainingNamespace),
                                     name: metadata.GetOrAddString(interfaze.Name)));
                         }
-
                     }
                 }
                 var peHeaderBuilder = new PEHeaderBuilder(imageCharacteristics: Characteristics.Dll);
