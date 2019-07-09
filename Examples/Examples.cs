@@ -202,3 +202,5 @@ namespace FifthNamespace
     }
 
 }
+
+//TODO class with fields or methods that return other clases, structs, etc
