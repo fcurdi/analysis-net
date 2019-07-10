@@ -9,11 +9,13 @@ namespace MetadataGenerator
     {
         private readonly MetadataBuilder metadata;
         private readonly MethodBodyStreamEncoder methodBodyStream;
+        private int nextOffset;
 
-        public MethodGenerator(MetadataBuilder metadata, ref MethodBodyStreamEncoder methodBodyStream)
+        public MethodGenerator(MetadataBuilder metadata)
         {
             this.metadata = metadata;
-            this.methodBodyStream = methodBodyStream;
+            this.methodBodyStream = new MethodBodyStreamEncoder(new BlobBuilder());
+            this.nextOffset = 1;
         }
 
         public MethodDefinitionHandle Generate(Model.Types.MethodDefinition method)
@@ -74,7 +76,7 @@ namespace MetadataGenerator
                 default:
                     throw method.Visibility.ToUnknownValueException();
             }
-
+            nextOffset++;
             return metadata.AddMethodDefinition(
                 attributes: methodAttributes,
                 implAttributes: MethodImplAttributes.IL | MethodImplAttributes.Managed, //FIXME
@@ -82,6 +84,16 @@ namespace MetadataGenerator
                 signature: metadata.GetOrAddBlob(methodSignature),
                 bodyOffset: methodBodyStream.AddMethodBody(instructions),
                 parameterList: default(ParameterHandle)); //FIXME
+        }
+
+        public BlobBuilder IlStream()
+        {
+            return methodBodyStream.Builder;
+        }
+
+        public MethodDefinitionHandle NextMethodHandle()
+        {
+            return MetadataTokens.MethodDefinitionHandle(nextOffset);
         }
 
 

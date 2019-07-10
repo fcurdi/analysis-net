@@ -54,11 +54,8 @@ namespace MetadataGenerator
                     encId: default(GuidHandle), // FIXME ??
                     encBaseId: default(GuidHandle)); // FIXME ??
 
-                var ilBuilder = new BlobBuilder();
-                var methodBodyStream = new MethodBodyStreamEncoder(ilBuilder);
-                var metadataTokensMethodsOffset = 1;
-                var metadataTokensFieldsOffset = 1;
-                var methodGenerator = new MethodGenerator(metadata, ref methodBodyStream);
+                var methodGenerator = new MethodGenerator(metadata);
+                var fieldGenerator = new FieldGenerator(metadata);
 
                 foreach (var namezpace in assembly.RootNamespace.Namespaces)
                 {
@@ -77,7 +74,17 @@ namespace MetadataGenerator
                             {
                                 firstMethodHandle = methodHandle;
                             }
-                            metadataTokensMethodsOffset++;
+                        }
+
+                        foreach (var field in typeDefinition.Fields)
+                        {
+                            var fieldDefinitionHandle = fieldGenerator.Generate(field);
+
+
+                            if (!firstFieldHandle.HasValue)
+                            {
+                                firstFieldHandle = fieldDefinitionHandle;
+                            }
                         }
 
                         /* TODO Properties: works but model is missing Property concept
@@ -101,48 +108,8 @@ namespace MetadataGenerator
                                 method.Name.StartsWith("get_") ? MethodSemanticsAttributes.Getter : MethodSemanticsAttributes.Setter, //FIXME,
                                 methodHandle); //getter/setter
                             metadata.AddPropertyMap(typeDefinitionHandle, propertyDefinitionHandle);
-
                         */
 
-                        foreach (var field in typeDefinition.Fields)
-                        {
-                            var fieldSignatureBlobBuilder = new BlobBuilder();
-                            var fieldSignature = new BlobEncoder(fieldSignatureBlobBuilder).FieldSignature();
-
-                            //FIXME: should be: if it is a custom type (not primitive nor primitive wrapper)
-                            //FIXME: in the examples for the only one that needs this is the enum values
-                            //FIXME: and the field value__ that is generated for the enum it is always a primitive so it needs to go to the else branch
-                            if (field.ContainingType.Kind.Equals(Model.Types.TypeDefinitionKind.Enum) && !field.Name.Equals("value__"))
-                            {
-                                fieldSignature.Type(
-                                    metadata.AddTypeReference( //FIXME: this should be done only once per type. 
-                                        default(AssemblyReferenceHandle),
-                                        metadata.GetOrAddString(namezpace.Name),
-                                        metadata.GetOrAddString(typeDefinition.Name)),
-                                    true);
-                            }
-                            else
-                            {
-                                TypeEncoder.Encode(field.Type, fieldSignature);
-                            }
-
-                            var fieldDefinitionHandle = metadata.AddFieldDefinition(
-                                    attributes: AttributesProvider.GetAttributesFor(field),
-                                    name: metadata.GetOrAddString(field.Name),
-                                    signature: metadata.GetOrAddBlob(fieldSignatureBlobBuilder));
-
-                            if (!firstFieldHandle.HasValue)
-                            {
-                                firstFieldHandle = fieldDefinitionHandle;
-                            }
-
-                            if (field.Value != null)
-                            {
-                                metadata.AddConstant(fieldDefinitionHandle, field.Value.Value);
-                            }
-
-                            metadataTokensFieldsOffset++;
-                        }
 
                         //TODO metadata.AddNestedType() if applies
 
@@ -161,8 +128,8 @@ namespace MetadataGenerator
                             @namespace: metadata.GetOrAddString(namezpace.Name),
                             name: metadata.GetOrAddString(typeDefinition.Name),
                             baseType: baseType,
-                            fieldList: firstFieldHandle ?? MetadataTokens.FieldDefinitionHandle(metadataTokensFieldsOffset),
-                            methodList: firstMethodHandle ?? MetadataTokens.MethodDefinitionHandle(metadataTokensMethodsOffset));
+                            fieldList: firstFieldHandle ?? fieldGenerator.NextFieldHandle(),
+                            methodList: firstMethodHandle ?? methodGenerator.NextMethodHandle());
 
                         foreach (var interfaze in typeDefinition.Interfaces)
                         {
@@ -180,7 +147,7 @@ namespace MetadataGenerator
                 var peBuilder = new ManagedPEBuilder(
                                header: peHeaderBuilder,
                                metadataRootBuilder: new MetadataRootBuilder(metadata),
-                               ilStream: ilBuilder,
+                               ilStream: methodGenerator.IlStream(),
                                entryPoint: default(MethodDefinitionHandle),
                                flags: CorFlags.ILOnly | CorFlags.StrongNameSigned,
                                deterministicIdProvider: content => s_contentId);

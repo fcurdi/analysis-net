@@ -30,6 +30,7 @@
     <Compile Include="MethodGenerator.cs" />
     <Compile Include="TypeEncoder.cs" />
     <Compile Include="AttributesProvider.cs" />
+    <Compile Include="FieldGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Model\Model.csproj">
