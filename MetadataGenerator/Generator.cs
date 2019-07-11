@@ -13,10 +13,11 @@ namespace MetadataGenerator
 {
     public class Generator : IGenerator
     {
-
         private static readonly Guid s_guid = new Guid("97F4DBD4-F6D1-4FAD-91B3-1001F92068E5"); //FIXME: ??
         private static readonly BlobContentId s_contentId = new BlobContentId(s_guid, 0x04030201); //FIXME: ??
         private readonly IDictionary<string, AssemblyReferenceHandle> assemblyReferences = new Dictionary<string, AssemblyReferenceHandle>();
+        //FIXME better name. It's not all the type references but just the ones needed for Base type and interfaces
+        private readonly IDictionary<string, TypeReferenceHandle> typeReferences = new Dictionary<string, TypeReferenceHandle>();
 
         public void Generate(Assembly assembly)
         {
@@ -47,10 +48,11 @@ namespace MetadataGenerator
                     );
                 }
 
+                // FIXME parameters depend of assembly info that is not in the model?
                 metadata.AddModule(
                     generation: 0, // FIXME ??
                     moduleName: metadata.GetOrAddString($"{assembly.Name}.dll"),
-                    mvid: metadata.GetOrAddGuid(s_guid), // FIXME ??
+                    mvid: metadata.GetOrAddGuid(s_guid), // FIXME ?? module identified id
                     encId: default(GuidHandle), // FIXME ??
                     encBaseId: default(GuidHandle)); // FIXME ??
 
@@ -136,15 +138,11 @@ namespace MetadataGenerator
                 metadata.AddPropertyMap(typeDefinitionHandle, propertyDefinitionHandle);
             */
 
-
-            //FIXME: comparing to the name of the current assembly could result in a false positive?
-            //FIXME: this posibly adds the type reference more than once
-            var baseType = typeDefinition.Base == null
-                ? default(EntityHandle)
-                : metadata.AddTypeReference(
-                    resolutionScope: typeDefinition.Base.ContainingAssembly.Name.Equals(assembly.Name) ? default(AssemblyReferenceHandle) : assemblyReferences[typeDefinition.Base.ContainingAssembly.Name],
-                    @namespace: metadata.GetOrAddString(typeDefinition.Base.ContainingNamespace),
-                    name: metadata.GetOrAddString(typeDefinition.Base.Name));
+            var baseType = default(EntityHandle);
+            if (typeDefinition.Base != null)
+            {
+                baseType = GetOrAddTypeReference(assembly, metadata, typeDefinition.Base);
+            }
 
             var typeDefinitionHandle = metadata.AddTypeDefinition(
                 attributes: typeAttributes,
@@ -156,16 +154,39 @@ namespace MetadataGenerator
 
             foreach (var interfaze in typeDefinition.Interfaces)
             {
-                metadata.AddInterfaceImplementation(
-                    type: typeDefinitionHandle,
-                    implementedInterface: metadata.AddTypeReference( //FIXME multiple classes could implement same interface
-                                                                     //FIXME so should addTypeReference only once. check MetadataTokens for reference?
-                        resolutionScope: default(TypeReferenceHandle), //FIXME interface could be in another assembly
-                        @namespace: metadata.GetOrAddString(interfaze.ContainingNamespace),
-                        name: metadata.GetOrAddString(interfaze.Name)));
+                metadata.AddInterfaceImplementation(type: typeDefinitionHandle, implementedInterface: GetOrAddTypeReference(assembly, metadata, interfaze));
             }
 
             return typeDefinitionHandle;
         }
+
+
+        private EntityHandle GetOrAddTypeReference(Assembly currentAssembly, MetadataBuilder metadata, Model.Types.IBasicType type)
+        {
+            TypeReferenceHandle typeReference;
+            var typeReferenceKey = $"{type.ContainingAssembly.Name}.{type.ContainingNamespace}.{type.Name}";
+            if (typeReferences.TryGetValue(typeReferenceKey, out var value))
+            {
+                typeReference = value;
+            }
+            else
+            {
+                var resolutionScope = type.ContainingAssembly.Name.Equals(currentAssembly.Name)
+                    ? default(AssemblyReferenceHandle)
+                    : assemblyReferences[type.ContainingAssembly.Name];
+
+                //FIXME: comparing to the name of the current assembly could result in a false positive?
+                typeReference = metadata.AddTypeReference(
+                    resolutionScope: resolutionScope,
+                    @namespace: metadata.GetOrAddString(type.ContainingNamespace),
+                    name: metadata.GetOrAddString(type.Name));
+
+                typeReferences.Add(typeReferenceKey, typeReference);
+
+            }
+
+            return typeReference;
+        }
+
     }
 }

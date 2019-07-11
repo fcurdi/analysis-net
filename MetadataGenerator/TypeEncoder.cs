@@ -61,6 +61,10 @@ namespace MetadataGenerator
             {
                 signatureTypeEncoder.Single();
             }
+            else if (type.Equals(Model.Types.PlatformTypes.Object))
+            {
+                signatureTypeEncoder.Object();
+            }
             else
             {
                 throw new Exception("Unknown value:" + type.ToString());

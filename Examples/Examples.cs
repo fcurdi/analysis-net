@@ -136,8 +136,13 @@ namespace Structs
 
 namespace Interfaces
 {
-    public class ClassImplementingInterface : ISampleInterface
+    public class ClassImplementingInterface : ISampleInterface, IComparable
     {
+        public int CompareTo(object obj)
+        {
+            return 0;
+        }
+
         public void DoSomething()
         {
         }
@@ -154,10 +159,15 @@ namespace Interfaces
     }
 
 
-    public struct ComplexStruct : ISampleInterface
+    public struct ComplexStruct : ISampleInterface, IComparable
     {
         public void DoSomething()
         {
+        }
+
+        public int CompareTo(object obj)
+        {
+            return 0;
         }
     }
 
