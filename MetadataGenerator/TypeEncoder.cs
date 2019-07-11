@@ -8,20 +8,6 @@ namespace MetadataGenerator
         //FIXME: names, type of parameters
         public static void Encode(Model.Types.IType type, SignatureTypeEncoder signatureTypeEncoder)
         {
-
-            // reflection? FIXME
-            //var type = Model.Types.PlatformTypes.Values().FirstOrDefault(t => method.ReturnType.Equals(t));
-            //if (type == null)
-            //{
-            //    throw new Exception("Unknow return type");
-
-            //}
-            //else
-            //{
-            //    var returnTypeMethod = returnType.GetType().GetMethod(type.ToString());
-            //    returnTypeMethod.Invoke(returnType, new Object[] { });
-            //}
-
             //FIXME incomplete
             if (type.Equals(Model.Types.PlatformTypes.Boolean))
             {

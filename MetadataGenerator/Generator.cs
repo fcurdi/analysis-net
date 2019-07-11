@@ -61,85 +61,12 @@ namespace MetadataGenerator
                 {
                     foreach (var typeDefinition in namezpace.Types)
                     {
-                        MethodDefinitionHandle? firstMethodHandle = null;
-                        FieldDefinitionHandle? firstFieldHandle = null;
-
-                        var typeAttributes = AttributesProvider.GetAttributesFor(typeDefinition);
-
-                        foreach (var method in typeDefinition.Methods)
+                        var typeDefinitionHandle = GenerateType(assembly, metadata, methodGenerator, fieldGenerator, typeDefinition);
+                        foreach (var nestedType in typeDefinition.Types)
                         {
-                            var methodHandle = methodGenerator.Generate(method);
-
-                            if (!firstMethodHandle.HasValue)
-                            {
-                                firstMethodHandle = methodHandle;
-                            }
-                        }
-
-                        foreach (var field in typeDefinition.Fields)
-                        {
-                            var fieldDefinitionHandle = fieldGenerator.Generate(field);
-
-
-                            if (!firstFieldHandle.HasValue)
-                            {
-                                firstFieldHandle = fieldDefinitionHandle;
-                            }
-                        }
-
-                        /* TODO Properties: works but model is missing Property concept
-                                                
-                            var propertySignatureBlogBuilder = new BlobBuilder();
-                            new BlobEncoder(propertySignatureBlogBuilder)
-                                .PropertySignature(isInstanceProperty: true) //FIXME when false
-                                .Parameters(
-                                0,
-                                returnType => returnType.Type().Int32(), //FIXME backingField type
-                                parameters => { });
-
-                            var propertyDefinitionHandle = metadata.AddProperty(
-                                attributes: PropertyAttributes.None, //FIXME
-                                name: metadata.GetOrAddString(""), //FIXME property name
-                                signature: metadata.GetOrAddBlob(propertySignatureBlogBuilder));
-
-                            // asociate methods (get, set) to property  
-                            metadata.AddMethodSemantics(
-                                propertyDefinitionHandle,
-                                method.Name.StartsWith("get_") ? MethodSemanticsAttributes.Getter : MethodSemanticsAttributes.Setter, //FIXME,
-                                methodHandle); //getter/setter
-                            metadata.AddPropertyMap(typeDefinitionHandle, propertyDefinitionHandle);
-                        */
-
-
-                        //TODO metadata.AddNestedType() if applies
-
-
-                        //FIXME: comparing to the name of the current assembly could result in a false positive?
-                        //FIXME: this posibly adds the type reference more than once
-                        var baseType = typeDefinition.Base == null
-                            ? default(EntityHandle)
-                            : metadata.AddTypeReference(
-                                resolutionScope: typeDefinition.Base.ContainingAssembly.Name.Equals(assembly.Name) ? default(AssemblyReferenceHandle) : assemblyReferences[typeDefinition.Base.ContainingAssembly.Name],
-                                @namespace: metadata.GetOrAddString(typeDefinition.Base.ContainingNamespace),
-                                name: metadata.GetOrAddString(typeDefinition.Base.Name));
-
-                        var typeDefinitionHandle = metadata.AddTypeDefinition(
-                            attributes: typeAttributes,
-                            @namespace: metadata.GetOrAddString(namezpace.Name),
-                            name: metadata.GetOrAddString(typeDefinition.Name),
-                            baseType: baseType,
-                            fieldList: firstFieldHandle ?? fieldGenerator.NextFieldHandle(),
-                            methodList: firstMethodHandle ?? methodGenerator.NextMethodHandle());
-
-                        foreach (var interfaze in typeDefinition.Interfaces)
-                        {
-                            metadata.AddInterfaceImplementation(
-                                type: typeDefinitionHandle,
-                                implementedInterface: metadata.AddTypeReference( //FIXME multiple classes could implement same interface
-                                                                                 //FIXME so should addTypeReference only once. check MetadataTokens for reference?
-                                    resolutionScope: default(TypeReferenceHandle), //FIXME interface could be in another assembly
-                                    @namespace: metadata.GetOrAddString(interfaze.ContainingNamespace),
-                                    name: metadata.GetOrAddString(interfaze.Name)));
+                            metadata.AddNestedType(
+                                GenerateType(assembly, metadata, methodGenerator, fieldGenerator, nestedType),
+                                typeDefinitionHandle);
                         }
                     }
                 }
@@ -158,5 +85,87 @@ namespace MetadataGenerator
 
         }
 
+        private TypeDefinitionHandle GenerateType(Assembly assembly, MetadataBuilder metadata, MethodGenerator methodGenerator, FieldGenerator fieldGenerator, Model.Types.TypeDefinition typeDefinition)
+        {
+            MethodDefinitionHandle? firstMethodHandle = null;
+            FieldDefinitionHandle? firstFieldHandle = null;
+
+            var typeAttributes = AttributesProvider.GetAttributesFor(typeDefinition);
+
+            foreach (var method in typeDefinition.Methods)
+            {
+                var methodHandle = methodGenerator.Generate(method);
+
+                if (!firstMethodHandle.HasValue)
+                {
+                    firstMethodHandle = methodHandle;
+                }
+            }
+
+            foreach (var field in typeDefinition.Fields)
+            {
+                var fieldDefinitionHandle = fieldGenerator.Generate(field);
+
+
+                if (!firstFieldHandle.HasValue)
+                {
+                    firstFieldHandle = fieldDefinitionHandle;
+                }
+            }
+
+            /* TODO Properties: works but model is missing Property concept
+
+                var propertySignatureBlogBuilder = new BlobBuilder();
+                new BlobEncoder(propertySignatureBlogBuilder)
+                    .PropertySignature(isInstanceProperty: true) //FIXME when false
+                    .Parameters(
+                    0,
+                    returnType => returnType.Type().Int32(), //FIXME backingField type
+                    parameters => { });
+
+                var propertyDefinitionHandle = metadata.AddProperty(
+                    attributes: PropertyAttributes.None, //FIXME
+                    name: metadata.GetOrAddString(""), //FIXME property name
+                    signature: metadata.GetOrAddBlob(propertySignatureBlogBuilder));
+
+                // asociate methods (get, set) to property  
+                metadata.AddMethodSemantics(
+                    propertyDefinitionHandle,
+                    method.Name.StartsWith("get_") ? MethodSemanticsAttributes.Getter : MethodSemanticsAttributes.Setter, //FIXME,
+                    methodHandle); //getter/setter
+                metadata.AddPropertyMap(typeDefinitionHandle, propertyDefinitionHandle);
+            */
+
+
+            //FIXME: comparing to the name of the current assembly could result in a false positive?
+            //FIXME: this posibly adds the type reference more than once
+            var baseType = typeDefinition.Base == null
+                ? default(EntityHandle)
+                : metadata.AddTypeReference(
+                    resolutionScope: typeDefinition.Base.ContainingAssembly.Name.Equals(assembly.Name) ? default(AssemblyReferenceHandle) : assemblyReferences[typeDefinition.Base.ContainingAssembly.Name],
+                    @namespace: metadata.GetOrAddString(typeDefinition.Base.ContainingNamespace),
+                    name: metadata.GetOrAddString(typeDefinition.Base.Name));
+
+            var typeDefinitionHandle = metadata.AddTypeDefinition(
+                attributes: typeAttributes,
+                @namespace: metadata.GetOrAddString(typeDefinition.ContainingNamespace.Name),
+                name: metadata.GetOrAddString(typeDefinition.Name),
+                baseType: baseType,
+                fieldList: firstFieldHandle ?? fieldGenerator.NextFieldHandle(),
+                methodList: firstMethodHandle ?? methodGenerator.NextMethodHandle());
+
+            foreach (var interfaze in typeDefinition.Interfaces)
+            {
+                metadata.AddInterfaceImplementation(
+                    type: typeDefinitionHandle,
+                    implementedInterface: metadata.AddTypeReference( //FIXME multiple classes could implement same interface
+                                                                     //FIXME so should addTypeReference only once. check MetadataTokens for reference?
+                        resolutionScope: default(TypeReferenceHandle), //FIXME interface could be in another assembly
+                        @namespace: metadata.GetOrAddString(interfaze.ContainingNamespace),
+                        name: metadata.GetOrAddString(interfaze.Name)));
+            }
+
+            return typeDefinitionHandle;
+        }
     }
 }

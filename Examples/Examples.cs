@@ -1,13 +1,36 @@
 ﻿using System;
 
-namespace FirstNamespace
+namespace Enums
 {
 
-    public enum AtTheBeginingEnum
+    public enum DefaultEnum
     {
         CONSTANT1,
         CONSTANT2
     }
+
+    public enum EnumOfLongValues : long
+    {
+        LONG2 = 2L,
+        LONG50 = 50L
+    }
+
+    public enum EnumOfBytes : byte
+    {
+        Byte10 = 10,
+        Byte20 = 20
+
+    }
+
+    public enum EnumOfUShorts : ushort
+    {
+        USHORT1 = 1,
+        USHORT2 = 2
+    }
+}
+
+namespace Classes
+{
 
     public class ClassWithProperties
     {
@@ -34,14 +57,8 @@ namespace FirstNamespace
         {
             StaticDouble = 0.5;
         }
-
     }
 
-    public enum AtTheMiddleEnumOfBytes : byte
-    {
-        Byte10 = 10,
-        Byte20 = 20
-    }
 
     public class ComplexClass
     {
@@ -84,23 +101,41 @@ namespace FirstNamespace
         public abstract void AbstractMethod();
     }
 
-    public enum AtTheEndEnumOfUShorts : ushort
+}
+
+namespace Structs
+{
+    public struct EmptyStruct
     {
-        USHORT1 = 1,
-        USHORT2 = 2
     }
 
+    public struct ComplexStruct
+    {
+
+        private const string helloMessage = "hello";
+
+        public void DoNothing() { }
+
+        private string Greet()
+        {
+
+            return helloMessage;
+        }
+
+        private int Sum(int arg1, int arg2)
+        {
+
+            return arg1 + arg2;
+        }
+    }
+
+    //TODO struct with properties
 
 }
 
-namespace SecondNamespace
-{
-    public enum EnumOfLongValues : long
-    {
-        LONG2 = 2L,
-        LONG50 = 50L
-    }
 
+namespace Interfaces
+{
     public class ClassImplementingInterface : ISampleInterface
     {
         public void DoSomething()
@@ -118,9 +153,17 @@ namespace SecondNamespace
 
     }
 
+
+    public struct ComplexStruct : ISampleInterface
+    {
+        public void DoSomething()
+        {
+        }
+    }
+
 }
 
-namespace ThirdNamespace
+namespace Hierarchy
 {
 
     public class BaseClass
@@ -144,30 +187,7 @@ namespace ThirdNamespace
 
 }
 
-namespace FourthNamespace
-{
-    public struct EmptyStruct
-    {
-    }
-    public struct ComplexStruct : SecondNamespace.ISampleInterface
-    {
-        private readonly int x;
-
-        public void DoNothing()
-        {
-        }
-
-        public void DoSomething()
-        {
-        }
-
-        // todo  structs can have properties
-
-    }
-
-}
-
-namespace FifthNamespace
+namespace Nested
 {
 
     public class ClassContainingNestedTypes
@@ -202,5 +222,7 @@ namespace FifthNamespace
     }
 
 }
+
+//TODO namespace with all things combined
 
 //TODO class with fields or methods that return other clases, structs, etc
