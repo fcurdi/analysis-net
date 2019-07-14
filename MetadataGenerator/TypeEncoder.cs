@@ -1,14 +1,23 @@
-﻿using System;
+﻿using System.Linq;
 using System.Reflection.Metadata.Ecma335;
+using Model.Types;
 
 namespace MetadataGenerator
 {
-    public static class TypeEncoder
+    public class TypeEncoder
     {
-        //FIXME: names, type of parameters
-        public static void Encode(Model.Types.IType type, SignatureTypeEncoder signatureTypeEncoder)
+
+        private readonly TypeReferences typeReferences;
+
+        public TypeEncoder(TypeReferences typeReferences)
         {
-            //FIXME incomplete
+            this.typeReferences = typeReferences;
+        }
+
+        //FIXME: names, type of parameters
+        public void Encode(Model.Types.IType type, SignatureTypeEncoder signatureTypeEncoder)
+        {
+            //FIXME incomplete: missing some built in types
             if (type.Equals(Model.Types.PlatformTypes.Boolean))
             {
                 signatureTypeEncoder.Boolean();
@@ -67,7 +76,12 @@ namespace MetadataGenerator
             }
             else
             {
-                throw new Exception("Unknown value:" + type.ToString());
+                //FIXME: GetOrAddTypeReference needs IBasicType and type is IType. 
+                //FIXME does this conversion always work? Equals works? breaks encapsulation
+                //FIXME: nonetheless it is a hack
+                // var convertedType = type as IBasicType; FIXME casting also breaks encapsulation and could fail
+                var convertedType = TypeHelper.GetClassHierarchy(type).First(t => t.Equals(type));
+                signatureTypeEncoder.Type(typeReferences.TypeReferenceOf(convertedType), false);
             }
 
         }

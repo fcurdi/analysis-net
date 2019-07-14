@@ -252,39 +252,25 @@ namespace Nested
 
 }
 
-//TODO namespace with all things combined
-//TODO class with fields or methods that return other clases, structs, etc
-/*namespace Complex
+namespace Complex
 {
-    namespace NestedNamespace
+
+    public class ClassWithMethodsWithNonBuiltInTypes
     {
 
-        public class ClassWithMethodsWithNonBuiltInReturnTypes
+        private Nested.NestedNamespace.NestedNestedNamesace.B b;
+
+        public Hierarchy.DerivedClass DoSomethingWith(Hierarchy.DerivedClass d)
         {
-
-            public Exception ReturnsException()
-            {
-                return new Exception();
-            }
-
-            public Classes.EmptyClass ReturnsClassFromOtherNamespaceButCurrentAssembly()
-            {
-                return new Classes.EmptyClass();
-            }
+            return d;
         }
 
-        public class OuterClass
+        public Exception DoSomethingWith(Exception e)
         {
-            public void DoNothingWith(Exception e)
-            {
-
-            }
-
-            public void DoNothingWith(Classes.EmptyClass e)
-            {
-
-            }
+            return e;
         }
+
     }
-}*/
+
+}
 

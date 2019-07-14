@@ -31,6 +31,8 @@
     <Compile Include="TypeEncoder.cs" />
     <Compile Include="AttributesProvider.cs" />
     <Compile Include="FieldGenerator.cs" />
+    <Compile Include="TypeReferences.cs" />
+    <Compile Include="AssemblyGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Model\Model.csproj">

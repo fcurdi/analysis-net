@@ -1,5 +1,4 @@
-﻿using System;
-using System.Reflection.Metadata;
+﻿using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 
 namespace MetadataGenerator
@@ -8,14 +7,17 @@ namespace MetadataGenerator
     {
         private MetadataBuilder metadata;
         private int nextOffset;
+        private readonly TypeEncoder typeEncoder;
 
-        public FieldGenerator(MetadataBuilder metadata)
+        public FieldGenerator(MetadataBuilder metadata, TypeEncoder typeEncoder)
         {
             this.metadata = metadata;
             this.nextOffset = 1;
+            this.typeEncoder = typeEncoder;
         }
 
-        public FieldDefinitionHandle Generate(Model.Types.FieldDefinition field) {
+        public FieldDefinitionHandle Generate(Model.Types.FieldDefinition field)
+        {
             var fieldSignatureBlobBuilder = new BlobBuilder();
             var fieldSignature = new BlobEncoder(fieldSignatureBlobBuilder).FieldSignature();
 
@@ -33,7 +35,7 @@ namespace MetadataGenerator
             }
             else
             {
-                TypeEncoder.Encode(field.Type, fieldSignature);
+                typeEncoder.Encode(field.Type, fieldSignature);
             }
 
             var fieldDefinitionHandle = metadata.AddFieldDefinition(
@@ -53,7 +55,8 @@ namespace MetadataGenerator
 
         }
 
-        public FieldDefinitionHandle NextFieldHandle() {
+        public FieldDefinitionHandle NextFieldHandle()
+        {
             return MetadataTokens.FieldDefinitionHandle(nextOffset);
         }
     }

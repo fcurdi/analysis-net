@@ -10,12 +10,14 @@ namespace MetadataGenerator
         private readonly MetadataBuilder metadata;
         private readonly MethodBodyStreamEncoder methodBodyStream;
         private int nextOffset;
+        private readonly TypeEncoder typeEncoder;
 
-        public MethodGenerator(MetadataBuilder metadata)
+        public MethodGenerator(MetadataBuilder metadata, TypeEncoder typeEncoder)
         {
             this.metadata = metadata;
             this.methodBodyStream = new MethodBodyStreamEncoder(new BlobBuilder());
             this.nextOffset = 1;
+            this.typeEncoder = typeEncoder;
         }
 
         public MethodDefinitionHandle Generate(Model.Types.MethodDefinition method)
@@ -33,7 +35,7 @@ namespace MetadataGenerator
                         }
                         else
                         {
-                            TypeEncoder.Encode(method.ReturnType, returnType.Type());
+                            typeEncoder.Encode(method.ReturnType, returnType.Type());
                         }
 
                     },
@@ -41,7 +43,7 @@ namespace MetadataGenerator
                     {
                         foreach (var parameter in method.Parameters)
                         {
-                            TypeEncoder.Encode(parameter.Type, parameters.AddParameter().Type());
+                            typeEncoder.Encode(parameter.Type, parameters.AddParameter().Type());
                         }
                     });
 
