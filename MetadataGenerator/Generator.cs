@@ -61,16 +61,7 @@ namespace MetadataGenerator
 
                 foreach (var namezpace in assembly.RootNamespace.Namespaces)
                 {
-                    foreach (var typeDefinition in namezpace.Types)
-                    {
-                        var typeDefinitionHandle = GenerateType(assembly, metadata, methodGenerator, fieldGenerator, typeDefinition);
-                        foreach (var nestedType in typeDefinition.Types)
-                        {
-                            metadata.AddNestedType(
-                                GenerateType(assembly, metadata, methodGenerator, fieldGenerator, nestedType),
-                                typeDefinitionHandle);
-                        }
-                    }
+                    GenerateNamespace(assembly, metadata, methodGenerator, fieldGenerator, namezpace);
                 }
                 var peHeaderBuilder = new PEHeaderBuilder(imageCharacteristics: Characteristics.Dll);
                 var peBuilder = new ManagedPEBuilder(
@@ -85,6 +76,36 @@ namespace MetadataGenerator
                 peBlob.WriteContentTo(peStream);
             }
 
+        }
+
+        private void GenerateNamespace(Assembly assembly, MetadataBuilder metadata, MethodGenerator methodGenerator, FieldGenerator fieldGenerator, Namespace namezpace)
+        {
+            foreach (var nestedNamespace in namezpace.Namespaces)
+            {
+                GenerateNamespace(assembly, metadata, methodGenerator, fieldGenerator, nestedNamespace);
+            }
+
+            foreach (var typeDefinition in namezpace.Types)
+            {
+                GenerateTypes(assembly, metadata, methodGenerator, fieldGenerator, typeDefinition);
+            }
+        }
+
+        private TypeDefinitionHandle GenerateTypes(Assembly assembly, MetadataBuilder metadata, MethodGenerator methodGenerator, FieldGenerator fieldGenerator, Model.Types.TypeDefinition typeDefinition)
+        {
+            var nestedTypes = new List<TypeDefinitionHandle>();
+            foreach (var nestedType in typeDefinition.Types)
+            {
+                nestedTypes.Add(GenerateTypes(assembly, metadata, methodGenerator, fieldGenerator, nestedType));
+            }
+
+            var typeDefinitionHandle = GenerateType(assembly, metadata, methodGenerator, fieldGenerator, typeDefinition);
+            foreach (var nestedType in nestedTypes)
+            {
+                metadata.AddNestedType(nestedType, typeDefinitionHandle);
+            }
+
+            return typeDefinitionHandle;
         }
 
         private TypeDefinitionHandle GenerateType(Assembly assembly, MetadataBuilder metadata, MethodGenerator methodGenerator, FieldGenerator fieldGenerator, Model.Types.TypeDefinition typeDefinition)
@@ -146,7 +167,7 @@ namespace MetadataGenerator
 
             var typeDefinitionHandle = metadata.AddTypeDefinition(
                 attributes: typeAttributes,
-                @namespace: metadata.GetOrAddString(typeDefinition.ContainingNamespace.Name),
+                @namespace: metadata.GetOrAddString(typeDefinition.ContainingNamespace.FullName),
                 name: metadata.GetOrAddString(typeDefinition.Name),
                 baseType: baseType,
                 fieldList: firstFieldHandle ?? fieldGenerator.NextFieldHandle(),

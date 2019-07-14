@@ -27,6 +27,7 @@ namespace Enums
         USHORT1 = 1,
         USHORT2 = 2
     }
+
 }
 
 namespace Classes
@@ -60,7 +61,7 @@ namespace Classes
     }
 
 
-    public class ComplexClass
+    public class NonEmptyClass
     {
         private readonly int readOnlyIntField = 212;
         public string unassignedString;
@@ -109,7 +110,7 @@ namespace Structs
     {
     }
 
-    public struct ComplexStruct
+    public struct NonEmptyStruct
     {
 
         private const string helloMessage = "hello";
@@ -231,8 +232,59 @@ namespace Nested
         }
     }
 
+    namespace NestedNamespace
+    {
+
+        public class A { }
+
+        namespace NestedNestedNamesace
+        {
+            public class B
+            {
+                public class NestedB
+                {
+
+                    public class NestedNestedB { }
+                }
+            }
+        }
+    }
+
 }
 
 //TODO namespace with all things combined
-
 //TODO class with fields or methods that return other clases, structs, etc
+/*namespace Complex
+{
+    namespace NestedNamespace
+    {
+
+        public class ClassWithMethodsWithNonBuiltInReturnTypes
+        {
+
+            public Exception ReturnsException()
+            {
+                return new Exception();
+            }
+
+            public Classes.EmptyClass ReturnsClassFromOtherNamespaceButCurrentAssembly()
+            {
+                return new Classes.EmptyClass();
+            }
+        }
+
+        public class OuterClass
+        {
+            public void DoNothingWith(Exception e)
+            {
+
+            }
+
+            public void DoNothingWith(Classes.EmptyClass e)
+            {
+
+            }
+        }
+    }
+}*/
+
