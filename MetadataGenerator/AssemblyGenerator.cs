@@ -51,6 +51,7 @@ namespace MetadataGenerator
                 throw new Exception("Generate was already called for this generator");
             }
 
+            // FIXME parameters depend of assembly info that is not in the model?
             metadata.AddAssembly(
                 name: metadata.GetOrAddString(assembly.Name),
                 version: new Version(1, 0, 0, 0), // FIXME ??

@@ -14,7 +14,6 @@ namespace MetadataGenerator
             this.typeReferences = typeReferences;
         }
 
-        //FIXME: names, type of parameters
         public void Encode(Model.Types.IType type, SignatureTypeEncoder signatureTypeEncoder)
         {
             //FIXME incomplete: missing some built in types

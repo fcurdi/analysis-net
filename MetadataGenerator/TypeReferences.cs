@@ -25,6 +25,7 @@ namespace MetadataGenerator
             //FIXME: assemblyName => assemblyRef could result in false positive?
             foreach (var assemblyReference in assembly.References)
             {
+                // FIXME parameters depend of assembly info that is not in the model?
                 assemblyReferences.Add(assemblyReference.Name, metadata.AddAssemblyReference(
                         name: metadata.GetOrAddString(assemblyReference.Name),
                         version: new Version(4, 0, 0, 0), //FIXME ??

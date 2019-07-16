@@ -5,7 +5,7 @@ namespace MetadataGenerator
 {
     public class FieldGenerator
     {
-        private MetadataBuilder metadata;
+        private readonly MetadataBuilder metadata;
         private int nextOffset;
         private readonly TypeEncoder typeEncoder;
 
