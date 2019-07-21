@@ -182,6 +182,27 @@ namespace Interfaces
 
 }
 
+
+namespace Delegates
+{
+    public class SampleClass
+    {
+        public void DelegateMethod(int x)
+        {
+        }
+    }
+
+    public class ClassThatUsesDelegate
+    {
+
+        public delegate void Del(int x);
+
+        //FIXME: code is generating Delegates.Del instead of Delegates.ClassThatUsesDelegate.Del. might be wrong for all nested types
+        public Del ReturnsADelegate() => new Del(new SampleClass().DelegateMethod);
+
+    }
+}
+
 namespace Hierarchy
 {
 

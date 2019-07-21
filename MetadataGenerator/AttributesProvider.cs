@@ -8,44 +8,51 @@ namespace MetadataGenerator
     //FIXME class and file name
     public static class AttributesProvider
     {
-        public static TypeAttributes GetAttributesFor(Model.Types.TypeDefinition typedefinition)
+        public static TypeAttributes GetAttributesFor(Model.Types.TypeDefinition typeDefinition)
         {
-            switch (typedefinition.Kind)
+            switch (typeDefinition.Kind)
             {
-                case Model.Types.TypeDefinitionKind.Class: return ClassTypeAttributes(typedefinition);
-                case Model.Types.TypeDefinitionKind.Enum: return EnumTypeAttributes(typedefinition);
-                case Model.Types.TypeDefinitionKind.Interface: return InterfaceTypeAttributes(typedefinition);
-                case Model.Types.TypeDefinitionKind.Struct: return StructTypeAttributes(typedefinition);
-                //TODO Delegate
-                default: throw new Exception(); // FIXME
+                case Model.Types.TypeDefinitionKind.Class: return ClassTypeAttributes(typeDefinition);
+                case Model.Types.TypeDefinitionKind.Enum: return EnumTypeAttributes(typeDefinition);
+                case Model.Types.TypeDefinitionKind.Interface: return InterfaceTypeAttributes(typeDefinition);
+                case Model.Types.TypeDefinitionKind.Struct: return StructTypeAttributes(typeDefinition);
+                case Model.Types.TypeDefinitionKind.Delegate: return DelegateTypeAttributes(typeDefinition);
+                default: throw new Exception();
             };
         }
 
-        private static TypeAttributes StructTypeAttributes(TypeDefinition typedefinition)
+        private static TypeAttributes DelegateTypeAttributes(TypeDefinition typeDefinition)
+        {
+            return TypeAttributes.Class
+                | TypeAttributes.Sealed
+                | VisibilityAttributesFor(typeDefinition);
+        }
+
+        private static TypeAttributes StructTypeAttributes(TypeDefinition typeDefinition)
         {
             return TypeAttributes.Class |
-                (Model.Types.VisibilityKind.Public.Equals(typedefinition.Visibility) ? TypeAttributes.Public : TypeAttributes.NotPublic) |
+                VisibilityAttributesFor(typeDefinition) |
                 TypeAttributes.SequentialLayout |
                 TypeAttributes.Sealed |
                 TypeAttributes.BeforeFieldInit;  //FIXME: when?
         }
 
-        private static TypeAttributes EnumTypeAttributes(Model.Types.TypeDefinition typedefinition)
+        private static TypeAttributes EnumTypeAttributes(Model.Types.TypeDefinition typeDefinition)
         {
             return TypeAttributes.Class |
-                (Model.Types.VisibilityKind.Public.Equals(typedefinition.Visibility) ? TypeAttributes.Public : TypeAttributes.NotPublic) |
+                VisibilityAttributesFor(typeDefinition) |
                 TypeAttributes.Sealed;
         }
 
-        private static TypeAttributes ClassTypeAttributes(Model.Types.TypeDefinition typedefinition)
+        private static TypeAttributes ClassTypeAttributes(Model.Types.TypeDefinition typeDefinition)
         {
             return TypeAttributes.Class |
                   //TODO: static => abstract & sealed and no BeforeFieldInitBeforeFieldInit
                   TypeAttributes.BeforeFieldInit | //FIXME: when?
-                  (Model.Types.VisibilityKind.Public.Equals(typedefinition.Visibility) ? TypeAttributes.Public : TypeAttributes.NotPublic);
+                  VisibilityAttributesFor(typeDefinition);
         }
 
-        private static TypeAttributes InterfaceTypeAttributes(Model.Types.TypeDefinition typedefinition)
+        private static TypeAttributes InterfaceTypeAttributes(Model.Types.TypeDefinition typeDefinition)
         {
             return TypeAttributes.Interface | TypeAttributes.Public | TypeAttributes.Abstract;
         }
@@ -106,6 +113,19 @@ namespace MetadataGenerator
             }
             return methodAttributes;
 
+        }
+
+        //FIXME
+        private static TypeAttributes VisibilityAttributesFor(TypeDefinition typeDefinition)
+        {
+            if (typeDefinition.ContainingType != null)
+            {
+                return (Model.Types.VisibilityKind.Public.Equals(typeDefinition.Visibility) ? TypeAttributes.NestedPublic : TypeAttributes.NestedPrivate);
+            }
+            else
+            {
+                return (Model.Types.VisibilityKind.Public.Equals(typeDefinition.Visibility) ? TypeAttributes.Public : TypeAttributes.NotPublic);
+            }
         }
 
     }
