@@ -23,7 +23,7 @@ namespace MetadataGenerator
         {
             var methodSignature = new BlobBuilder();
             new BlobEncoder(methodSignature)
-                .MethodSignature(isInstanceMethod: !method.IsStatic) //FIXME ?
+                .MethodSignature(isInstanceMethod: !method.IsStatic)
                 .Parameters(
                     method.Parameters.Count,
                     returnType =>
@@ -53,13 +53,14 @@ namespace MetadataGenerator
             instructions.OpCode(ILOpCode.Ret);
 
             nextOffset++;
+
             return metadata.AddMethodDefinition(
                 attributes: AttributesProvider.GetAttributesFor(method),
                 implAttributes: MethodImplAttributes.IL | MethodImplAttributes.Managed, //FIXME
                 name: metadata.GetOrAddString(method.Name),
                 signature: metadata.GetOrAddBlob(methodSignature),
                 bodyOffset: methodBodyStream.AddMethodBody(instructions),
-                parameterList: default(ParameterHandle)); //FIXME
+                parameterList: default(ParameterHandle));
         }
 
         public BlobBuilder IlStream()

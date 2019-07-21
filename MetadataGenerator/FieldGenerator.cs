@@ -20,29 +20,11 @@ namespace MetadataGenerator
         {
             var fieldSignatureBlobBuilder = new BlobBuilder();
             var fieldSignature = new BlobEncoder(fieldSignatureBlobBuilder).FieldSignature();
-
-            //FIXME: should be: if it is a custom type (not primitive nor primitive wrapper)
-            //FIXME: in the examples for the only one that needs this is the enum values
-            //FIXME: and the field value__ that is generated for the enum it is always a primitive so it needs to go to the else branch
-            if (field.ContainingType.Kind.Equals(Model.Types.TypeDefinitionKind.Enum) && !field.Name.Equals("value__"))
-            {
-                fieldSignature.Type(
-                    metadata.AddTypeReference( //FIXME: this should be done only once per type. 
-                        default(AssemblyReferenceHandle),
-                        metadata.GetOrAddString(field.ContainingType.ContainingNamespace.Name),
-                        metadata.GetOrAddString(field.ContainingType.Name)),
-                    true);
-            }
-            else
-            {
-                typeEncoder.Encode(field.Type, fieldSignature);
-            }
-
+            typeEncoder.Encode(field.Type, fieldSignature);
             var fieldDefinitionHandle = metadata.AddFieldDefinition(
                     attributes: AttributesProvider.GetAttributesFor(field),
                     name: metadata.GetOrAddString(field.Name),
                     signature: metadata.GetOrAddBlob(fieldSignatureBlobBuilder));
-
 
             if (field.Value != null)
             {
@@ -52,7 +34,6 @@ namespace MetadataGenerator
             nextOffset++;
 
             return fieldDefinitionHandle;
-
         }
 
         public FieldDefinitionHandle NextFieldHandle()

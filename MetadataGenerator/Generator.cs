@@ -21,9 +21,9 @@ namespace MetadataGenerator
                                header: peHeaderBuilder,
                                metadataRootBuilder: new MetadataRootBuilder(assemblyGenerator.ResolvedMetadata),
                                ilStream: assemblyGenerator.IlStream,
-                               entryPoint: default(MethodDefinitionHandle),
-                               flags: CorFlags.ILOnly | CorFlags.StrongNameSigned, //FIXME
-                               deterministicIdProvider: content => default(BlobContentId)); //FIXME
+                               entryPoint: default(MethodDefinitionHandle), // dlls have no entry point
+                               flags: CorFlags.ILOnly //FIXME  CorFlags.Requires32Bit | CorFlags.StrongNameSigned depend on dll
+                              );
                 var peBlob = new BlobBuilder();
                 var contentId = peBuilder.Serialize(peBlob);
                 peBlob.WriteContentTo(peStream);

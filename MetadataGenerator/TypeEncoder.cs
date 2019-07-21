@@ -14,6 +14,8 @@ namespace MetadataGenerator
             this.typeReferences = typeReferences;
         }
 
+
+        //FIXME esta bien usar equals?
         public void Encode(Model.Types.IType type, SignatureTypeEncoder signatureTypeEncoder)
         {
             //FIXME incomplete: missing some built in types

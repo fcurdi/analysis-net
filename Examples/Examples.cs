@@ -137,7 +137,7 @@ namespace Structs
 
 namespace Interfaces
 {
-    public class ClassImplementingInterface : ISampleInterface, IComparable
+    public class ClassImplementingInterface : IExtendingSampleInterface, IComparable
     {
         public int CompareTo(object obj)
         {
@@ -148,6 +148,14 @@ namespace Interfaces
         {
         }
 
+        public void DoSomethingExtended()
+        {
+        }
+    }
+
+    public interface IExtendingSampleInterface : ISampleInterface
+    {
+        void DoSomethingExtended();
     }
 
     public interface ISampleInterface
@@ -252,7 +260,7 @@ namespace Nested
 
 }
 
-namespace Complex
+namespace NonBuiltInTypes
 {
 
     public class ClassWithMethodsWithNonBuiltInTypes
@@ -271,6 +279,11 @@ namespace Complex
         }
 
     }
+
+}
+
+namespace Generics
+{
 
 }
 
