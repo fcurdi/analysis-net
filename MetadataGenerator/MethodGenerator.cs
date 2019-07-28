@@ -45,7 +45,6 @@ namespace MetadataGenerator
                             typeEncoder.Encode(parameter.Type, parameters.AddParameter().Type());
                         }
                     });
-
             var instructions = new InstructionEncoder(new BlobBuilder());
 
             //TODO: real body

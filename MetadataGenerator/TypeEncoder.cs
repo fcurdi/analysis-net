@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Collections.Immutable;
 using System.Reflection.Metadata.Ecma335;
 using Model.Types;
 
@@ -15,7 +16,7 @@ namespace MetadataGenerator
         }
 
 
-        //FIXME esta bien usar equals?
+        //FIXME signatureTypeEncoder should be by reference? or value?
         public void Encode(Model.Types.IType type, SignatureTypeEncoder signatureTypeEncoder)
         {
             //FIXME incomplete: missing some built in types
@@ -77,15 +78,44 @@ namespace MetadataGenerator
             }
             else
             {
-                //FIXME: GetOrAddTypeReference needs IBasicType and type is IType. 
-                //FIXME does this conversion always work? Equals works? breaks encapsulation
-                //FIXME: nonetheless it is a hack
-                // var convertedType = type as IBasicType; FIXME casting also breaks encapsulation and could fail
-                var convertedType = TypeHelper.GetClassHierarchy(type).First(t => t.Equals(type));
-                signatureTypeEncoder.Type(typeReferences.TypeReferenceOf(convertedType), false);
+                if (type is IBasicType)
+                {
+                    var basicType = type as IBasicType;
+                    if (basicType.GenericArguments.Count > 0)
+                    {
+                        var genericInstantiation = signatureTypeEncoder.GenericInstantiation(
+                             typeReferences.TypeReferenceOf(basicType),
+                             basicType.GenericArguments.Count,
+                             type.TypeKind == TypeKind.ValueType
+                             );
+                        foreach (var genericArg in basicType.GenericArguments)
+                        {
+                            Encode(genericArg, genericInstantiation.AddArgument());
+                        }
+                    }
+                    else
+                    {
+                        signatureTypeEncoder.Type(typeReferences.TypeReferenceOf(basicType), type.TypeKind == TypeKind.ValueType);
+                    }
+                }
+                else if (type is ArrayType)
+                {
+                    signatureTypeEncoder.Array(out var elementTypeEncoder, out var arrayShapeEncoder);
+                    Encode((type as ArrayType).ElementsType, elementTypeEncoder);
+                    arrayShapeEncoder.Shape(
+                       (int)(type as ArrayType).Rank,
+                       ImmutableArray.Create(1), //FIXME como se el size??
+                       ImmutableArray.Create(0));
+                }
+                else if (type is PointerType)
+                {
+                    throw new Exception("TODO"); //FIXME 
+                }
+                else
+                {
+                    throw new Exception("Type not supported");
+                }
             }
-
         }
-
     }
 }

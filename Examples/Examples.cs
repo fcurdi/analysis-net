@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Enums
 {
@@ -197,7 +198,7 @@ namespace Delegates
 
         public delegate void Del(int x);
 
-        //FIXME: code is generating Delegates.Del instead of Delegates.ClassThatUsesDelegate.Del. might be wrong for all nested types
+        //FIXME: code is generating Delegates.Del instead of Delegates.ClassThatUsesDelegate.Del
         public Del ReturnsADelegate() => new Del(new SampleClass().DelegateMethod);
 
     }
@@ -281,11 +282,15 @@ namespace Nested
 
 }
 
+//FIXME name
 namespace NonBuiltInTypes
 {
 
     public class ClassWithMethodsWithNonBuiltInTypes
     {
+
+        public string[] stringArrayField;
+        public Exception[] exceptionArrayField;
 
         private Nested.NestedNamespace.NestedNestedNamesace.B b;
 
@@ -299,12 +304,43 @@ namespace NonBuiltInTypes
             return e;
         }
 
+        public string[] GetStringArray()
+        {
+            return new string[] { "hello", "world" };
+        }
+
+        public Exception[] GetExceptionArray()
+        {
+            return new Exception[] { };
+        }
+
+        //TODO pointers
     }
 
 }
 
 namespace Generics
 {
+    public class Generic
+    {
+        public Dictionary<string, Exception> genericField;
+
+        public IList<Exception> GetExceptionsList(List<string> _)
+        {
+            return new List<Exception>();
+        }
+        /* TODO
+                public T RecievesAndReturnsGeneric<T>(T param)
+                {
+                    return param;
+                }
+
+                public IList<T> RecievesAndReturnsGenericList<T>(IList<T> param)
+                {
+                    return param;
+                }
+        */
+    }
 
 }
 
