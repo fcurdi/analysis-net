@@ -14,10 +14,10 @@ namespace MetadataGenerator
         private readonly TypeReferences typeReferences;
         private readonly MethodGenerator methodGenerator;
         private readonly FieldGenerator fieldGenerator;
-        private MetadataBuilder resolvedMetadata = null;
+        private MetadataBuilder generatedMetadata = null;
 
-        public MetadataBuilder ResolvedMetadata => resolvedMetadata ?? throw new Exception("Generate was not called");
-        public BlobBuilder IlStream => resolvedMetadata != null ? methodGenerator.IlStream() : throw new Exception("Generate was not called");
+        public MetadataBuilder GeneratedMetadata => generatedMetadata ?? throw new Exception("Generate was not called");
+        public BlobBuilder IlStream => generatedMetadata != null ? methodGenerator.IlStream() : throw new Exception("Generate was not called");
 
         private AssemblyGenerator(Model.Assembly assembly, MetadataBuilder metadata, TypeReferences typeReferences, MethodGenerator methodGenerator, FieldGenerator fieldGenerator)
         {
@@ -46,7 +46,7 @@ namespace MetadataGenerator
 
         public AssemblyGenerator Generate()
         {
-            if (resolvedMetadata != null)
+            if (generatedMetadata != null)
             {
                 throw new Exception("Generate was already called for this generator");
             }
@@ -73,7 +73,7 @@ namespace MetadataGenerator
                 Generate(namezpace);
             }
 
-            resolvedMetadata = metadata;
+            generatedMetadata = metadata;
 
             return this;
         }

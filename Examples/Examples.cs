@@ -31,7 +31,8 @@ namespace Enums
 
 }
 
-namespace Classes
+
+namespace PropertiesGettersAndSetters
 {
 
     public class ClassWithProperties
@@ -45,8 +46,16 @@ namespace Classes
         public string AnotherPropertyWithBackingField { get => otherBackingField; }
         private string otherBackingField;
 
+        public void get_ShouldNotHaveSpecialname() { }
     }
 
+    // TODO  interface with properties
+    // TODO struct with properties
+
+}
+
+namespace Classes
+{
     public class EmptyClass
     {
     }
@@ -62,7 +71,7 @@ namespace Classes
     }
 
 
-    public class NonEmptyClass
+    public class SimpleClass
     {
         private readonly int readOnlyIntField = 212;
         public string unassignedString;
@@ -103,6 +112,37 @@ namespace Classes
         public abstract void AbstractMethod();
     }
 
+    //FIXME generation not entirely correct
+    public class ClassWithMoreComplexFieldsAndParamtersOrReturnTypes
+    {
+
+        public string[] stringArrayField;
+        public Exception[] exceptionArrayField;
+        private Nested.NestedNamespace.NestedNestedNamesace.B b;
+
+        public Hierarchy.DerivedClass DoSomethingWith(Hierarchy.DerivedClass d)
+        {
+            return d;
+        }
+
+        public Exception DoSomethingWith(Exception e)
+        {
+            return e;
+        }
+
+        public string[] GetStringArray()
+        {
+            return new string[] { "hello", "world" };
+        }
+
+        public Exception[] GetExceptionArray()
+        {
+            return new Exception[] { };
+        }
+
+        //TODO pointers
+    }
+
 }
 
 namespace Structs
@@ -130,8 +170,6 @@ namespace Structs
             return arg1 + arg2;
         }
     }
-
-    //TODO struct with properties
 
 }
 
@@ -207,18 +245,43 @@ namespace Delegates
 namespace Hierarchy
 {
 
-    public class BaseClass
+    public abstract class AbstractBaseClass
     {
+        public abstract void MustImplement();
+
+        public virtual void CanImplement()
+        {
+        }
+
+    }
+
+    public class BaseClass : AbstractBaseClass
+    {
+        public override void MustImplement()
+        {
+            throw new NotImplementedException();
+        }
+
+        protected void NotVisibileToDerivedClass()
+        {
+        }
+
+
     }
 
     public class DerivedClass : BaseClass
     {
+
+        public override void CanImplement() { }
+
+
 
     }
 
 
     public class ClassDerivedFromSystemClass : Exception
     {
+
 
     }
 
@@ -278,43 +341,6 @@ namespace Nested
                 }
             }
         }
-    }
-
-}
-
-//FIXME name
-namespace NonBuiltInTypes
-{
-
-    public class ClassWithMethodsWithNonBuiltInTypes
-    {
-
-        public string[] stringArrayField;
-        public Exception[] exceptionArrayField;
-
-        private Nested.NestedNamespace.NestedNestedNamesace.B b;
-
-        public Hierarchy.DerivedClass DoSomethingWith(Hierarchy.DerivedClass d)
-        {
-            return d;
-        }
-
-        public Exception DoSomethingWith(Exception e)
-        {
-            return e;
-        }
-
-        public string[] GetStringArray()
-        {
-            return new string[] { "hello", "world" };
-        }
-
-        public Exception[] GetExceptionArray()
-        {
-            return new Exception[] { };
-        }
-
-        //TODO pointers
     }
 
 }
