@@ -15,64 +15,62 @@ namespace MetadataGenerator
             this.typeReferences = typeReferences;
         }
 
-
-        //FIXME signatureTypeEncoder should be by reference? or value?
-        public void Encode(Model.Types.IType type, SignatureTypeEncoder signatureTypeEncoder)
+        // FIXME signatureTypeEncoder should be by reference? or value?
+        public void Encode(IType type, SignatureTypeEncoder signatureTypeEncoder)
         {
-            //FIXME incomplete: missing some built in types
             if (type.Equals(Model.Types.PlatformTypes.Boolean))
             {
                 signatureTypeEncoder.Boolean();
             }
-            else if (type.Equals(Model.Types.PlatformTypes.Byte))
+            else if (type.Equals(PlatformTypes.Byte))
             {
                 signatureTypeEncoder.Byte();
             }
-            else if (type.Equals(Model.Types.PlatformTypes.SByte))
+            else if (type.Equals(PlatformTypes.SByte))
             {
                 signatureTypeEncoder.SByte();
             }
-            else if (type.Equals(Model.Types.PlatformTypes.Char))
+            else if (type.Equals(PlatformTypes.Char))
             {
                 signatureTypeEncoder.Char();
             }
-            else if (type.Equals(Model.Types.PlatformTypes.Double))
+            else if (type.Equals(PlatformTypes.Double))
             {
                 signatureTypeEncoder.Double();
             }
-            else if (type.Equals(Model.Types.PlatformTypes.Int16))
+            else if (type.Equals(PlatformTypes.Int16))
             {
                 signatureTypeEncoder.Int16();
             }
-            else if (type.Equals(Model.Types.PlatformTypes.UInt16))
+            else if (type.Equals(PlatformTypes.UInt16))
             {
                 signatureTypeEncoder.UInt16();
             }
-            else if (type.Equals(Model.Types.PlatformTypes.Int32))
+            else if (type.Equals(PlatformTypes.Int32))
             {
                 signatureTypeEncoder.Int32();
             }
-            else if (type.Equals(Model.Types.PlatformTypes.UInt32))
+            else if (type.Equals(PlatformTypes.UInt32))
             {
                 signatureTypeEncoder.UInt32();
             }
-            else if (type.Equals(Model.Types.PlatformTypes.Int64))
+            else if (type.Equals(PlatformTypes.Int64))
             {
                 signatureTypeEncoder.Int64();
             }
-            else if (type.Equals(Model.Types.PlatformTypes.UInt64))
+            else if (type.Equals(PlatformTypes.UInt64))
             {
                 signatureTypeEncoder.UInt64();
             }
-            else if (type.Equals(Model.Types.PlatformTypes.String))
+            else if (type.Equals(PlatformTypes.String))
             {
                 signatureTypeEncoder.String();
             }
-            else if (type.Equals(Model.Types.PlatformTypes.Single))
+            else if (type.Equals(PlatformTypes.Single))
             {
                 signatureTypeEncoder.Single();
             }
-            else if (type.Equals(Model.Types.PlatformTypes.Object))
+            else if (type.Equals(PlatformTypes.Object))
             {
                 signatureTypeEncoder.Object();
             }
@@ -87,7 +85,7 @@ namespace MetadataGenerator
                              typeReferences.TypeReferenceOf(basicType),
                              basicType.GenericArguments.Count,
                              type.TypeKind == TypeKind.ValueType
-                             );
+                         );
                         foreach (var genericArg in basicType.GenericArguments)
                         {
                             Encode(genericArg, genericInstantiation.AddArgument());
@@ -109,7 +107,17 @@ namespace MetadataGenerator
                 }
                 else if (type is PointerType)
                 {
-                    throw new Exception("TODO"); //FIXME 
+
+                    // TODO there's also signatureTypeEncode.FunctionPointer()/IntPtr()/UIntPtr
+                    var targetType = (type as PointerType).TargetType;
+                    if (targetType.Equals(PlatformTypes.Void))
+                    {
+                        signatureTypeEncoder.VoidPointer();
+                    }
+                    else
+                    {
+                        Encode(targetType, signatureTypeEncoder.Pointer());
+                    }
                 }
                 else
                 {

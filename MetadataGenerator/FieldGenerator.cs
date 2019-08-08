@@ -22,7 +22,7 @@ namespace MetadataGenerator
             var fieldSignature = new BlobEncoder(fieldSignatureBlobBuilder).FieldSignature();
             typeEncoder.Encode(field.Type, fieldSignature);
             var fieldDefinitionHandle = metadata.AddFieldDefinition(
-                    attributes: AttributesProvider.GetAttributesFor(field),
+                    attributes: AttributesProvider.GetTypeAttributesFor(field),
                     name: metadata.GetOrAddString(field.Name),
                     signature: metadata.GetOrAddBlob(fieldSignatureBlobBuilder));
 

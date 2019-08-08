@@ -43,7 +43,6 @@ namespace MetadataGenerator
                 fieldGenerator);
         }
 
-
         public AssemblyGenerator Generate()
         {
             if (generatedMetadata != null)
@@ -54,19 +53,19 @@ namespace MetadataGenerator
             // FIXME parameters depend of assembly info that is not in the model?
             metadata.AddAssembly(
                 name: metadata.GetOrAddString(assembly.Name),
-                version: new Version(1, 0, 0, 0), // FIXME ??
-                culture: default(StringHandle), // FIXME ??
-                publicKey: default(BlobHandle), // FIXME ??
-                flags: AssemblyFlags.PublicKey, // FIXME ??
-                hashAlgorithm: AssemblyHashAlgorithm.Sha1); // FIXME ??
+                version: new Version(1, 0, 0, 0),
+                culture: default(StringHandle),
+                publicKey: default(BlobHandle),
+                flags: AssemblyFlags.PublicKey,
+                hashAlgorithm: AssemblyHashAlgorithm.Sha1);
 
             // FIXME parameters depend of assembly info that is not in the model?
             metadata.AddModule(
-                generation: 0, // FIXME ??
+                generation: 0,
                 moduleName: metadata.GetOrAddString($"{assembly.Name}.dll"),
-                mvid: default(GuidHandle), // FIXME ??
-                encId: default(GuidHandle), // FIXME ??
-                encBaseId: default(GuidHandle)); // FIXME ??
+                mvid: default(GuidHandle),
+                encId: default(GuidHandle),
+                encBaseId: default(GuidHandle));
 
             foreach (var namezpace in assembly.RootNamespace.Namespaces)
             {
@@ -113,7 +112,7 @@ namespace MetadataGenerator
             MethodDefinitionHandle? firstMethodHandle = null;
             FieldDefinitionHandle? firstFieldHandle = null;
 
-            var typeAttributes = AttributesProvider.GetAttributesFor(type);
+            var typeAttributes = AttributesProvider.GetTypeAttributesFor(type);
 
             foreach (var method in type.Methods)
             {
@@ -136,7 +135,7 @@ namespace MetadataGenerator
                 }
             }
 
-            /* TODO Properties: works but model is missing Property concept
+            /* TODO Properties: (works) but model is missing Property concept
 
                 var propertySignatureBlogBuilder = new BlobBuilder();
                 new BlobEncoder(propertySignatureBlogBuilder)

@@ -5,22 +5,9 @@ using Model.Types;
 
 namespace MetadataGenerator
 {
-
-
-    /*
-
-        getters and setters => specialname (rt?)
-
-        see cases for events
-
-
-
-        */
-
-    //FIXME class and file name
     public static class AttributesProvider
     {
-        public static TypeAttributes GetAttributesFor(TypeDefinition typeDefinition)
+        public static TypeAttributes GetTypeAttributesFor(TypeDefinition typeDefinition)
         {
             switch (typeDefinition.Kind)
             {
@@ -69,13 +56,13 @@ namespace MetadataGenerator
             return TypeAttributes.Interface | TypeAttributes.Public | TypeAttributes.Abstract;
         }
 
-        public static FieldAttributes GetAttributesFor(FieldDefinition field)
+        public static FieldAttributes GetTypeAttributesFor(FieldDefinition field)
         {
             var fieldAttributes =
                 (field.IsStatic ? FieldAttributes.Static : 0) |
                 (field.ContainingType.Kind.Equals(TypeDefinitionKind.Enum) && field.Type.Equals(field.ContainingType) ? FieldAttributes.Literal : 0) | // TODO also applies for const fields. 
                 (field.ContainingType.Kind.Equals(TypeDefinitionKind.Enum) && field.Name.Equals("value__", StringComparison.InvariantCultureIgnoreCase) ? FieldAttributes.RTSpecialName | FieldAttributes.SpecialName : 0);
-            // (field is readonly ? FieldAttributes.InitOnly : 0); //FIXME
+            // (field is readonly ? FieldAttributes.InitOnly : 0); //TODO
             switch (field.Visibility)
             {
 
@@ -97,9 +84,9 @@ namespace MetadataGenerator
             return fieldAttributes;
         }
 
-        public static MethodAttributes GetAttributesFor(MethodDefinition method)
+        public static MethodAttributes GetTypeAttributesFor(MethodDefinition method)
         {
-            var isConstructor = method.IsConstructor || method.Name.Equals(".cctor"); // FIXME maybe method can have a isClassConstructor or isTypeInitializer
+            var isConstructor = method.IsConstructor || method.Name.Equals(".cctor"); // FIXME maybe MethodDefinition can have a isClassConstructor or isTypeInitializer
             var methodAttributes =
                 (method.IsAbstract ? MethodAttributes.Abstract : 0) |
                 (method.IsStatic ? MethodAttributes.Static : 0) |
@@ -126,7 +113,6 @@ namespace MetadataGenerator
                     throw method.Visibility.ToUnknownValueException();
             }
             return methodAttributes;
-
         }
 
         //FIXME

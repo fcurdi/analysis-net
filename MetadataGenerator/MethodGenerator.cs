@@ -47,14 +47,14 @@ namespace MetadataGenerator
                     });
             var instructions = new InstructionEncoder(new BlobBuilder());
 
-            //TODO: real body
+            // TODO: real body
             instructions.OpCode(ILOpCode.Nop);
             instructions.OpCode(ILOpCode.Ret);
 
             nextOffset++;
 
             return metadata.AddMethodDefinition(
-                attributes: AttributesProvider.GetAttributesFor(method),
+                attributes: AttributesProvider.GetTypeAttributesFor(method),
                 implAttributes: MethodImplAttributes.IL | MethodImplAttributes.Managed, //FIXME
                 name: metadata.GetOrAddString(method.Name),
                 signature: metadata.GetOrAddBlob(methodSignature),

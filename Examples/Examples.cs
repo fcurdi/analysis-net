@@ -31,7 +31,9 @@ namespace Enums
 
 }
 
-
+// TODO no yet supported in the framework model
+// TODO interface with properties
+// TODO struct with properties
 namespace PropertiesGettersAndSetters
 {
 
@@ -48,10 +50,6 @@ namespace PropertiesGettersAndSetters
 
         public void get_ShouldNotHaveSpecialname() { }
     }
-
-    // TODO  interface with properties
-    // TODO struct with properties
-
 }
 
 namespace Classes
@@ -112,7 +110,7 @@ namespace Classes
         public abstract void AbstractMethod();
     }
 
-    //FIXME generation not entirely correct
+    //FIXME arrays not being generated correctly
     public class ClassWithMoreComplexFieldsAndParamtersOrReturnTypes
     {
 
@@ -139,10 +137,7 @@ namespace Classes
         {
             return new Exception[] { };
         }
-
-        //TODO pointers
     }
-
 }
 
 namespace Structs
@@ -173,7 +168,7 @@ namespace Structs
 
 }
 
-
+// TODO interface can have properties
 namespace Interfaces
 {
     public class ClassImplementingInterface : IExtendingSampleInterface, IComparable
@@ -199,13 +194,8 @@ namespace Interfaces
 
     public interface ISampleInterface
     {
-
         void DoSomething();
-
-        // todo  interface can have properties
-
     }
-
 
     public struct ComplexStruct : ISampleInterface, IComparable
     {
@@ -220,7 +210,6 @@ namespace Interfaces
     }
 
 }
-
 
 namespace Delegates
 {
@@ -265,30 +254,21 @@ namespace Hierarchy
         protected void NotVisibileToDerivedClass()
         {
         }
-
-
     }
 
     public class DerivedClass : BaseClass
     {
-
         public override void CanImplement() { }
-
-
 
     }
 
-
     public class ClassDerivedFromSystemClass : Exception
     {
-
-
     }
 
     public class ClassDerivedFromAccessibilityClass : Accessibility.CAccPropServicesClass
     {
     }
-
 }
 
 namespace Nested
@@ -345,17 +325,34 @@ namespace Nested
 
 }
 
+// TODO pointers
+namespace PointersAndReferences
+{
+
+    public class ClassWithMethodWithParametersWithKeywords
+    {
+        // FIXME ref and out are beign generated like type* instead of type&. Also the bytecodes needs to include the "out" keyword
+        public void MethodWithRefAndOutParameters(ref string refString, ref Exception refException, out int outInt, out Classes.SimpleClass outClass)
+        {
+            outInt = 2;
+            outClass = new Classes.SimpleClass();
+        }
+    }
+}
+
 namespace Generics
 {
     public class Generic
     {
         public Dictionary<string, Exception> genericField;
 
+        public IList<IList<Exception>> listOfListField;
+
         public IList<Exception> GetExceptionsList(List<string> _)
         {
             return new List<Exception>();
         }
-        /* TODO
+        /* TODO 
                 public T RecievesAndReturnsGeneric<T>(T param)
                 {
                     return param;
