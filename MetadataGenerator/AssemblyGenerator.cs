@@ -128,7 +128,6 @@ namespace MetadataGenerator
             {
                 var fieldDefinitionHandle = fieldGenerator.Generate(field);
 
-
                 if (!firstFieldHandle.HasValue)
                 {
                     firstFieldHandle = fieldDefinitionHandle;
@@ -163,7 +162,6 @@ namespace MetadataGenerator
             {
                 baseType = typeReferences.TypeReferenceOf(type.Base);
             }
-
             var typeDefinitionHandle = metadata.AddTypeDefinition(
                 attributes: typeAttributes,
                 @namespace: metadata.GetOrAddString(type.ContainingNamespace.FullName),

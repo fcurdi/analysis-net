@@ -18,7 +18,7 @@ namespace MetadataGenerator
         // FIXME signatureTypeEncoder should be by reference? or value?
         public void Encode(IType type, SignatureTypeEncoder signatureTypeEncoder)
         {
-            if (type.Equals(Model.Types.PlatformTypes.Boolean))
+            if (type.Equals(PlatformTypes.Boolean))
             {
                 signatureTypeEncoder.Boolean();
             }
@@ -76,9 +76,8 @@ namespace MetadataGenerator
             }
             else
             {
-                if (type is IBasicType)
+                if (type is IBasicType basicType)
                 {
-                    var basicType = type as IBasicType;
                     if (basicType.GenericArguments.Count > 0)
                     {
                         var genericInstantiation = signatureTypeEncoder.GenericInstantiation(
@@ -96,20 +95,28 @@ namespace MetadataGenerator
                         signatureTypeEncoder.Type(typeReferences.TypeReferenceOf(basicType), type.TypeKind == TypeKind.ValueType);
                     }
                 }
-                else if (type is ArrayType)
+                else if (type is ArrayType arrayType)
                 {
-                    signatureTypeEncoder.Array(out var elementTypeEncoder, out var arrayShapeEncoder);
-                    Encode((type as ArrayType).ElementsType, elementTypeEncoder);
-                    arrayShapeEncoder.Shape(
-                       (int)(type as ArrayType).Rank,
-                       ImmutableArray.Create(1), //FIXME como se el size??
-                       ImmutableArray.Create(0));
+                    signatureTypeEncoder.Array(
+                        elementTypeEncoder =>
+                        {
+                            Encode(arrayType.ElementsType, elementTypeEncoder);
+                        },
+                        arrayShapeEncoder =>
+                        {
+                            // FIXME real values for sizes and lowerBounds
+                            arrayShapeEncoder.Shape(
+                                rank: (int)arrayType.Rank,
+                                sizes: ImmutableArray<int>.Empty,
+                                lowerBounds: ImmutableArray<int>.Empty);
+                        });
+
                 }
-                else if (type is PointerType)
+                else if (type is PointerType pointerType)
                 {
 
                     // TODO there's also signatureTypeEncode.FunctionPointer()/IntPtr()/UIntPtr
-                    var targetType = (type as PointerType).TargetType;
+                    var targetType = pointerType.TargetType;
                     if (targetType.Equals(PlatformTypes.Void))
                     {
                         signatureTypeEncoder.VoidPointer();

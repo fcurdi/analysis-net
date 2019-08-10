@@ -110,11 +110,12 @@ namespace Classes
         public abstract void AbstractMethod();
     }
 
-    //FIXME arrays not being generated correctly
     public class ClassWithMoreComplexFieldsAndParamtersOrReturnTypes
     {
 
         public string[] stringArrayField;
+        public string[][] stringArrayArrayField;
+        public string[,,] stringJaggedArrayField;
         public Exception[] exceptionArrayField;
         private Nested.NestedNamespace.NestedNestedNamesace.B b;
 
@@ -150,19 +151,23 @@ namespace Structs
     {
 
         private const string helloMessage = "hello";
+        private int number;
 
         public void DoNothing() { }
 
         private string Greet()
         {
-
             return helloMessage;
         }
 
         private int Sum(int arg1, int arg2)
         {
-
             return arg1 + arg2;
+        }
+
+        public void ModifiesField(int value)
+        {
+            number = value;
         }
     }
 
@@ -222,12 +227,10 @@ namespace Delegates
 
     public class ClassThatUsesDelegate
     {
-
         public delegate void Del(int x);
 
         //FIXME: code is generating Delegates.Del instead of Delegates.ClassThatUsesDelegate.Del
         public Del ReturnsADelegate() => new Del(new SampleClass().DelegateMethod);
-
     }
 }
 
@@ -336,6 +339,11 @@ namespace PointersAndReferences
         {
             outInt = 2;
             outClass = new Classes.SimpleClass();
+        }
+
+        public unsafe void* UnsafeMethod(int* intPointer, Structs.EmptyStruct* structPointer)
+        {
+            return null;
         }
     }
 }

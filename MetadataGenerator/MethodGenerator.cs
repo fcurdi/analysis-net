@@ -10,6 +10,7 @@ namespace MetadataGenerator
         private readonly MethodBodyStreamEncoder methodBodyStream;
         private int nextOffset;
         private readonly TypeEncoder typeEncoder;
+        private readonly MethodParameterGenerator methodParameterGenerator;
 
         public MethodGenerator(MetadataBuilder metadata, TypeEncoder typeEncoder)
         {
@@ -17,10 +18,12 @@ namespace MetadataGenerator
             this.methodBodyStream = new MethodBodyStreamEncoder(new BlobBuilder());
             this.nextOffset = 1;
             this.typeEncoder = typeEncoder;
+            this.methodParameterGenerator = new MethodParameterGenerator(metadata);
         }
 
         public MethodDefinitionHandle Generate(Model.Types.MethodDefinition method)
         {
+            ParameterHandle? firstParameterHandle = null;
             var methodSignature = new BlobBuilder();
             new BlobEncoder(methodSignature)
                 .MethodSignature(isInstanceMethod: !method.IsStatic)
@@ -43,6 +46,11 @@ namespace MetadataGenerator
                         foreach (var parameter in method.Parameters)
                         {
                             typeEncoder.Encode(parameter.Type, parameters.AddParameter().Type());
+                            var parameterHandle = methodParameterGenerator.Generate(parameter);
+                            if (!firstParameterHandle.HasValue)
+                            {
+                                firstParameterHandle = parameterHandle;
+                            }
                         }
                     });
             var instructions = new InstructionEncoder(new BlobBuilder());
@@ -50,7 +58,6 @@ namespace MetadataGenerator
             // TODO: real body
             instructions.OpCode(ILOpCode.Nop);
             instructions.OpCode(ILOpCode.Ret);
-
             nextOffset++;
 
             return metadata.AddMethodDefinition(
@@ -59,7 +66,7 @@ namespace MetadataGenerator
                 name: metadata.GetOrAddString(method.Name),
                 signature: metadata.GetOrAddBlob(methodSignature),
                 bodyOffset: methodBodyStream.AddMethodBody(instructions),
-                parameterList: default(ParameterHandle));
+                parameterList: firstParameterHandle ?? methodParameterGenerator.NextParameterHandle());
         }
 
         public BlobBuilder IlStream()
@@ -73,5 +80,37 @@ namespace MetadataGenerator
         }
 
 
+        private class MethodParameterGenerator
+        {
+            private readonly MetadataBuilder metadata;
+            private int nextOffset;
+
+            public MethodParameterGenerator(MetadataBuilder metadata)
+            {
+                this.metadata = metadata;
+                this.nextOffset = 1;
+            }
+
+            public ParameterHandle Generate(Model.Types.MethodParameter methodParameter)
+            {
+                nextOffset++;
+
+                // TODO: metadata.AddGenericParameter() + examples
+
+                return metadata.AddParameter(
+                    AttributesProvider.GetTypeAttributesFor(methodParameter),
+                    metadata.GetOrAddString(methodParameter.Name),
+                    methodParameter.Index);
+            }
+
+            public ParameterHandle NextParameterHandle()
+            {
+                return MetadataTokens.ParameterHandle(nextOffset);
+            }
+
+
+        }
+
     }
+
 }

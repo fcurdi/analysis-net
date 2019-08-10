@@ -5,6 +5,7 @@ using Model.Types;
 
 namespace MetadataGenerator
 {
+    // FIXME method names
     public static class AttributesProvider
     {
         public static TypeAttributes GetTypeAttributesFor(TypeDefinition typeDefinition)
@@ -113,6 +114,25 @@ namespace MetadataGenerator
                     throw method.Visibility.ToUnknownValueException();
             }
             return methodAttributes;
+        }
+
+        public static ParameterAttributes GetTypeAttributesFor(MethodParameter parameter)
+        {
+            var attributes = (parameter.HasDefaultValue ? ParameterAttributes.HasDefault : 0);
+            switch (parameter.Kind)
+            {
+                case MethodParameterKind.In:
+                    // attributes |= ParameterAttributes.In;
+                    //FIXME this seems to be always true... and illspy of original is not
+                    break;
+                case MethodParameterKind.Out:
+                    attributes |= ParameterAttributes.Out;
+                    break;
+                case MethodParameterKind.Ref:
+                    // FIXME
+                    break;
+            }
+            return attributes;
         }
 
         //FIXME
