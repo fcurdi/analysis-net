@@ -7,7 +7,6 @@ namespace MetadataGenerator
 {
     public class TypeEncoder
     {
-
         private readonly TypeReferences typeReferences;
 
         public TypeEncoder(TypeReferences typeReferences)

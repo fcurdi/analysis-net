@@ -14,7 +14,11 @@ namespace MetadataGenerator
         private readonly TypeReferences typeReferences;
         private readonly MethodGenerator methodGenerator;
         private readonly FieldGenerator fieldGenerator;
-        private MetadataBuilder generatedMetadata = null;
+        private MetadataBuilder generatedMetadata;
+
+        private MethodDefinitionHandle? mainMethodHandle;
+        public MethodDefinitionHandle? MainMethodHandle => generatedMetadata != null ? mainMethodHandle : throw new Exception("Generate was not called");
+        public Boolean Executable => mainMethodHandle != null;
 
         public MetadataBuilder GeneratedMetadata => generatedMetadata ?? throw new Exception("Generate was not called");
         public BlobBuilder IlStream => generatedMetadata != null ? methodGenerator.IlStream() : throw new Exception("Generate was not called");
@@ -50,7 +54,12 @@ namespace MetadataGenerator
                 throw new Exception("Generate was already called for this generator");
             }
 
-            // FIXME parameters depend of assembly info that is not in the model?
+            foreach (var namezpace in assembly.RootNamespace.Namespaces)
+            {
+                Generate(namezpace);
+            }
+
+            // FIXME args?
             metadata.AddAssembly(
                 name: metadata.GetOrAddString(assembly.Name),
                 version: new Version(1, 0, 0, 0),
@@ -59,18 +68,12 @@ namespace MetadataGenerator
                 flags: AssemblyFlags.PublicKey,
                 hashAlgorithm: AssemblyHashAlgorithm.Sha1);
 
-            // FIXME parameters depend of assembly info that is not in the model?
             metadata.AddModule(
-                generation: 0,
-                moduleName: metadata.GetOrAddString($"{assembly.Name}.dll"),
-                mvid: default(GuidHandle),
-                encId: default(GuidHandle),
-                encBaseId: default(GuidHandle));
-
-            foreach (var namezpace in assembly.RootNamespace.Namespaces)
-            {
-                Generate(namezpace);
-            }
+                    generation: 0,
+                    moduleName: metadata.GetOrAddString($"{assembly.Name}.{(Executable ? "exe" : "dll")}"),
+                    mvid: metadata.GetOrAddGuid(Guid.NewGuid()),
+                    encId: metadata.GetOrAddGuid(Guid.Empty),
+                    encBaseId: metadata.GetOrAddGuid(Guid.Empty));
 
             generatedMetadata = metadata;
 
@@ -121,6 +124,11 @@ namespace MetadataGenerator
                 if (!firstMethodHandle.HasValue)
                 {
                     firstMethodHandle = methodHandle;
+                }
+
+                if (method.Name.Equals("Main")) // FIXME can a non entry point be called Main?
+                {
+                    mainMethodHandle = methodHandle;
                 }
             }
 

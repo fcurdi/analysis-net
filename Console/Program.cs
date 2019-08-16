@@ -364,10 +364,8 @@ namespace Console
             }
         }
 
-        private static void DisassembleAndThenAssemble()
+        private static void DisassembleAndThenAssemble(string input)
         {
-            const string input = @"../../../Examples/bin/Debug/Examples.dll";
-
             var host = new Host();
 
             PlatformTypes.Resolve(host);
@@ -386,10 +384,11 @@ namespace Console
 
         }
 
+
         static void Main(string[] args)
         {
-
-            DisassembleAndThenAssemble();
+            DisassembleAndThenAssemble(@"../../../Examples/bin/Debug/Examples.dll");
+            // DisassembleAndThenAssemble(@"../../../ExamplesEXE/bin/Debug/ExamplesEXE.exe");
 
             //RunSomeTests();
             //RunGenericsTests();

@@ -55,9 +55,10 @@ namespace MetadataGenerator
                     });
             var instructions = new InstructionEncoder(new BlobBuilder());
 
-            // TODO: real body
+            // TODO real body
             instructions.OpCode(ILOpCode.Nop);
             instructions.OpCode(ILOpCode.Ret);
+
             nextOffset++;
 
             return metadata.AddMethodDefinition(
