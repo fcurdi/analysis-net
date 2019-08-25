@@ -33,6 +33,7 @@
     <Compile Include="FieldGenerator.cs" />
     <Compile Include="TypeReferences.cs" />
     <Compile Include="AssemblyGenerator.cs" />
+    <Compile Include="Extensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Model\Model.csproj">

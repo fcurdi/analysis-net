@@ -53,6 +53,7 @@ namespace MetadataGenerator
                             }
                         }
                     });
+
             var instructions = new InstructionEncoder(new BlobBuilder());
 
             // TODO real body
@@ -95,9 +96,6 @@ namespace MetadataGenerator
             public ParameterHandle Generate(Model.Types.MethodParameter methodParameter)
             {
                 nextOffset++;
-
-                // TODO: metadata.AddGenericParameter() + examples
-
                 return metadata.AddParameter(
                     AttributesProvider.GetTypeAttributesFor(methodParameter),
                     metadata.GetOrAddString(methodParameter.Name),

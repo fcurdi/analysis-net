@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
@@ -59,7 +60,7 @@ namespace MetadataGenerator
                 Generate(namezpace);
             }
 
-            // FIXME args?
+            // FIXME args
             metadata.AddAssembly(
                 name: metadata.GetOrAddString(assembly.Name),
                 version: new Version(1, 0, 0, 0),
@@ -112,34 +113,12 @@ namespace MetadataGenerator
 
         private TypeDefinitionHandle Generate(Model.Types.TypeDefinition type)
         {
-            MethodDefinitionHandle? firstMethodHandle = null;
-            FieldDefinitionHandle? firstFieldHandle = null;
-
-            var typeAttributes = AttributesProvider.GetTypeAttributesFor(type);
-
-            foreach (var method in type.Methods)
-            {
-                var methodHandle = methodGenerator.Generate(method);
-
-                if (!firstMethodHandle.HasValue)
-                {
-                    firstMethodHandle = methodHandle;
-                }
-
-                if (method.Name.Equals("Main")) // FIXME can a non entry point be called Main?
-                {
-                    mainMethodHandle = methodHandle;
-                }
-            }
+            var fieldDefinitionHandles = new List<FieldDefinitionHandle>();
+            var methodDefinitionHandles = new List<MethodDefinitionHandle>();
 
             foreach (var field in type.Fields)
             {
-                var fieldDefinitionHandle = fieldGenerator.Generate(field);
-
-                if (!firstFieldHandle.HasValue)
-                {
-                    firstFieldHandle = fieldDefinitionHandle;
-                }
+                fieldDefinitionHandles.Add(fieldGenerator.Generate(field));
             }
 
             /* TODO Properties: (works) but model is missing Property concept
@@ -165,25 +144,73 @@ namespace MetadataGenerator
                 metadata.AddPropertyMap(typeDefinitionHandle, propertyDefinitionHandle);
             */
 
+
+            foreach (var method in type.Methods)
+            {
+                var methodHandle = methodGenerator.Generate(method);
+
+                methodDefinitionHandles.Add(methodHandle);
+
+                if (method.Name.Equals("Main")) // FIXME can a non entry point be called Main?
+                {
+                    mainMethodHandle = methodHandle;
+                }
+            }
+
+            var a = fieldDefinitionHandles.DefaultIfEmpty(fieldGenerator.NextFieldHandle());
+
             var baseType = default(EntityHandle);
             if (type.Base != null)
             {
                 baseType = typeReferences.TypeReferenceOf(type.Base);
             }
             var typeDefinitionHandle = metadata.AddTypeDefinition(
-                attributes: typeAttributes,
+                attributes: AttributesProvider.GetTypeAttributesFor(type),
                 @namespace: metadata.GetOrAddString(type.ContainingNamespace.FullName),
                 name: metadata.GetOrAddString(type.Name),
                 baseType: baseType,
-                fieldList: firstFieldHandle ?? fieldGenerator.NextFieldHandle(),
-                methodList: firstMethodHandle ?? methodGenerator.NextMethodHandle());
+                fieldList: fieldDefinitionHandles.FirstOr(fieldGenerator.NextFieldHandle()),
+                methodList: methodDefinitionHandles.FirstOr(methodGenerator.NextMethodHandle()));
 
             foreach (var interfaze in type.Interfaces)
             {
                 metadata.AddInterfaceImplementation(type: typeDefinitionHandle, implementedInterface: typeReferences.TypeReferenceOf(interfaze));
             }
 
+            /*
+               Generic parameters table must be sorted that's why this is done at the end and not during the method generation.
+               If done that way, method generic parameters of a type are added before the type's generic parameters and table results
+               unsorted
+             */
+
+
+            // generate class generic parameters (Class<T>)
+            foreach (var genericParamter in type.GenericParameters)
+            {
+                metadata.AddGenericParameter(
+                    typeDefinitionHandle,
+                    GenericParameterAttributes.None, // FIXME
+                    metadata.GetOrAddString(genericParamter.Name),
+                    genericParamter.Index);
+            }
+
+            // generate method generic parameters (public T method<T>(T param))
+            for (int i = 0; i < type.Methods.Count; i++)
+            {
+                var method = type.Methods[i];
+                foreach (var genericParameter in method.GenericParameters)
+                {
+                    metadata.AddGenericParameter(
+                        methodDefinitionHandles[i],
+                        GenericParameterAttributes.None, // FIXME
+                        metadata.GetOrAddString(genericParameter.Name),
+                        genericParameter.Index);
+                }
+            }
+
             return typeDefinitionHandle;
         }
     }
 }
+
+

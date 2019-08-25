@@ -7,8 +7,9 @@ namespace MetadataGenerator
 {
     public class TypeEncoder
     {
+        // FIXME maybe this should be singleton and not injected? if needed in other place than here. It is already use in the assembly generator
+        //FIXME and not only to instantiate this class
         private readonly TypeReferences typeReferences;
-
         public TypeEncoder(TypeReferences typeReferences)
         {
             this.typeReferences = typeReferences;
@@ -125,9 +126,21 @@ namespace MetadataGenerator
                         Encode(targetType, signatureTypeEncoder.Pointer());
                     }
                 }
+                else if (type is GenericParameter genericParameter)
+                {
+                    switch (genericParameter.Kind)
+                    {
+                        case GenericParameterKind.Type:
+                            signatureTypeEncoder.GenericTypeParameter(genericParameter.Index);
+                            break;
+                        case GenericParameterKind.Method:
+                            signatureTypeEncoder.GenericMethodTypeParameter(genericParameter.Index);
+                            break;
+                    }
+                }
                 else
                 {
-                    throw new Exception("Type not supported");
+                    throw new Exception($"Type {type} not supported");
                 }
             }
         }

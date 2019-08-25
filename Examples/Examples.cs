@@ -229,7 +229,7 @@ namespace Delegates
     {
         public delegate void Del(int x);
 
-        //FIXME: code is generating Delegates.Del instead of Delegates.ClassThatUsesDelegate.Del
+        // FIXME: code is generating Delegates.Del instead of Delegates.ClassThatUsesDelegate.Del
         public Del ReturnsADelegate() => new Del(new SampleClass().DelegateMethod);
     }
 }
@@ -341,17 +341,19 @@ namespace PointersAndReferences
             outClass = new Classes.SimpleClass();
         }
 
-        public unsafe void* UnsafeMethod(int* intPointer, Structs.EmptyStruct* structPointer)
+        public unsafe void* UnsafeMethod(int* intPointer, Structs.EmptyStruct* structPointer, uint* uintPointer)
         {
             return null;
         }
     }
 }
 
+// FIXME generation not entirely correct
 namespace Generics
 {
-    public class Generic
+    public class Generic<C, D>
     {
+        public C genericClassTypeField;
         public Dictionary<string, Exception> genericField;
 
         public IList<IList<Exception>> listOfListField;
@@ -360,18 +362,15 @@ namespace Generics
         {
             return new List<Exception>();
         }
-        /* TODO 
-                public T RecievesAndReturnsGeneric<T>(T param)
-                {
-                    return param;
-                }
+        public E RecievesAndReturnsGenericType<T, E, F>(T t, E e)
+        {
+            return e;
+        }
 
-                public IList<T> RecievesAndReturnsGenericList<T>(IList<T> param)
-                {
-                    return param;
-                }
-        */
+        public IList<T> RecievesAndReturnsGenericTypeList<T>(IList<T> listT)
+        {
+            return listT;
+        }
     }
 
 }
-
