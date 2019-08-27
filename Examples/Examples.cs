@@ -355,7 +355,6 @@ namespace Generics
     {
         public C genericClassTypeField;
         public Dictionary<string, Exception> genericField;
-
         public IList<IList<Exception>> listOfListField;
 
         public IList<Exception> GetExceptionsList(List<string> _)

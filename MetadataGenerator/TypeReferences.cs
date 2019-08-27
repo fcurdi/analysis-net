@@ -12,7 +12,6 @@ namespace MetadataGenerator
         private readonly Model.Assembly assembly;
         private readonly MetadataBuilder metadata;
         private readonly IDictionary<string, AssemblyReferenceHandle> assemblyReferences = new Dictionary<string, AssemblyReferenceHandle>();
-        // FIXME better name. It's not all the type references but just the ones needed for Base type and interfaces
         private readonly IDictionary<string, TypeReferenceHandle> typeReferences = new Dictionary<string, TypeReferenceHandle>();
 
         public TypeReferences(MetadataBuilder metadata, Model.Assembly assembly)
@@ -20,11 +19,11 @@ namespace MetadataGenerator
             this.metadata = metadata;
             this.assembly = assembly;
 
-            //FIXME see references in IlSpy generated vs original
-            //FIXME: assemblyName => assemblyRef could result in false positive?
+            // FIXME see references in IlSpy generated vs original
+            // FIXME: assemblyName => assemblyRef could result in false positive?
             foreach (var assemblyReference in assembly.References)
             {
-                // FIXME parameters depend of assembly info that is not in the model
+                // FIXME parameters
                 assemblyReferences.Add(assemblyReference.Name, metadata.AddAssemblyReference(
                         name: metadata.GetOrAddString(assemblyReference.Name),
                         version: new Version(4, 0, 0, 0),

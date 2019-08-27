@@ -12,7 +12,7 @@ namespace MetadataGenerator
         public FieldGenerator(MetadataBuilder metadata, TypeEncoder typeEncoder)
         {
             this.metadata = metadata;
-            this.nextOffset = 1;
+            nextOffset = 1;
             this.typeEncoder = typeEncoder;
         }
 
@@ -22,7 +22,7 @@ namespace MetadataGenerator
             var fieldSignature = new BlobEncoder(fieldSignatureBlobBuilder).FieldSignature();
             typeEncoder.Encode(field.Type, fieldSignature);
             var fieldDefinitionHandle = metadata.AddFieldDefinition(
-                    attributes: AttributesProvider.GetTypeAttributesFor(field),
+                    attributes: AttributesProvider.GetFieldAttributesFor(field),
                     name: metadata.GetOrAddString(field.Name),
                     signature: metadata.GetOrAddBlob(fieldSignatureBlobBuilder));
 

@@ -63,7 +63,7 @@ namespace MetadataGenerator
             nextOffset++;
 
             return metadata.AddMethodDefinition(
-                attributes: AttributesProvider.GetTypeAttributesFor(method),
+                attributes: AttributesProvider.GetMethodAttributesFor(method),
                 implAttributes: MethodImplAttributes.IL | MethodImplAttributes.Managed, //FIXME
                 name: metadata.GetOrAddString(method.Name),
                 signature: metadata.GetOrAddBlob(methodSignature),
@@ -90,14 +90,14 @@ namespace MetadataGenerator
             public MethodParameterGenerator(MetadataBuilder metadata)
             {
                 this.metadata = metadata;
-                this.nextOffset = 1;
+                nextOffset = 1;
             }
 
             public ParameterHandle Generate(Model.Types.MethodParameter methodParameter)
             {
                 nextOffset++;
                 return metadata.AddParameter(
-                    AttributesProvider.GetTypeAttributesFor(methodParameter),
+                    AttributesProvider.GetParameterAttributesFor(methodParameter),
                     metadata.GetOrAddString(methodParameter.Name),
                     methodParameter.Index);
             }

@@ -23,7 +23,7 @@ namespace MetadataGenerator
                     metadataRootBuilder: new MetadataRootBuilder(assemblyGenerator.GeneratedMetadata),
                     ilStream: assemblyGenerator.IlStream,
                     entryPoint: assemblyGenerator.MainMethodHandle ?? default(MethodDefinitionHandle),
-                    flags: CorFlags.ILOnly //FIXME  CorFlags.Requires32Bit | CorFlags.StrongNameSigned depend on dll. Requires/prefers 32 bit?
+                    flags: CorFlags.ILOnly // FIXME  CorFlags.Requires32Bit | CorFlags.StrongNameSigned depend on dll. Requires/prefers 32 bit?
                 );
                 var peBlob = new BlobBuilder();
                 var contentId = peBuilder.Serialize(peBlob);

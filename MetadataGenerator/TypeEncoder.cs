@@ -7,8 +7,6 @@ namespace MetadataGenerator
 {
     public class TypeEncoder
     {
-        // FIXME maybe this should be singleton and not injected? if needed in other place than here. It is already use in the assembly generator
-        //FIXME and not only to instantiate this class
         private readonly TypeReferences typeReferences;
         public TypeEncoder(TypeReferences typeReferences)
         {
@@ -114,7 +112,6 @@ namespace MetadataGenerator
                 }
                 else if (type is PointerType pointerType)
                 {
-
                     // TODO there's also signatureTypeEncode.FunctionPointer()/IntPtr()/UIntPtr
                     var targetType = pointerType.TargetType;
                     if (targetType.Equals(PlatformTypes.Void))

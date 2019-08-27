@@ -5,7 +5,6 @@ using Model.Types;
 
 namespace MetadataGenerator
 {
-    // FIXME method names
     public static class AttributesProvider
     {
         public static TypeAttributes GetTypeAttributesFor(TypeDefinition typeDefinition)
@@ -17,8 +16,8 @@ namespace MetadataGenerator
                 case TypeDefinitionKind.Interface: return InterfaceTypeAttributes(typeDefinition);
                 case TypeDefinitionKind.Struct: return StructTypeAttributes(typeDefinition);
                 case TypeDefinitionKind.Delegate: return DelegateTypeAttributes(typeDefinition);
-                default: throw new Exception();
-            };
+                default: throw new Exception($"TypeDefinition {typeDefinition.Name} not supported");
+            }
         }
 
         private static TypeAttributes DelegateTypeAttributes(TypeDefinition typeDefinition)
@@ -57,7 +56,7 @@ namespace MetadataGenerator
             return TypeAttributes.Interface | TypeAttributes.Public | TypeAttributes.Abstract;
         }
 
-        public static FieldAttributes GetTypeAttributesFor(FieldDefinition field)
+        public static FieldAttributes GetFieldAttributesFor(FieldDefinition field)
         {
             var fieldAttributes =
                 (field.IsStatic ? FieldAttributes.Static : 0) |
@@ -85,7 +84,7 @@ namespace MetadataGenerator
             return fieldAttributes;
         }
 
-        public static MethodAttributes GetTypeAttributesFor(MethodDefinition method)
+        public static MethodAttributes GetMethodAttributesFor(MethodDefinition method)
         {
             var isConstructor = method.IsConstructor || method.Name.Equals(".cctor"); // FIXME maybe MethodDefinition can have a isClassConstructor or isTypeInitializer
             var methodAttributes =
@@ -116,7 +115,7 @@ namespace MetadataGenerator
             return methodAttributes;
         }
 
-        public static ParameterAttributes GetTypeAttributesFor(MethodParameter parameter)
+        public static ParameterAttributes GetParameterAttributesFor(MethodParameter parameter)
         {
             var attributes = (parameter.HasDefaultValue ? ParameterAttributes.HasDefault : 0);
             switch (parameter.Kind)
@@ -135,7 +134,7 @@ namespace MetadataGenerator
             return attributes;
         }
 
-        //FIXME
+        // FIXME
         private static TypeAttributes VisibilityAttributesFor(TypeDefinition typeDefinition)
         {
             if (typeDefinition.ContainingType != null)

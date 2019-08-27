@@ -10,6 +10,5 @@ namespace MetadataGenerator
             T first = enumerable.FirstOrDefault();
             return first.Equals(default(T)) ? defaultValue : first;
         }
-
     }
 }

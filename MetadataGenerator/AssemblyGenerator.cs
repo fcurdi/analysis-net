@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
@@ -19,7 +18,7 @@ namespace MetadataGenerator
 
         private MethodDefinitionHandle? mainMethodHandle;
         public MethodDefinitionHandle? MainMethodHandle => generatedMetadata != null ? mainMethodHandle : throw new Exception("Generate was not called");
-        public Boolean Executable => mainMethodHandle != null;
+        public bool Executable => mainMethodHandle != null;
 
         public MetadataBuilder GeneratedMetadata => generatedMetadata ?? throw new Exception("Generate was not called");
         public BlobBuilder IlStream => generatedMetadata != null ? methodGenerator.IlStream() : throw new Exception("Generate was not called");
@@ -157,8 +156,6 @@ namespace MetadataGenerator
                 }
             }
 
-            var a = fieldDefinitionHandles.DefaultIfEmpty(fieldGenerator.NextFieldHandle());
-
             var baseType = default(EntityHandle);
             if (type.Base != null)
             {
@@ -189,7 +186,7 @@ namespace MetadataGenerator
             {
                 metadata.AddGenericParameter(
                     typeDefinitionHandle,
-                    GenericParameterAttributes.None, // FIXME
+                    GenericParameterAttributes.None,
                     metadata.GetOrAddString(genericParamter.Name),
                     genericParamter.Index);
             }
@@ -202,7 +199,7 @@ namespace MetadataGenerator
                 {
                     metadata.AddGenericParameter(
                         methodDefinitionHandles[i],
-                        GenericParameterAttributes.None, // FIXME
+                        GenericParameterAttributes.None,
                         metadata.GetOrAddString(genericParameter.Name),
                         genericParameter.Index);
                 }
