@@ -220,7 +220,7 @@ namespace Delegates
 {
     public class SampleClass
     {
-        public void DelegateMethod(int x)
+        public void SomeMethod(int x)
         {
         }
     }
@@ -229,8 +229,7 @@ namespace Delegates
     {
         public delegate void Del(int x);
 
-        // FIXME: code is generating Delegates.Del instead of Delegates.ClassThatUsesDelegate.Del
-        public Del ReturnsADelegate() => new Del(new SampleClass().DelegateMethod);
+        public Del ReturnsADelegate() => new Del(new SampleClass().SomeMethod);
     }
 }
 
@@ -279,8 +278,13 @@ namespace Nested
 
     public class ClassContainingNestedTypes
     {
+        public NestedClass ReturnsNestedClass() => new NestedClass();
+        public NestedClass.NestedNestedClass ReturnsNestedNestedClass() => new NestedClass.NestedNestedClass();
+        public System.Reflection.Metadata.BlobBuilder.Blobs ReturnsNestedClassFromOtherAssembly() => new System.Reflection.Metadata.BlobBuilder.Blobs();
+
         public class NestedClass
         {
+            public class NestedNestedClass { }
         }
 
         public enum NestedEnum

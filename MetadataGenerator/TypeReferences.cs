@@ -35,25 +35,37 @@ namespace MetadataGenerator
             }
         }
 
+        /*
+         * Returns a TypeReference for type. It stores references because metadata does not have a getOrAddTypeReference.
+         */
         public EntityHandle TypeReferenceOf(Model.Types.IBasicType type)
         {
             TypeReferenceHandle typeReference;
-            var typeReferenceKey = $"{type.ContainingAssembly.Name}.{type.ContainingNamespace}.{type.Name}";
-            if (typeReferences.TryGetValue(typeReferenceKey, out var value))
+            var typeReferenceKey = $"{type.ContainingAssembly.Name}.{type.ContainingNamespace}.{(type.ContainingType != null ? (type.ContainingType.Name + ".") : "")}{type.Name}";
+            if (typeReferences.TryGetValue(typeReferenceKey, out var value)) // If stored then return that
             {
                 typeReference = value;
             }
             else
-            {
-                var resolutionScope = type.ContainingAssembly.Name.Equals(assembly.Name)
-                    ? default(AssemblyReferenceHandle)
-                    : assemblyReferences[type.ContainingAssembly.Name];
+            { // if not add the new type reference to metadata and store it
+                EntityHandle resolutionScope;
+                if (type.ContainingType == null) // if defined in the namespace then search there
+                {
+                    resolutionScope = type.ContainingAssembly.Name.Equals(assembly.Name)
+                        ? default(AssemblyReferenceHandle)
+                        : assemblyReferences[type.ContainingAssembly.Name];
+                }
+                else
+                { // if not, recursively get a reference for the containing type and use that as the resolution scopeø
+                    resolutionScope = TypeReferenceOf(type.ContainingType);
+                }
 
                 // FIXME: comparing to the name of the current assembly could result in a false positive?
                 typeReference = metadata.AddTypeReference(
                     resolutionScope: resolutionScope,
                     @namespace: metadata.GetOrAddString(type.ContainingNamespace),
                     name: metadata.GetOrAddString(type.Name));
+
                 typeReferences.Add(typeReferenceKey, typeReference);
             }
             return typeReference;
