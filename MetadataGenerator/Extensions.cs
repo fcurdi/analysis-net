@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using Model.Types;
 
 namespace MetadataGenerator
 {
@@ -10,5 +12,7 @@ namespace MetadataGenerator
             T first = enumerable.FirstOrDefault();
             return first.Equals(default(T)) ? defaultValue : first;
         }
+
+        public static bool IsOneOf(this MethodParameterKind kind, params MethodParameterKind[] kinds) => ImmutableList.Create(kinds).Contains(kind);
     }
 }

@@ -110,6 +110,7 @@ namespace Classes
         public abstract void AbstractMethod();
     }
 
+    // TODO var arggs, optional parameters, named arguments, 
     public class ClassWithMoreComplexFieldsAndParamtersOrReturnTypes
     {
 
@@ -118,6 +119,20 @@ namespace Classes
         public string[,,] stringJaggedArrayField;
         public Exception[] exceptionArrayField;
         private Nested.NestedNamespace.NestedNestedNamesace.B b;
+
+        public void MethodWithOptionalParameters(
+            string someParam,
+            int optionalInt = 0,
+            Structs.EmptyStruct optionalStruct = new Structs.EmptyStruct())
+        { }
+
+        public void MethodWithIntVarArgs(params int[] args)
+        {
+        }
+
+        public void MethodWithExceptionVarArgs(int someInt, params Exception[] args)
+        {
+        }
 
         public Hierarchy.DerivedClass DoSomethingWith(Hierarchy.DerivedClass d)
         {
@@ -332,17 +347,31 @@ namespace Nested
 
 }
 
-// TODO pointers
+// FIXME ref and out are beign generated like type*& instead of type&. That is because the type a & type in the model is represented as a pointer type.
+// FIXME generation not entirely correct
 namespace PointersAndReferences
 {
-
-    public class ClassWithMethodWithParametersWithKeywords
+    public class PointersAndReferenceClass
     {
-        // FIXME ref and out are beign generated like type* instead of type&. Also the bytecodes needs to include the "out" keyword
+        private int number = 1;
+        private Exception exception = new Exception();
+
         public void MethodWithRefAndOutParameters(ref string refString, ref Exception refException, out int outInt, out Classes.SimpleClass outClass)
         {
             outInt = 2;
             outClass = new Classes.SimpleClass();
+        }
+
+        // FIXME not in the model
+        public ref int RefInt()
+        {
+            return ref number;
+        }
+
+        // FIXME not in the model
+        public ref Exception RefException()
+        {
+            return ref exception;
         }
 
         public unsafe void* UnsafeMethod(int* intPointer, Structs.EmptyStruct* structPointer, uint* uintPointer)
@@ -352,7 +381,7 @@ namespace PointersAndReferences
     }
 }
 
-// FIXME generation not entirely correct
+// FIXME generation not entirely correct. 
 namespace Generics
 {
     public class Generic<C, D>

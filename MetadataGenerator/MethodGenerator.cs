@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using Model.Types;
 
 namespace MetadataGenerator
 {
@@ -16,9 +17,9 @@ namespace MetadataGenerator
         {
             this.metadata = metadata;
             this.methodBodyStream = new MethodBodyStreamEncoder(new BlobBuilder());
-            this.nextOffset = 1;
+            nextOffset = 1;
             this.typeEncoder = typeEncoder;
-            this.methodParameterGenerator = new MethodParameterGenerator(metadata);
+            methodParameterGenerator = new MethodParameterGenerator(metadata);
         }
 
         public MethodDefinitionHandle Generate(Model.Types.MethodDefinition method)
@@ -26,18 +27,19 @@ namespace MetadataGenerator
             ParameterHandle? firstParameterHandle = null;
             var methodSignature = new BlobBuilder();
             new BlobEncoder(methodSignature)
-                .MethodSignature(isInstanceMethod: !method.IsStatic)
+                .MethodSignature(isInstanceMethod: !method.IsStatic, genericParameterCount: method.GenericParameters.Count)
                 .Parameters(
                     method.Parameters.Count,
                     returnType =>
                     {
-                        if (method.ReturnType.Equals(Model.Types.PlatformTypes.Void))
+                        if (method.ReturnType.Equals(PlatformTypes.Void))
                         {
                             returnType.Void();
                         }
                         else
                         {
-                            typeEncoder.Encode(method.ReturnType, returnType.Type());
+                            var encoder = returnType.Type(); // FIXME pass isByRef param. ref return type is not in the model
+                            typeEncoder.Encode(method.ReturnType, encoder);
                         }
 
                     },
@@ -45,12 +47,13 @@ namespace MetadataGenerator
                     {
                         foreach (var parameter in method.Parameters)
                         {
-                            typeEncoder.Encode(parameter.Type, parameters.AddParameter().Type());
                             var parameterHandle = methodParameterGenerator.Generate(parameter);
                             if (!firstParameterHandle.HasValue)
                             {
                                 firstParameterHandle = parameterHandle;
                             }
+                            var encoder = parameters.AddParameter().Type(isByRef: parameter.Kind.IsOneOf(MethodParameterKind.Out, MethodParameterKind.Ref));
+                            typeEncoder.Encode(parameter.Type, encoder);
                         }
                     });
 

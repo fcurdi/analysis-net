@@ -19,8 +19,8 @@ namespace MetadataGenerator
         public FieldDefinitionHandle Generate(Model.Types.FieldDefinition field)
         {
             var fieldSignatureBlobBuilder = new BlobBuilder();
-            var fieldSignature = new BlobEncoder(fieldSignatureBlobBuilder).FieldSignature();
-            typeEncoder.Encode(field.Type, fieldSignature);
+            var encoder = new BlobEncoder(fieldSignatureBlobBuilder).FieldSignature();
+            typeEncoder.Encode(field.Type, encoder);
             var fieldDefinitionHandle = metadata.AddFieldDefinition(
                     attributes: AttributesProvider.GetFieldAttributesFor(field),
                     name: metadata.GetOrAddString(field.Name),
