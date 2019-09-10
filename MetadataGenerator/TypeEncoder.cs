@@ -7,7 +7,8 @@ namespace MetadataGenerator
 {
     public class TypeEncoder
     {
-        private readonly TypeReferences typeReferences;
+        // FIXME not public
+        public readonly TypeReferences typeReferences;
         public TypeEncoder(TypeReferences typeReferences)
         {
             this.typeReferences = typeReferences;
@@ -76,11 +77,11 @@ namespace MetadataGenerator
             {
                 if (type is IBasicType basicType)
                 {
-                    if (basicType.GenericArguments.Count > 0)
+                    if (basicType.GenericType != null)
                     {
                         var genericInstantiation = signatureTypeEncoder.GenericInstantiation(
                              typeReferences.TypeReferenceOf(basicType),
-                             basicType.GenericArguments.Count,
+                             basicType.GenericParameterCount,
                              type.TypeKind == TypeKind.ValueType
                          );
                         foreach (var genericArg in basicType.GenericArguments)

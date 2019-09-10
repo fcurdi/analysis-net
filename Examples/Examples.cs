@@ -75,6 +75,10 @@ namespace Classes
         public string unassignedString;
         public const string CONST_STRING = "const";
 
+        public SimpleClass(int x, string y)
+        {
+        }
+
         public void DoNothing() { }
 
         private int Sum(int arg1, int arg2)
@@ -359,7 +363,7 @@ namespace PointersAndReferences
         public void MethodWithRefAndOutParameters(ref string refString, ref Exception refException, out int outInt, out Classes.SimpleClass outClass)
         {
             outInt = 2;
-            outClass = new Classes.SimpleClass();
+            outClass = new Classes.SimpleClass(1, "");
         }
 
         // FIXME not in the model
@@ -392,6 +396,11 @@ namespace Generics
 
         public IList<Exception> GetExceptionsList(List<string> _)
         {
+            var a = 1 + 2;
+            if (a == 3)
+            {
+
+            }
             return new List<Exception>();
         }
         public E RecievesAndReturnsGenericType<T, E, F>(T t, E e)
@@ -405,4 +414,103 @@ namespace Generics
         }
     }
 
+}
+
+namespace MethodBody
+{
+    public abstract class ContainingClass
+    {
+        public void HelloWorld()
+        {
+            Console.WriteLine("Hello World!");
+        }
+
+        public int ReturnsOne()
+        {
+            return 1;
+        }
+
+        public int ReturnsArg(int x)
+        {
+            return x;
+        }
+
+        public int Arithmetics(int x, int y)
+        {
+            var z = x + y;
+            z = x - y;
+            z = x * y;
+            z = x / y;
+            z = x % 2;
+
+            return z;
+        }
+
+        public void Logic(bool x, bool y)
+        {
+            var z = x && y;
+            z = x || y;
+            z = !x;
+            z = x ^ y;
+        }
+
+        public void BitwiseOperations(int x)
+        {
+            var z = x & x;
+            z = x | x;
+            z = x ^ x;
+            z = x >> 1;
+            z = z << 1;
+        }
+
+        public void Comparison(int x)
+        {
+            var z = x > 1;
+            z = x < 1;
+            z = x == 1;
+        }
+
+        public void ExceptionHandling(Exception e, int x)
+        {
+            try
+            {
+                var y = 1 / x;
+            }
+            catch (Exception ex) when (ex.Message.Contains("by zero"))
+            {
+
+            }
+
+            try
+            {
+                throw e;
+            }
+            catch
+            {
+                throw; // rethrow
+            }
+            finally
+            {
+                Console.WriteLine("finally");
+            }
+
+        }
+
+        public abstract void NoBody();
+
+        public void Alloc()
+        {
+            unsafe
+            {
+                var x = stackalloc int[3];
+            }
+        }
+
+        public void Calls(Classes.SimpleClass simpleClass)
+        {
+            Console.WriteLine("A method call"); // static
+            simpleClass.DoNothing(); // virtual
+            Alloc(); // normal
+        }
+    }
 }

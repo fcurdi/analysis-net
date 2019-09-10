@@ -180,7 +180,6 @@ namespace MetadataGenerator
                unsorted
              */
 
-
             // generate class generic parameters (Class<T>)
             foreach (var genericParamter in type.GenericParameters)
             {
