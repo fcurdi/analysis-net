@@ -52,6 +52,7 @@ namespace PropertiesGettersAndSetters
     }
 }
 
+//TODO implicit, explicit, operator keywords for methods
 namespace Classes
 {
     public class EmptyClass
@@ -511,6 +512,26 @@ namespace MethodBody
             Console.WriteLine("A method call"); // static
             simpleClass.DoNothing(); // virtual
             Alloc(); // normal
+        }
+
+        // TODO unboxPtr???
+        public void Convert()
+        {
+            int i = 123;
+            object o = i; // boxing
+
+            o = 123;
+            i = (int)o;  // unboxing
+
+            // Implicit conversion. A long can
+            // hold any value an int can hold, and more!
+            int num = 2147483647;
+            long bigNum = num;
+
+            double x = 1234.7;
+            int a;
+            // Cast double to int.
+            a = (int)x;
         }
     }
 }

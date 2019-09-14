@@ -5,7 +5,7 @@ using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using Model.Types;
 
-// TODO separate in namespaces? is there a convention for extensions?
+// TODO separate in namespaces (Collection, Metadata, etc)? is there a convention for extensions?
 namespace MetadataGenerator
 {
     public static class Extensions
@@ -23,5 +23,8 @@ namespace MetadataGenerator
             encoder.OpCode(ILOpCode.Callvirt);
             encoder.Token(methodReference);
         }
+
+        // The next available slot in the corresponding table. If nothing is defined in the module then use row number 1 for the corresponding table
+        public static int NextRowFor(this MetadataBuilder metadata, TableIndex tableIndex) => metadata.GetRowCount(tableIndex) + 1;
     }
 }

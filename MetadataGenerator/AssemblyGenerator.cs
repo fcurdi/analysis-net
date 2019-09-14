@@ -166,8 +166,8 @@ namespace MetadataGenerator
                 @namespace: metadata.GetOrAddString(type.ContainingNamespace.FullName),
                 name: metadata.GetOrAddString(type.Name),
                 baseType: baseType,
-                fieldList: fieldDefinitionHandles.FirstOr(fieldGenerator.NextFieldHandle()),
-                methodList: methodDefinitionHandles.FirstOr(methodGenerator.NextMethodHandle()));
+                fieldList: fieldDefinitionHandles.FirstOr(MetadataTokens.FieldDefinitionHandle(metadata.NextRowFor(TableIndex.Field))),
+                methodList: methodDefinitionHandles.FirstOr(MetadataTokens.MethodDefinitionHandle(metadata.NextRowFor(TableIndex.MethodDef))));
 
             foreach (var interfaze in type.Interfaces)
             {

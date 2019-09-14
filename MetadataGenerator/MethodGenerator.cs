@@ -4,28 +4,24 @@ using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using Model.Types;
 
-
-// FIXME lo de method referneces anda bien para lo de Call() y demas pero ver como implementarlo bien
 namespace MetadataGenerator
 {
     public class MethodGenerator
     {
         private readonly MetadataBuilder metadata;
         private readonly MethodBodyStreamEncoder methodBodyStream;
-        private int nextOffset;
         private readonly MethodSignatureGenerator methodSignatureGenerator;
         private readonly MethodBodyGenerator methodBodyGenerator;
         private readonly MethodParameterGenerator methodParameterGenerator;
-        private readonly MethodReferencesAndSignatures methodReferencesAndSignatures;
+        private readonly MethodReferences methodReferencesAndSignatures;
 
         public MethodGenerator(MetadataBuilder metadata, TypeEncoder typeEncoder)
         {
             this.metadata = metadata;
             methodBodyStream = new MethodBodyStreamEncoder(new BlobBuilder());
-            nextOffset = 1;
             methodParameterGenerator = new MethodParameterGenerator(metadata);
-            methodReferencesAndSignatures = new MethodReferencesAndSignatures(metadata, typeEncoder);
-            methodSignatureGenerator = new MethodSignatureGenerator(methodReferencesAndSignatures);
+            methodSignatureGenerator = new MethodSignatureGenerator(typeEncoder);
+            methodReferencesAndSignatures = new MethodReferences(metadata, typeEncoder, methodSignatureGenerator);
             methodBodyGenerator = new MethodBodyGenerator(methodReferencesAndSignatures);
         }
 
@@ -49,15 +45,13 @@ namespace MetadataGenerator
                 ? methodBodyStream.AddMethodBody(methodBodyGenerator.Generate(method.Body))
                 : default(int);
 
-            nextOffset++;
-
             return metadata.AddMethodDefinition(
                 attributes: AttributesProvider.GetMethodAttributesFor(method),
                 implAttributes: MethodImplAttributes.IL | MethodImplAttributes.Managed, //FIXME
                 name: metadata.GetOrAddString(method.Name),
                 signature: metadata.GetOrAddBlob(methodSignature),
                 bodyOffset: methodBody,
-                parameterList: firstParameterHandle ?? methodParameterGenerator.NextParameterHandle());
+                parameterList: firstParameterHandle ?? MetadataTokens.ParameterHandle(metadata.NextRowFor(TableIndex.Param)));
         }
 
         public BlobBuilder IlStream()
@@ -65,57 +59,72 @@ namespace MetadataGenerator
             return methodBodyStream.Builder;
         }
 
-        public MethodDefinitionHandle NextMethodHandle()
-        {
-            return MetadataTokens.MethodDefinitionHandle(nextOffset);
-        }
-
-
-        // FIXME al pedo esta clase
         private class MethodSignatureGenerator
         {
-            private readonly MethodReferencesAndSignatures methodReferencesAndSignatures;
+            private readonly TypeEncoder typeEncoder;
 
-            public MethodSignatureGenerator(MethodReferencesAndSignatures methodReferencesAndSignatures)
+            public MethodSignatureGenerator(TypeEncoder typeEncoder)
             {
-                this.methodReferencesAndSignatures = methodReferencesAndSignatures;
+                this.typeEncoder = typeEncoder;
             }
 
-            public BlobBuilder Generate(Model.Types.MethodDefinition method) =>
-                methodReferencesAndSignatures.MethodReferenceAndSignatureOf(method).methodSignature;
+            public BlobBuilder Generate(IMethodReference method)
+            {
+                var methodSignature = new BlobBuilder();
+                new BlobEncoder(methodSignature)
+                    .MethodSignature(isInstanceMethod: !method.IsStatic, genericParameterCount: method.GenericParameterCount)
+                    .Parameters(
+                        method.Parameters.Count,
+                        returnType =>
+                        {
+                            if (method.ReturnType.Equals(PlatformTypes.Void))
+                            {
+                                returnType.Void();
+                            }
+                            else
+                            {
+                                var encoder = returnType.Type(); // FIXME pass isByRef param. ref return type is not in the model
+                                typeEncoder.Encode(method.ReturnType, encoder);
+                            }
+
+                        },
+                        parameters =>
+                        {
+                            foreach (var parameter in method.Parameters)
+                            {
+                                var encoder = parameters.AddParameter().Type(isByRef: parameter.Kind.IsOneOf(MethodParameterKind.Out, MethodParameterKind.Ref));
+                                typeEncoder.Encode(parameter.Type, encoder);
+                            }
+                        });
+
+                return methodSignature;
+            }
         }
 
         private class MethodParameterGenerator
         {
             private readonly MetadataBuilder metadata;
-            private int nextOffset;
 
             public MethodParameterGenerator(MetadataBuilder metadata)
             {
                 this.metadata = metadata;
-                nextOffset = 1;
             }
 
             public ParameterHandle Generate(MethodParameter methodParameter)
             {
-                nextOffset++;
                 return metadata.AddParameter(
                     AttributesProvider.GetParameterAttributesFor(methodParameter),
                     metadata.GetOrAddString(methodParameter.Name),
                     methodParameter.Index);
             }
 
-            public ParameterHandle NextParameterHandle()
-            {
-                return MetadataTokens.ParameterHandle(nextOffset);
-            }
         }
 
         private class MethodBodyGenerator
         {
-            private readonly MethodReferencesAndSignatures methodReferencesAndSignatures;
+            private readonly MethodReferences methodReferencesAndSignatures;
 
-            public MethodBodyGenerator(MethodReferencesAndSignatures methodReferencesAndSignatures)
+            public MethodBodyGenerator(MethodReferences methodReferencesAndSignatures)
             {
                 this.methodReferencesAndSignatures = methodReferencesAndSignatures;
             }
@@ -230,17 +239,20 @@ namespace MetadataGenerator
                     else if (instruction is Model.Bytecode.BranchInstruction branchInstruction)
                     {
                     }
-                    else if (instruction is Model.Bytecode.ConvertInstruction convertInstruction) { }
+                    else if (instruction is Model.Bytecode.ConvertInstruction convertInstruction)
+                    {
+
+                    }
                     else if (instruction is Model.Bytecode.MethodCallInstruction methodCallInstruction)
                     {
                         switch (methodCallInstruction.Operation)
                         {
                             case Model.Bytecode.MethodCallOperation.Virtual:
-                                encoder.CallVirtual(methodReferencesAndSignatures.MethodReferenceAndSignatureOf(methodCallInstruction.Method).methodReference);
+                                encoder.CallVirtual(methodReferencesAndSignatures.MethodReferenceOf(methodCallInstruction.Method));
                                 break;
                             case Model.Bytecode.MethodCallOperation.Static:
                             case Model.Bytecode.MethodCallOperation.Jump:
-                                encoder.Call(methodReferencesAndSignatures.MethodReferenceAndSignatureOf(methodCallInstruction.Method).methodReference);
+                                encoder.Call(methodReferencesAndSignatures.MethodReferenceOf(methodCallInstruction.Method));
                                 break;
                         }
                     }
@@ -264,85 +276,45 @@ namespace MetadataGenerator
                     else if (instruction is Model.Bytecode.LoadMethodAddressInstruction loadMethodAdressInstruction) { }
 
                 }
-
-
                 return encoder;
             }
         }
 
-        private class MethodReferencesAndSignatures
+        private class MethodReferences
         {
-
-            public class MethodReferenceAndSignature
-            {
-                public readonly MemberReferenceHandle methodReference;
-                public readonly BlobBuilder methodSignature;
-
-                public MethodReferenceAndSignature(MemberReferenceHandle methodReference, BlobBuilder methodSignature)
-                {
-                    this.methodReference = methodReference;
-                    this.methodSignature = methodSignature;
-                }
-            }
-
-            private readonly IDictionary<string, MethodReferenceAndSignature> methodReferencesAndSignatures = new Dictionary<string, MethodReferenceAndSignature>();
+            private readonly IDictionary<string, MemberReferenceHandle> methodReferences = new Dictionary<string, MemberReferenceHandle>();
             private MetadataBuilder metadata;
             private readonly TypeEncoder typeEncoder;
+            private readonly MethodSignatureGenerator methodSignatureGenerator;
 
-            public MethodReferencesAndSignatures(MetadataBuilder metadata, TypeEncoder typeEncoder)
+            public MethodReferences(MetadataBuilder metadata, TypeEncoder typeEncoder, MethodSignatureGenerator methodSignatureGenerator)
             {
                 this.metadata = metadata;
                 this.typeEncoder = typeEncoder;
+                this.methodSignatureGenerator = methodSignatureGenerator;
             }
 
-            public MethodReferenceAndSignature MethodReferenceAndSignatureOf(IMethodReference method)
+            public MemberReferenceHandle MethodReferenceOf(IMethodReference method)
             {
-                MethodReferenceAndSignature methodReferenceAndSignature;
+                MemberReferenceHandle memberReferenceHandle;
                 var key = $"{method.ContainingType.ContainingAssembly.Name}.{method.ContainingType.ContainingNamespace}.{method.ContainingType.Name}.{method.Name}";
-                if (methodReferencesAndSignatures.TryGetValue(key, out var value))
+                if (methodReferences.TryGetValue(key, out var value))
                 {
-                    methodReferenceAndSignature = value;
+                    memberReferenceHandle = value;
                 }
                 else
                 {
-                    var methodSignature = new BlobBuilder();
-                    new BlobEncoder(methodSignature)
-                        .MethodSignature(isInstanceMethod: !method.IsStatic, genericParameterCount: method.GenericParameterCount)
-                        .Parameters(
-                            method.Parameters.Count,
-                            returnType =>
-                            {
-                                if (method.ReturnType.Equals(PlatformTypes.Void))
-                                {
-                                    returnType.Void();
-                                }
-                                else
-                                {
-                                    var encoder = returnType.Type(); // FIXME pass isByRef param. ref return type is not in the model
-                                    typeEncoder.Encode(method.ReturnType, encoder);
-                                }
-
-                            },
-                            parameters =>
-                            {
-                                foreach (var parameter in method.Parameters)
-                                {
-                                    var encoder = parameters.AddParameter().Type(isByRef: parameter.Kind.IsOneOf(MethodParameterKind.Out, MethodParameterKind.Ref));
-                                    typeEncoder.Encode(parameter.Type, encoder);
-                                }
-                            });
-
-
-                    methodReferenceAndSignature = new MethodReferenceAndSignature(
-                        methodReference: metadata.AddMemberReference(
+                    var methodSignature = methodSignatureGenerator.Generate(method);
+                    memberReferenceHandle = metadata.AddMemberReference(
                             parent: typeEncoder.typeReferences.TypeReferenceOf(method.ContainingType), // FIXME cualquiera esto
                             name: metadata.GetOrAddString(method.Name),
-                            signature: metadata.GetOrAddBlob(methodSignature)),
-                        methodSignature: methodSignature);
-                    methodReferencesAndSignatures.Add(key, methodReferenceAndSignature);
-
+                            signature: metadata.GetOrAddBlob(methodSignature));
+                    methodReferences.Add(key, memberReferenceHandle);
                 }
-                return methodReferenceAndSignature;
+
+
+
+                return memberReferenceHandle;
             }
         }
 

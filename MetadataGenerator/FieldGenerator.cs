@@ -6,13 +6,11 @@ namespace MetadataGenerator
     public class FieldGenerator
     {
         private readonly MetadataBuilder metadata;
-        private int nextOffset;
         private readonly TypeEncoder typeEncoder;
 
         public FieldGenerator(MetadataBuilder metadata, TypeEncoder typeEncoder)
         {
             this.metadata = metadata;
-            nextOffset = 1;
             this.typeEncoder = typeEncoder;
         }
 
@@ -31,14 +29,7 @@ namespace MetadataGenerator
                 metadata.AddConstant(fieldDefinitionHandle, field.Value.Value);
             }
 
-            nextOffset++;
-
             return fieldDefinitionHandle;
-        }
-
-        public FieldDefinitionHandle NextFieldHandle()
-        {
-            return MetadataTokens.FieldDefinitionHandle(nextOffset);
         }
     }
 }
