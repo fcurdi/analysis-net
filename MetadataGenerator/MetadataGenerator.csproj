@@ -31,7 +31,7 @@
     <Compile Include="TypeEncoder.cs" />
     <Compile Include="AttributesProvider.cs" />
     <Compile Include="FieldGenerator.cs" />
-    <Compile Include="TypeReferences.cs" />
+    <Compile Include="ReferencesProvider.cs" />
     <Compile Include="AssemblyGenerator.cs" />
     <Compile Include="Extensions.cs" />
   </ItemGroup>

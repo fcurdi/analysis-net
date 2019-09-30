@@ -7,11 +7,10 @@ namespace MetadataGenerator
 {
     public class TypeEncoder
     {
-        // FIXME not public
-        public readonly TypeReferences typeReferences;
-        public TypeEncoder(TypeReferences typeReferences)
+        private readonly ReferencesProvider referencesProvider;
+        public TypeEncoder(ReferencesProvider referencesProvider)
         {
-            this.typeReferences = typeReferences;
+            this.referencesProvider = referencesProvider;
         }
 
         // FIXME signatureTypeEncoder should be by reference? or value?
@@ -80,7 +79,7 @@ namespace MetadataGenerator
                     if (basicType.GenericType != null)
                     {
                         var genericInstantiation = signatureTypeEncoder.GenericInstantiation(
-                             typeReferences.TypeReferenceOf(basicType),
+                             referencesProvider.TypeReferenceOf(basicType),
                              basicType.GenericParameterCount,
                              type.TypeKind == TypeKind.ValueType
                          );
@@ -91,7 +90,7 @@ namespace MetadataGenerator
                     }
                     else
                     {
-                        signatureTypeEncoder.Type(typeReferences.TypeReferenceOf(basicType), type.TypeKind == TypeKind.ValueType);
+                        signatureTypeEncoder.Type(referencesProvider.TypeReferenceOf(basicType), type.TypeKind == TypeKind.ValueType);
                     }
                 }
                 else if (type is ArrayType arrayType)

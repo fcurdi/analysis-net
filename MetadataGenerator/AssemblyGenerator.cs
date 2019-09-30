@@ -11,7 +11,7 @@ namespace MetadataGenerator
     {
         private readonly Model.Assembly assembly;
         private readonly MetadataBuilder metadata;
-        private readonly TypeReferences typeReferences;
+        private readonly ReferencesProvider referencesProvider;
         private readonly MethodGenerator methodGenerator;
         private readonly FieldGenerator fieldGenerator;
         private MetadataBuilder generatedMetadata;
@@ -23,10 +23,10 @@ namespace MetadataGenerator
         public MetadataBuilder GeneratedMetadata => generatedMetadata ?? throw new Exception("Generate was not called");
         public BlobBuilder IlStream => generatedMetadata != null ? methodGenerator.IlStream() : throw new Exception("Generate was not called");
 
-        private AssemblyGenerator(Model.Assembly assembly, MetadataBuilder metadata, TypeReferences typeReferences, MethodGenerator methodGenerator, FieldGenerator fieldGenerator)
+        private AssemblyGenerator(Model.Assembly assembly, MetadataBuilder metadata, ReferencesProvider referencesProvider, MethodGenerator methodGenerator, FieldGenerator fieldGenerator)
         {
             this.metadata = metadata;
-            this.typeReferences = typeReferences;
+            this.referencesProvider = referencesProvider;
             this.methodGenerator = methodGenerator;
             this.fieldGenerator = fieldGenerator;
             this.assembly = assembly;
@@ -35,14 +35,14 @@ namespace MetadataGenerator
         public static AssemblyGenerator For(Model.Assembly assembly)
         {
             var metadata = new MetadataBuilder();
-            var typeReferences = new TypeReferences(metadata, assembly);
-            var typeEncoder = new TypeEncoder(typeReferences);
-            var methodGenerator = new MethodGenerator(metadata, typeEncoder);
+            var referencesProvider = new ReferencesProvider(metadata, assembly);
+            var typeEncoder = new TypeEncoder(referencesProvider);
+            var methodGenerator = new MethodGenerator(metadata, typeEncoder, referencesProvider);
             var fieldGenerator = new FieldGenerator(metadata, typeEncoder);
             return new AssemblyGenerator(
                 assembly,
                 metadata,
-                typeReferences,
+                referencesProvider,
                 methodGenerator,
                 fieldGenerator);
         }
@@ -159,7 +159,7 @@ namespace MetadataGenerator
             var baseType = default(EntityHandle);
             if (type.Base != null)
             {
-                baseType = typeReferences.TypeReferenceOf(type.Base);
+                baseType = referencesProvider.TypeReferenceOf(type.Base);
             }
             var typeDefinitionHandle = metadata.AddTypeDefinition(
                 attributes: AttributesProvider.GetTypeAttributesFor(type),
@@ -171,7 +171,7 @@ namespace MetadataGenerator
 
             foreach (var interfaze in type.Interfaces)
             {
-                metadata.AddInterfaceImplementation(type: typeDefinitionHandle, implementedInterface: typeReferences.TypeReferenceOf(interfaze));
+                metadata.AddInterfaceImplementation(type: typeDefinitionHandle, implementedInterface: referencesProvider.TypeReferenceOf(interfaze));
             }
 
             /*

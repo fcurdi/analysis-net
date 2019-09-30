@@ -471,7 +471,30 @@ namespace MethodBody
             z = x == 1;
         }
 
-        public void ExceptionHandling(Exception e, int x)
+        public void ExceptionHandlingTryCatch(int x)
+        {
+            try
+            {
+                var y = 1 / x;
+            }
+            catch
+            {
+
+            }
+        }
+        public void ExceptionHandlingTryCatchSpecific(int x)
+        {
+            try
+            {
+                var y = 1 / x;
+            }
+            catch (Exception ex)
+            {
+
+            }
+        }
+
+        public void ExceptionHandlingTryCatchFilter(int x)
         {
             try
             {
@@ -481,7 +504,10 @@ namespace MethodBody
             {
 
             }
+        }
 
+        public void ExceptionHandlingTryCatchFinally(Exception e)
+        {
             try
             {
                 throw e;
@@ -494,7 +520,6 @@ namespace MethodBody
             {
                 Console.WriteLine("finally");
             }
-
         }
 
         public abstract void NoBody();
@@ -512,6 +537,18 @@ namespace MethodBody
             Console.WriteLine("A method call"); // static
             simpleClass.DoNothing(); // virtual
             Alloc(); // normal
+        }
+
+        public void Arrays()
+        {
+            var intArray = new int[5];
+            var ExceptionArray = new Exception[2];
+            var stringInitializedArray = new string[] { "hello", "world", "!" };
+            unsafe
+            {
+                var m = new int*[5];
+                var k = new int**[2];
+            }
         }
 
         // TODO unboxPtr???
@@ -532,6 +569,13 @@ namespace MethodBody
             int a;
             // Cast double to int.
             a = (int)x;
+        }
+
+        public void Branch()
+        {
+            if (!true)
+            {
+            }
         }
     }
 }
