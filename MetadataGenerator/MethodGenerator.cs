@@ -1,34 +1,33 @@
 ﻿using System;
-using System.Reflection;
-using System.Reflection.Metadata;
-using System.Reflection.Metadata.Ecma335;
 using Model.Types;
+using static MetadataGenerator.AttributesProvider;
+using ECMA335 = System.Reflection.Metadata.Ecma335;
+using SR = System.Reflection;
+using SRM = System.Reflection.Metadata;
 
 namespace MetadataGenerator
 {
     public class MethodGenerator
     {
-        private readonly MetadataBuilder metadata;
-        private readonly MethodBodyStreamEncoder methodBodyStream;
+        private readonly ECMA335.MetadataBuilder metadata;
+        private readonly ECMA335.MethodBodyStreamEncoder methodBodyStream;
         private readonly MethodSignatureGenerator methodSignatureGenerator;
         private readonly MethodBodyGenerator methodBodyGenerator;
         private readonly MethodParameterGenerator methodParameterGenerator;
 
-        public MethodGenerator(MetadataBuilder metadata, TypeEncoder typeEncoder, ReferencesProvider referencesProvider)
+        public MethodGenerator(ECMA335.MetadataBuilder metadata, TypeEncoder typeEncoder, ReferencesProvider referencesProvider)
         {
             this.metadata = metadata;
-            methodBodyStream = new MethodBodyStreamEncoder(new BlobBuilder());
+            methodBodyStream = new ECMA335.MethodBodyStreamEncoder(new SRM.BlobBuilder());
             methodParameterGenerator = new MethodParameterGenerator(metadata);
             methodSignatureGenerator = new MethodSignatureGenerator(typeEncoder);
-            methodBodyGenerator = new MethodBodyGenerator(referencesProvider, methodSignatureGenerator);
+            methodBodyGenerator = new MethodBodyGenerator(referencesProvider, methodSignatureGenerator, metadata);
         }
 
-        public MethodDefinitionHandle Generate(Model.Types.MethodDefinition method)
+        public SRM.MethodDefinitionHandle Generate(MethodDefinition method)
         {
-
-            var methodSignature = methodSignatureGenerator.Generate(method);
-
-            ParameterHandle? firstParameterHandle = null;
+            var methodSignature = methodSignatureGenerator.GenerateSignatureOf(method);
+            SRM.ParameterHandle? firstParameterHandle = null;
             foreach (var parameter in method.Parameters)
             {
                 var parameterHandle = methodParameterGenerator.Generate(parameter);
@@ -38,21 +37,21 @@ namespace MetadataGenerator
                 }
             }
 
-            // FIXME several addMethodBody variants with different arguments
+            // FIXME several addMethodBody variants with different arguments. codeSize, maxStacks, etc
             var methodBody = method.HasBody
                 ? methodBodyStream.AddMethodBody(methodBodyGenerator.Generate(method.Body))
-                : default(int);
+                : default;
 
             return metadata.AddMethodDefinition(
-                attributes: AttributesProvider.GetMethodAttributesFor(method),
-                implAttributes: MethodImplAttributes.IL | MethodImplAttributes.Managed, //FIXME
+                attributes: GetMethodAttributesFor(method),
+                implAttributes: SR.MethodImplAttributes.IL | SR.MethodImplAttributes.Managed, // FIXME what else?
                 name: metadata.GetOrAddString(method.Name),
                 signature: metadata.GetOrAddBlob(methodSignature),
                 bodyOffset: methodBody,
-                parameterList: firstParameterHandle ?? MetadataTokens.ParameterHandle(metadata.NextRowFor(TableIndex.Param)));
+                parameterList: firstParameterHandle ?? ECMA335.MetadataTokens.ParameterHandle(metadata.NextRowFor(ECMA335.TableIndex.Param)));
         }
 
-        public BlobBuilder IlStream()
+        public SRM.BlobBuilder IlStream()
         {
             return methodBodyStream.Builder;
         }
@@ -66,10 +65,10 @@ namespace MetadataGenerator
                 this.typeEncoder = typeEncoder;
             }
 
-            public BlobBuilder Generate(IMethodReference method)
+            public SRM.BlobBuilder GenerateSignatureOf(IMethodReference method)
             {
-                var methodSignature = new BlobBuilder();
-                new BlobEncoder(methodSignature)
+                var methodSignature = new SRM.BlobBuilder();
+                new ECMA335.BlobEncoder(methodSignature)
                     .MethodSignature(isInstanceMethod: !method.IsStatic, genericParameterCount: method.GenericParameterCount)
                     .Parameters(
                         method.Parameters.Count,
@@ -81,7 +80,8 @@ namespace MetadataGenerator
                             }
                             else
                             {
-                                var encoder = returnType.Type(); // FIXME pass isByRef param. ref return type is not in the model
+                                // TODO isByRef param. ref in return type is not in the model
+                                var encoder = returnType.Type();
                                 typeEncoder.Encode(method.ReturnType, encoder);
                             }
 
@@ -101,40 +101,39 @@ namespace MetadataGenerator
 
         private class MethodParameterGenerator
         {
-            private readonly MetadataBuilder metadata;
+            private readonly ECMA335.MetadataBuilder metadata;
 
-            public MethodParameterGenerator(MetadataBuilder metadata)
+            public MethodParameterGenerator(ECMA335.MetadataBuilder metadata)
             {
                 this.metadata = metadata;
             }
 
-            public ParameterHandle Generate(MethodParameter methodParameter)
-            {
-                return metadata.AddParameter(
-                    AttributesProvider.GetParameterAttributesFor(methodParameter),
-                    metadata.GetOrAddString(methodParameter.Name),
-                    methodParameter.Index);
-            }
-
+            public SRM.ParameterHandle Generate(MethodParameter parameter) =>
+                metadata.AddParameter(GetParameterAttributesFor(parameter), metadata.GetOrAddString(parameter.Name), parameter.Index);
         }
 
+        #region Method Body
+        // review all instructions of the ecma pdf
+        // review overflow and other checks that instructions have
         private class MethodBodyGenerator
         {
             private readonly ReferencesProvider referencesProvider;
             private readonly MethodSignatureGenerator methodSignatureGenerator;
+            private readonly ECMA335.MetadataBuilder metadata;
 
-            public MethodBodyGenerator(ReferencesProvider referencesProvider, MethodSignatureGenerator methodSignatureGenerator)
+            public MethodBodyGenerator(ReferencesProvider referencesProvider, MethodSignatureGenerator methodSignatureGenerator, ECMA335.MetadataBuilder metadata)
             {
                 this.referencesProvider = referencesProvider;
                 this.methodSignatureGenerator = methodSignatureGenerator;
+                this.metadata = metadata;
             }
 
-            public InstructionEncoder Generate(Model.Types.MethodBody body)
+            public ECMA335.InstructionEncoder Generate(MethodBody body)
             {
-                var controlFlowBuilder = new ControlFlowBuilder();
-                var instructionEncoder = new InstructionEncoder(new BlobBuilder(), controlFlowBuilder);
+                var controlFlowBuilder = new ECMA335.ControlFlowBuilder();
+                var instructionEncoder = new ECMA335.InstructionEncoder(new SRM.BlobBuilder(), controlFlowBuilder);
 
-                /** Exception handling, uncomment once al other instructions are generated correctly. If not, labels don't match (because operations are missing)
+                /** Exception handling, uncomment once ial other instructions are generated correctly. If not, labels don't match (because operations are missing)
                 var exceptionMapping = new Dictionary<string, IList<LabelHandle>>();
                 LabelHandle addMapping(string label)
                 {
@@ -197,37 +196,37 @@ namespace MetadataGenerator
                             // see all IlOpCode constants
 
                             case Model.Bytecode.BasicOperation.Nop:
-                                instructionEncoder.OpCode(ILOpCode.Nop);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Nop);
                                 break;
                             case Model.Bytecode.BasicOperation.Add:
-                                instructionEncoder.OpCode(ILOpCode.Add);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Add);
                                 break;
                             case Model.Bytecode.BasicOperation.Sub:
-                                instructionEncoder.OpCode(ILOpCode.Sub);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Sub);
                                 break;
                             case Model.Bytecode.BasicOperation.Mul:
-                                instructionEncoder.OpCode(ILOpCode.Mul);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Mul);
                                 break;
                             case Model.Bytecode.BasicOperation.Div:
-                                instructionEncoder.OpCode(ILOpCode.Div);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Div);
                                 break;
                             case Model.Bytecode.BasicOperation.Rem:
-                                instructionEncoder.OpCode(ILOpCode.Rem);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Rem);
                                 break;
                             case Model.Bytecode.BasicOperation.And:
-                                instructionEncoder.OpCode(ILOpCode.And);
+                                instructionEncoder.OpCode(SRM.ILOpCode.And);
                                 break;
                             case Model.Bytecode.BasicOperation.Or:
-                                instructionEncoder.OpCode(ILOpCode.Or);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Or);
                                 break;
                             case Model.Bytecode.BasicOperation.Xor:
-                                instructionEncoder.OpCode(ILOpCode.Xor);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Xor);
                                 break;
                             case Model.Bytecode.BasicOperation.Shl:
-                                instructionEncoder.OpCode(ILOpCode.Shl);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Shl);
                                 break;
                             case Model.Bytecode.BasicOperation.Shr:
-                                instructionEncoder.OpCode(ILOpCode.Shr);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Shr);
                                 break;
                             case Model.Bytecode.BasicOperation.Eq:
                                 break;
@@ -236,37 +235,39 @@ namespace MetadataGenerator
                             case Model.Bytecode.BasicOperation.Gt:
                                 break;
                             case Model.Bytecode.BasicOperation.Throw:
-                                instructionEncoder.OpCode(ILOpCode.Throw);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Throw);
                                 break;
                             case Model.Bytecode.BasicOperation.Rethrow:
-                                instructionEncoder.OpCode(ILOpCode.Rethrow);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Rethrow);
                                 break;
                             case Model.Bytecode.BasicOperation.Not:
-                                instructionEncoder.OpCode(ILOpCode.Not);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Not);
                                 break;
                             case Model.Bytecode.BasicOperation.Neg:
-                                instructionEncoder.OpCode(ILOpCode.Neg);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Neg);
                                 break;
                             case Model.Bytecode.BasicOperation.Pop:
-                                instructionEncoder.OpCode(ILOpCode.Pop);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Pop);
                                 break;
                             case Model.Bytecode.BasicOperation.Dup:
-                                instructionEncoder.OpCode(ILOpCode.Dup);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Dup);
                                 break;
                             case Model.Bytecode.BasicOperation.EndFinally:
-                                instructionEncoder.OpCode(ILOpCode.Endfinally);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Endfinally);
                                 break;
                             case Model.Bytecode.BasicOperation.EndFilter:
-                                instructionEncoder.OpCode(ILOpCode.Endfilter);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Endfilter);
                                 break;
                             case Model.Bytecode.BasicOperation.LocalAllocation:
-                                instructionEncoder.OpCode(ILOpCode.Localloc);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Localloc);
                                 break;
                             case Model.Bytecode.BasicOperation.InitBlock:
-                                instructionEncoder.OpCode(ILOpCode.Initblk);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Initblk);
                                 break;
                             case Model.Bytecode.BasicOperation.InitObject:
-                                instructionEncoder.OpCode(ILOpCode.Initobj);
+                                // FIXME basicInstruction is missing type. Should be initObj type
+                                // instructionEncoder.OpCode(ILOpCode.Initobj);
+                                // instructionEncoder.Token(type)
                                 break;
                             case Model.Bytecode.BasicOperation.CopyObject:
                                 break;
@@ -287,7 +288,7 @@ namespace MetadataGenerator
                             case Model.Bytecode.BasicOperation.Breakpoint:
                                 break;
                             case Model.Bytecode.BasicOperation.Return:
-                                instructionEncoder.OpCode(ILOpCode.Ret);
+                                instructionEncoder.OpCode(SRM.ILOpCode.Ret);
                                 break;
                         }
                     }
@@ -321,10 +322,26 @@ namespace MetadataGenerator
                     }
                     else if (instruction is Model.Bytecode.ConvertInstruction convertInstruction)
                     {
+                        switch (convertInstruction.Operation)
+                        {
+                            case Model.Bytecode.ConvertOperation.Conv:
+                                break;
+                            case Model.Bytecode.ConvertOperation.Cast:
+                                break;
+                            case Model.Bytecode.ConvertOperation.Box:
+                                instructionEncoder.OpCode(SRM.ILOpCode.Box);
+                                // FIXME ConversionType is IType. It can be IBasicType, ArrayType or PointerType. 
+                                instructionEncoder.Token(referencesProvider.TypeReferenceOf(convertInstruction.ConversionType as IBasicType));
+                                break;
+                            case Model.Bytecode.ConvertOperation.Unbox:
+                                break;
+                            case Model.Bytecode.ConvertOperation.UnboxPtr:
+                                break;
+                        }
                     }
                     else if (instruction is Model.Bytecode.MethodCallInstruction methodCallInstruction)
                     {
-                        var methodSignature = methodSignatureGenerator.Generate(methodCallInstruction.Method);
+                        var methodSignature = methodSignatureGenerator.GenerateSignatureOf(methodCallInstruction.Method);
                         switch (methodCallInstruction.Operation)
                         {
                             case Model.Bytecode.MethodCallOperation.Virtual:
@@ -343,6 +360,44 @@ namespace MetadataGenerator
                             case Model.Bytecode.LoadOperation.Address:
                                 break;
                             case Model.Bytecode.LoadOperation.Value:
+                                //FIXME TAC, CASTS?
+                                if (loadlInstruction.Operand.Type.Equals(PlatformTypes.String))
+                                {
+                                    var value = (string)(loadlInstruction.Operand as Model.ThreeAddressCode.Values.Constant).Value;
+                                    instructionEncoder.LoadString(metadata.GetOrAddUserString(value));
+                                }
+
+                                // TODO see ECMA ldc instruction. It says some cases should be follow by conv.i8 operations but the bytecode (original) does not have that
+                                else if (loadlInstruction.Operand.Type.Equals(PlatformTypes.Int8) || loadlInstruction.Operand.Type.Equals(PlatformTypes.UInt8))
+                                {
+                                    var value = (int)(loadlInstruction.Operand as Model.ThreeAddressCode.Values.Constant).Value;
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldc_i4_s);
+                                    instructionEncoder.Token(value);
+                                }
+                                else if (
+                                    loadlInstruction.Operand.Type.Equals(PlatformTypes.Int16) ||
+                                    loadlInstruction.Operand.Type.Equals(PlatformTypes.Int32) ||
+                                    loadlInstruction.Operand.Type.Equals(PlatformTypes.UInt16) ||
+                                    loadlInstruction.Operand.Type.Equals(PlatformTypes.UInt32))
+                                {
+                                    var value = (int)(loadlInstruction.Operand as Model.ThreeAddressCode.Values.Constant).Value;
+                                    instructionEncoder.LoadConstantI4(value);
+                                }
+                                else if (loadlInstruction.Operand.Type.Equals(PlatformTypes.Int64) || loadlInstruction.Operand.Type.Equals(PlatformTypes.UInt64))
+                                {
+                                    var value = (long)(loadlInstruction.Operand as Model.ThreeAddressCode.Values.Constant).Value;
+                                    instructionEncoder.LoadConstantI8(value);
+                                }
+                                else if (loadlInstruction.Operand.Type.Equals(PlatformTypes.Float32))
+                                {
+                                    var value = (float)(loadlInstruction.Operand as Model.ThreeAddressCode.Values.Constant).Value;
+                                    instructionEncoder.LoadConstantR4(value);
+                                }
+                                else if (loadlInstruction.Operand.Type.Equals(PlatformTypes.Float64))
+                                {
+                                    var value = (double)(loadlInstruction.Operand as Model.ThreeAddressCode.Values.Constant).Value;
+                                    instructionEncoder.LoadConstantR8(value);
+                                }
                                 break;
                             case Model.Bytecode.LoadOperation.Content:
                                 break;
@@ -353,11 +408,11 @@ namespace MetadataGenerator
                     else if (instruction is Model.Bytecode.LoadMethodAddressInstruction loadMethodAdressInstruction) { }
                     else if (instruction is Model.Bytecode.CreateArrayInstruction createArrayInstruction)
                     {
-                        var size = 1; // FIXME array size not in the model (ArrayType)
-                        instructionEncoder.LoadConstantI4(size); // FIXME I4 = int, I8 = long. Could it be long?
-                        instructionEncoder.OpCode(ILOpCode.Newarr);
+                        //         var size = 1; // FIXME array size not in the model (ArrayType)
+                        //       instructionEncoder.LoadConstantI4(size); // FIXME I4 = int, I8 = long. Could it be long?
+                        //     instructionEncoder.OpCode(ILOpCode.Newarr);
                         // FIXME (cast). ElementsType could be Pointer or BasicType. MultiDimensional Arrays are handled by newObj insteado of newArr
-                        instructionEncoder.Token(referencesProvider.TypeReferenceOf(createArrayInstruction.Type.ElementsType as IBasicType));
+                        //        instructionEncoder.Token(referencesProvider.TypeReferenceOf(createArrayInstruction.Type.ElementsType as IBasicType));
                     }
                     else if (instruction is Model.Bytecode.CreateObjectInstruction createObjectInstruction) { }
                     else if (instruction is Model.Bytecode.LoadMethodAddressInstruction loadMethodAddressInstruction) { }
@@ -375,6 +430,6 @@ namespace MetadataGenerator
                 return instructionEncoder;
             }
         }
+        #endregion
     }
-
 }

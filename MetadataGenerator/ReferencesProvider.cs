@@ -1,22 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Reflection;
-using System.Reflection.Metadata;
-using System.Reflection.Metadata.Ecma335;
+using Model;
 using Model.Types;
+using ECMA335 = System.Reflection.Metadata.Ecma335;
+using SRM = System.Reflection.Metadata;
 
+// FIXME extend MetadataBuilder with getOrAddTypereference, getOrAddMethodReferenceOf? is it possible? If it is
+// then there is no need to store mappings and this class can be static (would make typeEncoder static as well) simplifiying everything
 namespace MetadataGenerator
 {
     public class ReferencesProvider
     {
-        private readonly Model.Assembly assembly;
-        private readonly MetadataBuilder metadata;
-        private readonly IDictionary<string, AssemblyReferenceHandle> assemblyReferences = new Dictionary<string, AssemblyReferenceHandle>();
-        private readonly IDictionary<string, TypeReferenceHandle> typeReferences = new Dictionary<string, TypeReferenceHandle>();
-        private readonly IDictionary<string, MemberReferenceHandle> methodReferences = new Dictionary<string, MemberReferenceHandle>();
+        private readonly Assembly assembly;
+        private readonly ECMA335.MetadataBuilder metadata;
+        private readonly IDictionary<string, SRM.AssemblyReferenceHandle> assemblyReferences = new Dictionary<string, SRM.AssemblyReferenceHandle>();
+        private readonly IDictionary<string, SRM.TypeReferenceHandle> typeReferences = new Dictionary<string, SRM.TypeReferenceHandle>();
+        private readonly IDictionary<string, SRM.MemberReferenceHandle> methodReferences = new Dictionary<string, SRM.MemberReferenceHandle>();
 
-        public ReferencesProvider(MetadataBuilder metadata, Model.Assembly assembly)
+        public ReferencesProvider(ECMA335.MetadataBuilder metadata, Assembly assembly)
         {
             this.metadata = metadata;
             this.assembly = assembly;
@@ -31,8 +33,8 @@ namespace MetadataGenerator
                         version: new Version(4, 0, 0, 0),
                         culture: metadata.GetOrAddString("neutral"),
                         publicKeyOrToken: metadata.GetOrAddBlob(ImmutableArray.Create<byte>(0xB7, 0x7A, 0x5C, 0x56, 0x19, 0x34, 0xE0, 0x89)),
-                        flags: default(AssemblyFlags),
-                        hashValue: default(BlobHandle))
+                        flags: default,
+                        hashValue: default)
                 );
             }
         }
@@ -40,17 +42,17 @@ namespace MetadataGenerator
         /*
          * Returns a TypeReference for type. It stores references because metadata does not have a getOrAddTypeReference.
          */
-        public EntityHandle TypeReferenceOf(IBasicType type)
+        public SRM.EntityHandle TypeReferenceOf(IBasicType type)
         {
             // FIXME: is this key unique?
             var typeReferenceKey = $"{type.ContainingAssembly.Name}.{type.ContainingNamespace}.{(type.ContainingType != null ? (type.ContainingType.Name + ".") : "")}{type.Name}";
-            if (!typeReferences.TryGetValue(typeReferenceKey, out TypeReferenceHandle typeReference)) // If stored then return that
+            if (!typeReferences.TryGetValue(typeReferenceKey, out SRM.TypeReferenceHandle typeReference)) // If stored then return that
             { // if not add the new type reference to metadata and store it
-                EntityHandle resolutionScope;
+                SRM.EntityHandle resolutionScope;
                 if (type.ContainingType == null) // if defined in the namespace then search there
                 {
                     resolutionScope = type.ContainingAssembly.Name.Equals(assembly.Name)
-                        ? default(AssemblyReferenceHandle)
+                        ? default
                         : assemblyReferences[type.ContainingAssembly.Name];
                 }
                 else
@@ -66,11 +68,11 @@ namespace MetadataGenerator
             return typeReference;
         }
 
-        public MemberReferenceHandle MethodReferenceOf(IMethodReference method, BlobBuilder methodSignature)
+        public SRM.MemberReferenceHandle MethodReferenceOf(IMethodReference method, SRM.BlobBuilder methodSignature)
         {
             // FIXME: is this key unique?
             var key = $"{method.ContainingType.ContainingAssembly.Name}.{method.ContainingType.ContainingNamespace}.{method.ContainingType.Name}.{method.Name}";
-            if (!methodReferences.TryGetValue(key, out MemberReferenceHandle memberReferenceHandle))
+            if (!methodReferences.TryGetValue(key, out SRM.MemberReferenceHandle memberReferenceHandle))
             {
                 memberReferenceHandle = metadata.AddMemberReference(
                         parent: TypeReferenceOf(method.ContainingType),

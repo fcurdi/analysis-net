@@ -1,29 +1,31 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Reflection.Metadata;
-using System.Reflection.Metadata.Ecma335;
 using Model;
+using Model.Types;
+using static MetadataGenerator.AttributesProvider;
+using ECMA335 = System.Reflection.Metadata.Ecma335;
+using SR = System.Reflection;
+using SRM = System.Reflection.Metadata;
 
 namespace MetadataGenerator
 {
     public class AssemblyGenerator
     {
-        private readonly Model.Assembly assembly;
-        private readonly MetadataBuilder metadata;
+        private readonly Assembly assembly;
+        private readonly ECMA335.MetadataBuilder metadata;
         private readonly ReferencesProvider referencesProvider;
         private readonly MethodGenerator methodGenerator;
         private readonly FieldGenerator fieldGenerator;
-        private MetadataBuilder generatedMetadata;
 
-        private MethodDefinitionHandle? mainMethodHandle;
-        public MethodDefinitionHandle? MainMethodHandle => generatedMetadata != null ? mainMethodHandle : throw new Exception("Generate was not called");
+        private T CheckMetadataWasGeneratedAndReturn<T>(T value) => generatedMetadata != null ? value : throw new Exception("Generate was not called");
+        private ECMA335.MetadataBuilder generatedMetadata;
+        public ECMA335.MetadataBuilder GeneratedMetadata { get => CheckMetadataWasGeneratedAndReturn(generatedMetadata); }
+        private SRM.MethodDefinitionHandle? mainMethodHandle;
+        public SRM.MethodDefinitionHandle? MainMethodHandle { get => CheckMetadataWasGeneratedAndReturn(mainMethodHandle); }
         public bool Executable => mainMethodHandle != null;
+        public SRM.BlobBuilder IlStream => CheckMetadataWasGeneratedAndReturn(methodGenerator.IlStream());
 
-        public MetadataBuilder GeneratedMetadata => generatedMetadata ?? throw new Exception("Generate was not called");
-        public BlobBuilder IlStream => generatedMetadata != null ? methodGenerator.IlStream() : throw new Exception("Generate was not called");
-
-        private AssemblyGenerator(Model.Assembly assembly, MetadataBuilder metadata, ReferencesProvider referencesProvider, MethodGenerator methodGenerator, FieldGenerator fieldGenerator)
+        private AssemblyGenerator(Assembly assembly, ECMA335.MetadataBuilder metadata, ReferencesProvider referencesProvider, MethodGenerator methodGenerator, FieldGenerator fieldGenerator)
         {
             this.metadata = metadata;
             this.referencesProvider = referencesProvider;
@@ -32,27 +34,19 @@ namespace MetadataGenerator
             this.assembly = assembly;
         }
 
-        public static AssemblyGenerator For(Model.Assembly assembly)
+        public static AssemblyGenerator For(Assembly assembly)
         {
-            var metadata = new MetadataBuilder();
+            var metadata = new ECMA335.MetadataBuilder();
             var referencesProvider = new ReferencesProvider(metadata, assembly);
             var typeEncoder = new TypeEncoder(referencesProvider);
             var methodGenerator = new MethodGenerator(metadata, typeEncoder, referencesProvider);
             var fieldGenerator = new FieldGenerator(metadata, typeEncoder);
-            return new AssemblyGenerator(
-                assembly,
-                metadata,
-                referencesProvider,
-                methodGenerator,
-                fieldGenerator);
+            return new AssemblyGenerator(assembly, metadata, referencesProvider, methodGenerator, fieldGenerator);
         }
 
         public AssemblyGenerator Generate()
         {
-            if (generatedMetadata != null)
-            {
-                throw new Exception("Generate was already called for this generator");
-            }
+            if (generatedMetadata != null) throw new Exception("Generate was already called for this generator");
 
             foreach (var namezpace in assembly.RootNamespace.Namespaces)
             {
@@ -63,10 +57,10 @@ namespace MetadataGenerator
             metadata.AddAssembly(
                 name: metadata.GetOrAddString(assembly.Name),
                 version: new Version(1, 0, 0, 0),
-                culture: default(StringHandle),
-                publicKey: default(BlobHandle),
-                flags: AssemblyFlags.PublicKey,
-                hashAlgorithm: AssemblyHashAlgorithm.Sha1);
+                culture: default,
+                publicKey: default,
+                flags: SR.AssemblyFlags.PublicKey,
+                hashAlgorithm: SR.AssemblyHashAlgorithm.Sha1);
 
             metadata.AddModule(
                     generation: 0,
@@ -89,16 +83,16 @@ namespace MetadataGenerator
 
             foreach (var type in namezpace.Types)
             {
-                GenerateTypesOf(type);
+                GenerateTypes(type);
             }
         }
 
-        private TypeDefinitionHandle GenerateTypesOf(Model.Types.TypeDefinition type)
+        private SRM.TypeDefinitionHandle GenerateTypes(TypeDefinition type)
         {
-            var nestedTypes = new List<TypeDefinitionHandle>();
+            var nestedTypes = new List<SRM.TypeDefinitionHandle>();
             foreach (var nestedType in type.Types)
             {
-                nestedTypes.Add(GenerateTypesOf(nestedType));
+                nestedTypes.Add(GenerateTypes(nestedType));
             }
 
             var typeDefinitionHandle = Generate(type);
@@ -110,10 +104,10 @@ namespace MetadataGenerator
             return typeDefinitionHandle;
         }
 
-        private TypeDefinitionHandle Generate(Model.Types.TypeDefinition type)
+        private SRM.TypeDefinitionHandle Generate(TypeDefinition type)
         {
-            var fieldDefinitionHandles = new List<FieldDefinitionHandle>();
-            var methodDefinitionHandles = new List<MethodDefinitionHandle>();
+            var fieldDefinitionHandles = new List<SRM.FieldDefinitionHandle>();
+            var methodDefinitionHandles = new List<SRM.MethodDefinitionHandle>();
 
             foreach (var field in type.Fields)
             {
@@ -143,31 +137,23 @@ namespace MetadataGenerator
                 metadata.AddPropertyMap(typeDefinitionHandle, propertyDefinitionHandle);
             */
 
-
             foreach (var method in type.Methods)
             {
                 var methodHandle = methodGenerator.Generate(method);
-
                 methodDefinitionHandles.Add(methodHandle);
-
-                if (method.Name.Equals("Main")) // FIXME can a non entry point be called Main?
+                if (method.Name.Equals("Main"))
                 {
                     mainMethodHandle = methodHandle;
                 }
             }
 
-            var baseType = default(EntityHandle);
-            if (type.Base != null)
-            {
-                baseType = referencesProvider.TypeReferenceOf(type.Base);
-            }
             var typeDefinitionHandle = metadata.AddTypeDefinition(
-                attributes: AttributesProvider.GetTypeAttributesFor(type),
+                attributes: GetTypeAttributesFor(type),
                 @namespace: metadata.GetOrAddString(type.ContainingNamespace.FullName),
                 name: metadata.GetOrAddString(type.Name),
-                baseType: baseType,
-                fieldList: fieldDefinitionHandles.FirstOr(MetadataTokens.FieldDefinitionHandle(metadata.NextRowFor(TableIndex.Field))),
-                methodList: methodDefinitionHandles.FirstOr(MetadataTokens.MethodDefinitionHandle(metadata.NextRowFor(TableIndex.MethodDef))));
+                baseType: type.Base != null ? referencesProvider.TypeReferenceOf(type.Base) : default,
+                fieldList: fieldDefinitionHandles.FirstOr(ECMA335.MetadataTokens.FieldDefinitionHandle(metadata.NextRowFor(ECMA335.TableIndex.Field))),
+                methodList: methodDefinitionHandles.FirstOr(ECMA335.MetadataTokens.MethodDefinitionHandle(metadata.NextRowFor(ECMA335.TableIndex.MethodDef))));
 
             foreach (var interfaze in type.Interfaces)
             {
@@ -176,8 +162,7 @@ namespace MetadataGenerator
 
             /*
                Generic parameters table must be sorted that's why this is done at the end and not during the method generation.
-               If done that way, method generic parameters of a type are added before the type's generic parameters and table results
-               unsorted
+               If done that way, method generic parameters of a type are added before the type's generic parameters and table results unsorted
              */
 
             // generate class generic parameters (Class<T>)
@@ -185,7 +170,7 @@ namespace MetadataGenerator
             {
                 metadata.AddGenericParameter(
                     typeDefinitionHandle,
-                    GenericParameterAttributes.None,
+                    SR.GenericParameterAttributes.None,
                     metadata.GetOrAddString(genericParamter.Name),
                     genericParamter.Index);
             }
@@ -198,7 +183,7 @@ namespace MetadataGenerator
                 {
                     metadata.AddGenericParameter(
                         methodDefinitionHandles[i],
-                        GenericParameterAttributes.None,
+                        SR.GenericParameterAttributes.None,
                         metadata.GetOrAddString(genericParameter.Name),
                         genericParameter.Index);
                 }

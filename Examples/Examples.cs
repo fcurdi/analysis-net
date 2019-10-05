@@ -560,13 +560,13 @@ namespace MethodBody
             o = 123;
             i = (int)o;  // unboxing
 
-            // Implicit conversion. A long can
-            // hold any value an int can hold, and more!
+            // Implicit conversion. A long can hold any value an int can hold, and more!
             int num = 2147483647;
             long bigNum = num;
 
             double x = 1234.7;
             int a;
+
             // Cast double to int.
             a = (int)x;
         }
@@ -576,6 +576,26 @@ namespace MethodBody
             if (!true)
             {
             }
+        }
+
+        public void LoadConstant()
+        {
+            string s = "hello world!"; // ldstr
+            int zero = 0; // ldc.i4.0
+            int one = 1; // ldc.i4.1
+            int two = 2; // ldc.i4.2
+            int three = 3; // ldc.i4.3
+            int four = 4; // ldc.i4.4
+            int five = 5; // ldc.i4.5
+            int six = 6; // ldc.i4.6
+            int seven = 7; // ldc.i4.7
+            int eight = 8; // ldc.i4.8
+            int minusOne = -1; // ldc.i4.m1
+            int i = 20; // ldc.i4.s 20
+            int k = int.MaxValue; // ldc.i4
+            long l = long.MinValue;  // ldc.i8
+            float f = float.MinValue;  // ldc.r4
+            double d = double.MinValue;  // ldc.r8
         }
     }
 }

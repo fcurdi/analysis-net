@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Immutable;
-using System.Reflection.Metadata.Ecma335;
 using Model.Types;
+using ECMA335 = System.Reflection.Metadata.Ecma335;
 
 namespace MetadataGenerator
 {
@@ -14,63 +14,63 @@ namespace MetadataGenerator
         }
 
         // FIXME signatureTypeEncoder should be by reference? or value?
-        public void Encode(IType type, SignatureTypeEncoder signatureTypeEncoder)
+        public void Encode(IType type, ECMA335.SignatureTypeEncoder encoder)
         {
             if (type.Equals(PlatformTypes.Boolean))
             {
-                signatureTypeEncoder.Boolean();
+                encoder.Boolean();
             }
             else if (type.Equals(PlatformTypes.Byte))
             {
-                signatureTypeEncoder.Byte();
+                encoder.Byte();
             }
             else if (type.Equals(PlatformTypes.SByte))
             {
-                signatureTypeEncoder.SByte();
+                encoder.SByte();
             }
             else if (type.Equals(PlatformTypes.Char))
             {
-                signatureTypeEncoder.Char();
+                encoder.Char();
             }
             else if (type.Equals(PlatformTypes.Double))
             {
-                signatureTypeEncoder.Double();
+                encoder.Double();
             }
             else if (type.Equals(PlatformTypes.Int16))
             {
-                signatureTypeEncoder.Int16();
+                encoder.Int16();
             }
             else if (type.Equals(PlatformTypes.UInt16))
             {
-                signatureTypeEncoder.UInt16();
+                encoder.UInt16();
             }
             else if (type.Equals(PlatformTypes.Int32))
             {
-                signatureTypeEncoder.Int32();
+                encoder.Int32();
             }
             else if (type.Equals(PlatformTypes.UInt32))
             {
-                signatureTypeEncoder.UInt32();
+                encoder.UInt32();
             }
             else if (type.Equals(PlatformTypes.Int64))
             {
-                signatureTypeEncoder.Int64();
+                encoder.Int64();
             }
             else if (type.Equals(PlatformTypes.UInt64))
             {
-                signatureTypeEncoder.UInt64();
+                encoder.UInt64();
             }
             else if (type.Equals(PlatformTypes.String))
             {
-                signatureTypeEncoder.String();
+                encoder.String();
             }
             else if (type.Equals(PlatformTypes.Single))
             {
-                signatureTypeEncoder.Single();
+                encoder.Single();
             }
             else if (type.Equals(PlatformTypes.Object))
             {
-                signatureTypeEncoder.Object();
+                encoder.Object();
             }
             else
             {
@@ -78,7 +78,7 @@ namespace MetadataGenerator
                 {
                     if (basicType.GenericType != null)
                     {
-                        var genericInstantiation = signatureTypeEncoder.GenericInstantiation(
+                        var genericInstantiation = encoder.GenericInstantiation(
                              referencesProvider.TypeReferenceOf(basicType),
                              basicType.GenericParameterCount,
                              type.TypeKind == TypeKind.ValueType
@@ -90,12 +90,12 @@ namespace MetadataGenerator
                     }
                     else
                     {
-                        signatureTypeEncoder.Type(referencesProvider.TypeReferenceOf(basicType), type.TypeKind == TypeKind.ValueType);
+                        encoder.Type(referencesProvider.TypeReferenceOf(basicType), type.TypeKind == TypeKind.ValueType);
                     }
                 }
                 else if (type is ArrayType arrayType)
                 {
-                    signatureTypeEncoder.Array(
+                    encoder.Array(
                         elementTypeEncoder =>
                         {
                             Encode(arrayType.ElementsType, elementTypeEncoder);
@@ -116,11 +116,11 @@ namespace MetadataGenerator
                     var targetType = pointerType.TargetType;
                     if (targetType.Equals(PlatformTypes.Void))
                     {
-                        signatureTypeEncoder.VoidPointer();
+                        encoder.VoidPointer();
                     }
                     else
                     {
-                        Encode(targetType, signatureTypeEncoder.Pointer());
+                        Encode(targetType, encoder.Pointer());
                     }
                 }
                 else if (type is GenericParameter genericParameter)
@@ -128,10 +128,10 @@ namespace MetadataGenerator
                     switch (genericParameter.Kind)
                     {
                         case GenericParameterKind.Type:
-                            signatureTypeEncoder.GenericTypeParameter(genericParameter.Index);
+                            encoder.GenericTypeParameter(genericParameter.Index);
                             break;
                         case GenericParameterKind.Method:
-                            signatureTypeEncoder.GenericMethodTypeParameter(genericParameter.Index);
+                            encoder.GenericMethodTypeParameter(genericParameter.Index);
                             break;
                     }
                 }

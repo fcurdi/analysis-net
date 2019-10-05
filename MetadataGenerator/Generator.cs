@@ -1,9 +1,8 @@
 ﻿using System.IO;
-using System.Reflection.Metadata;
-using System.Reflection.Metadata.Ecma335;
-using System.Reflection.PortableExecutable;
 using Model;
-using Assembly = Model.Assembly;
+using ECMA335 = System.Reflection.Metadata.Ecma335;
+using SRM = System.Reflection.Metadata;
+using SRPE = System.Reflection.PortableExecutable;
 
 namespace MetadataGenerator
 {
@@ -15,18 +14,17 @@ namespace MetadataGenerator
             // using (var peStream = File.OpenWrite($"./{assembly.Name}.exe"))
             {
                 var assemblyGenerator = AssemblyGenerator.For(assembly).Generate();
-                var peHeaderBuilder = new PEHeaderBuilder(
-                    imageCharacteristics: assemblyGenerator.Executable ? Characteristics.ExecutableImage : Characteristics.Dll
+                var peHeaderBuilder = new SRPE.PEHeaderBuilder(
+                    imageCharacteristics: assemblyGenerator.Executable ? SRPE.Characteristics.ExecutableImage : SRPE.Characteristics.Dll
                     );
-                var peBuilder = new ManagedPEBuilder(
+                var peBlob = new SRM.BlobBuilder();
+                new SRPE.ManagedPEBuilder(
                     header: peHeaderBuilder,
-                    metadataRootBuilder: new MetadataRootBuilder(assemblyGenerator.GeneratedMetadata),
+                    metadataRootBuilder: new ECMA335.MetadataRootBuilder(assemblyGenerator.GeneratedMetadata),
                     ilStream: assemblyGenerator.IlStream,
-                    entryPoint: assemblyGenerator.MainMethodHandle ?? default(MethodDefinitionHandle),
-                    flags: CorFlags.ILOnly // FIXME  CorFlags.Requires32Bit | CorFlags.StrongNameSigned depend on dll. Requires/prefers 32 bit?
-                );
-                var peBlob = new BlobBuilder();
-                var contentId = peBuilder.Serialize(peBlob);
+                    entryPoint: assemblyGenerator.MainMethodHandle ?? default,
+                    // FIXME CorFlags.Requires32Bit | CorFlags.StrongNameSigned depend on dll. Requires/prefers 32 bit?
+                    flags: SRPE.CorFlags.ILOnly).Serialize(peBlob);
                 peBlob.WriteContentTo(peStream);
             }
         }
