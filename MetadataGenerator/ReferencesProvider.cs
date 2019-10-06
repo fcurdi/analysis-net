@@ -6,8 +6,6 @@ using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
-// FIXME extend MetadataBuilder with getOrAddTypereference, getOrAddMethodReferenceOf? is it possible? If it is
-// then there is no need to store mappings and this class can be static (would make typeEncoder static as well) simplifiying everything
 namespace MetadataGenerator
 {
     public class ReferencesProvider
@@ -44,7 +42,6 @@ namespace MetadataGenerator
          */
         public SRM.EntityHandle TypeReferenceOf(IBasicType type)
         {
-            // FIXME: is this key unique?
             var typeReferenceKey = $"{type.ContainingAssembly.Name}.{type.ContainingNamespace}.{(type.ContainingType != null ? (type.ContainingType.Name + ".") : "")}{type.Name}";
             if (!typeReferences.TryGetValue(typeReferenceKey, out SRM.TypeReferenceHandle typeReference)) // If stored then return that
             { // if not add the new type reference to metadata and store it
@@ -70,7 +67,6 @@ namespace MetadataGenerator
 
         public SRM.MemberReferenceHandle MethodReferenceOf(IMethodReference method, SRM.BlobBuilder methodSignature)
         {
-            // FIXME: is this key unique?
             var key = $"{method.ContainingType.ContainingAssembly.Name}.{method.ContainingType.ContainingNamespace}.{method.ContainingType.Name}.{method.Name}";
             if (!methodReferences.TryGetValue(key, out SRM.MemberReferenceHandle memberReferenceHandle))
             {

@@ -16,62 +16,20 @@ namespace MetadataGenerator
         // FIXME signatureTypeEncoder should be by reference? or value?
         public void Encode(IType type, ECMA335.SignatureTypeEncoder encoder)
         {
-            if (type.Equals(PlatformTypes.Boolean))
-            {
-                encoder.Boolean();
-            }
-            else if (type.Equals(PlatformTypes.Byte))
-            {
-                encoder.Byte();
-            }
-            else if (type.Equals(PlatformTypes.SByte))
-            {
-                encoder.SByte();
-            }
-            else if (type.Equals(PlatformTypes.Char))
-            {
-                encoder.Char();
-            }
-            else if (type.Equals(PlatformTypes.Double))
-            {
-                encoder.Double();
-            }
-            else if (type.Equals(PlatformTypes.Int16))
-            {
-                encoder.Int16();
-            }
-            else if (type.Equals(PlatformTypes.UInt16))
-            {
-                encoder.UInt16();
-            }
-            else if (type.Equals(PlatformTypes.Int32))
-            {
-                encoder.Int32();
-            }
-            else if (type.Equals(PlatformTypes.UInt32))
-            {
-                encoder.UInt32();
-            }
-            else if (type.Equals(PlatformTypes.Int64))
-            {
-                encoder.Int64();
-            }
-            else if (type.Equals(PlatformTypes.UInt64))
-            {
-                encoder.UInt64();
-            }
-            else if (type.Equals(PlatformTypes.String))
-            {
-                encoder.String();
-            }
-            else if (type.Equals(PlatformTypes.Single))
-            {
-                encoder.Single();
-            }
-            else if (type.Equals(PlatformTypes.Object))
-            {
-                encoder.Object();
-            }
+            if (type.Equals(PlatformTypes.Boolean)) encoder.Boolean();
+            else if (type.Equals(PlatformTypes.Byte)) encoder.Byte();
+            else if (type.Equals(PlatformTypes.SByte)) encoder.SByte();
+            else if (type.Equals(PlatformTypes.Char)) encoder.Char();
+            else if (type.Equals(PlatformTypes.Double)) encoder.Double();
+            else if (type.Equals(PlatformTypes.Int16)) encoder.Int16();
+            else if (type.Equals(PlatformTypes.UInt16)) encoder.UInt16();
+            else if (type.Equals(PlatformTypes.Int32)) encoder.Int32();
+            else if (type.Equals(PlatformTypes.UInt32)) encoder.UInt32();
+            else if (type.Equals(PlatformTypes.Int64)) encoder.Int64();
+            else if (type.Equals(PlatformTypes.UInt64)) encoder.UInt64();
+            else if (type.Equals(PlatformTypes.String)) encoder.String();
+            else if (type.Equals(PlatformTypes.Single)) encoder.Single();
+            else if (type.Equals(PlatformTypes.Object)) encoder.Object();
             else
             {
                 if (type is IBasicType basicType)
@@ -96,10 +54,7 @@ namespace MetadataGenerator
                 else if (type is ArrayType arrayType)
                 {
                     encoder.Array(
-                        elementTypeEncoder =>
-                        {
-                            Encode(arrayType.ElementsType, elementTypeEncoder);
-                        },
+                        elementTypeEncoder => Encode(arrayType.ElementsType, elementTypeEncoder),
                         arrayShapeEncoder =>
                         {
                             // FIXME real values for sizes and lowerBounds
@@ -135,10 +90,7 @@ namespace MetadataGenerator
                             break;
                     }
                 }
-                else
-                {
-                    throw new Exception($"Type {type} not supported");
-                }
+                else throw new Exception($"Type {type} not supported");
             }
         }
     }
