@@ -83,8 +83,10 @@ namespace MetadataGenerator
 
         public static MethodAttributes GetMethodAttributesFor(MethodDefinition method)
         {
-            // FIXME maybe MethodDefinition can have a isClassConstructor or isTypeInitializer
-            var constructor = method.IsConstructor || method.Name.Equals(".cctor");
+            var constructor = method.IsConstructor || method.Name.Equals(".cctor"); // FIXME maybe MethodDefinition can have a isClassConstructor or isTypeInitializer
+            bool specialName =
+                method.Name.StartsWith("get_", StringComparison.Ordinal) || method.Name.StartsWith("set_", StringComparison.Ordinal) ||
+                method.Name.StartsWith("op_", StringComparison.Ordinal);
             var methodAttributes =
                 MethodAttributes.HideBySig | // FIXME when?
                 (method.IsAbstract ? MethodAttributes.Abstract : 0) |
@@ -92,7 +94,7 @@ namespace MetadataGenerator
                 (method.IsVirtual ? MethodAttributes.Virtual : 0) |
                 (method.ContainingType.Kind is TypeDefinitionKind.Interface ? MethodAttributes.NewSlot : 0) |  // FIXME not entirely correct. Model is missing the new keyword
                 (constructor ? MethodAttributes.SpecialName | MethodAttributes.RTSpecialName : 0) |
-                (method.Name.StartsWith("get_") || method.Name.StartsWith("set_") ? MethodAttributes.SpecialName : 0);  // FIXME fails if non getter/setter method starts with get_/set_
+                (specialName ? MethodAttributes.SpecialName : 0);  // FIXME fails if non getter/setter method starts with get_/set_
 
             switch (method.Visibility)
             {

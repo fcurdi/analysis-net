@@ -3,7 +3,6 @@ using System.Collections.Generic;
 
 namespace Enums
 {
-
     public enum DefaultEnum
     {
         CONSTANT1,
@@ -28,7 +27,6 @@ namespace Enums
         USHORT1 = 1,
         USHORT2 = 2
     }
-
 }
 
 // TODO no yet supported in the framework model
@@ -52,12 +50,9 @@ namespace PropertiesGettersAndSetters
     }
 }
 
-//TODO implicit, explicit, operator keywords for methods
 namespace Classes
 {
-    public class EmptyClass
-    {
-    }
+    public class EmptyClass { }
 
     public static class StaticClass
     {
@@ -163,9 +158,7 @@ namespace Classes
 
 namespace Structs
 {
-    public struct EmptyStruct
-    {
-    }
+    public struct EmptyStruct { }
 
     public struct NonEmptyStruct
     {
@@ -191,9 +184,35 @@ namespace Structs
         }
     }
 
+    public readonly struct StructWithImplicitExplicitKeywords
+    {
+        private readonly byte digit;
+
+        public StructWithImplicitExplicitKeywords(byte digit)
+        {
+            this.digit = digit;
+        }
+
+        public static implicit operator byte(StructWithImplicitExplicitKeywords d) => d.digit;
+        public static explicit operator StructWithImplicitExplicitKeywords(byte b) => new StructWithImplicitExplicitKeywords(b);
+    }
+
+    public readonly struct Fraction
+    {
+        private readonly int num;
+        private readonly int den;
+
+        public Fraction(int numerator, int denominator)
+        {
+            num = numerator;
+            den = denominator;
+        }
+
+        public static Fraction operator +(Fraction a) => a;
+        public static Fraction operator -(Fraction a) => new Fraction(-a.num, a.den);
+    }
 }
 
-// TODO interface can have properties
 namespace Interfaces
 {
     public class ClassImplementingInterface : IExtendingSampleInterface, IComparable
@@ -236,6 +255,8 @@ namespace Interfaces
 
 }
 
+// FIXME is generating [Examples.dll]Delegates.ClassThatUsesDelegate/Del ReturnsADelegate  instead of Delegates.ClassThatUsesDelegate/Del ReturnsADelegate 
+// (same assembly)
 namespace Delegates
 {
     public class SampleClass
@@ -353,7 +374,6 @@ namespace Nested
 }
 
 // FIXME ref and out are beign generated like type*& instead of type&. That is because the type a & type in the model is represented as a pointer type.
-// FIXME generation not entirely correct
 namespace PointersAndReferences
 {
     public class PointersAndReferenceClass
@@ -386,7 +406,7 @@ namespace PointersAndReferences
     }
 }
 
-// FIXME generation not entirely correct. 
+// FIXME generation almost correct. 
 namespace Generics
 {
     public class Generic<C, D>

@@ -13,7 +13,8 @@ namespace MetadataGenerator
             this.referencesProvider = referencesProvider;
         }
 
-        // FIXME signatureTypeEncoder should be by reference? or value?
+        // SignatureTypeEncoder is a struct but it is not necessary to pass it by reference since 
+        // it operates on its Builder (BlobBuilber) which is a class (tha means the builder refernece is always the same)
         public void Encode(IType type, ECMA335.SignatureTypeEncoder encoder)
         {
             if (type.Equals(PlatformTypes.Boolean)) encoder.Boolean();

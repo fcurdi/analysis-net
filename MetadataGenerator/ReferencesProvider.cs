@@ -21,7 +21,6 @@ namespace MetadataGenerator
             this.metadata = metadata;
             this.assembly = assembly;
 
-            // FIXME see references in IlSpy generated vs original
             // FIXME: assemblyName => assemblyRef could result in false positive?
             foreach (var assemblyReference in assembly.References)
             {
