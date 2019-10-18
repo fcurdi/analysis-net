@@ -5,12 +5,13 @@ using ECMA335 = System.Reflection.Metadata.Ecma335;
 
 namespace MetadataGenerator
 {
-    public class TypeEncoder
+    // fixme name
+    class TypeEncoder
     {
-        private readonly ReferencesProvider referencesProvider;
-        public TypeEncoder(ReferencesProvider referencesProvider)
+        private readonly ReferenceHandleResolver referenceHandleResolver;
+        public TypeEncoder(ReferenceHandleResolver referenceHandleResolver)
         {
-            this.referencesProvider = referencesProvider;
+            this.referenceHandleResolver = referenceHandleResolver;
         }
 
         // SignatureTypeEncoder is a struct but it is not necessary to pass it by reference since 
@@ -38,7 +39,7 @@ namespace MetadataGenerator
                     if (basicType.GenericType != null)
                     {
                         var genericInstantiation = encoder.GenericInstantiation(
-                             referencesProvider.TypeReferenceOf(basicType),
+                             referenceHandleResolver.ReferenceHandleOf(basicType),
                              basicType.GenericParameterCount,
                              type.TypeKind == TypeKind.ValueType
                          );
@@ -49,7 +50,7 @@ namespace MetadataGenerator
                     }
                     else
                     {
-                        encoder.Type(referencesProvider.TypeReferenceOf(basicType), type.TypeKind == TypeKind.ValueType);
+                        encoder.Type(referenceHandleResolver.ReferenceHandleOf(basicType), type.TypeKind == TypeKind.ValueType);
                     }
                 }
                 else if (type is ArrayType arrayType)
@@ -59,6 +60,7 @@ namespace MetadataGenerator
                         arrayShapeEncoder =>
                         {
                             // FIXME real values for sizes and lowerBounds
+                            // size cannot be known (example: int[])
                             arrayShapeEncoder.Shape(
                                 rank: (int)arrayType.Rank,
                                 sizes: ImmutableArray<int>.Empty,

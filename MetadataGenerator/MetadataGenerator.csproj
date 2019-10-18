@@ -26,14 +26,19 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Generator.cs" />
-    <Compile Include="MethodGenerator.cs" />
-    <Compile Include="TypeEncoder.cs" />
     <Compile Include="AttributesProvider.cs" />
-    <Compile Include="FieldGenerator.cs" />
-    <Compile Include="ReferencesProvider.cs" />
-    <Compile Include="AssemblyGenerator.cs" />
     <Compile Include="Extensions.cs" />
+    <Compile Include="Generators\AssemblyGenerator.cs" />
+    <Compile Include="Generators\FieldGenerator.cs" />
+    <Compile Include="Generators\Generator.cs" />
+    <Compile Include="Generators\Methods\MethodGenerator.cs" />
+    <Compile Include="Generators\Methods\MethodSignatureGenerator.cs" />
+    <Compile Include="Generators\Methods\MethodBodyGenerator.cs" />
+    <Compile Include="Generators\NamespaceGenerator.cs" />
+    <Compile Include="Generators\TypeGenerator.cs" />
+    <Compile Include="Metadata\MetadataContainer.cs" />
+    <Compile Include="Metadata\ReferenceHandleResolver.cs" />
+    <Compile Include="Metadata\TypeEncoder.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Model\Model.csproj">
@@ -48,6 +53,11 @@
     <Reference Include="System.Reflection.Metadata">
       <HintPath>..\packages\System.Reflection.Metadata.1.6.0\lib\portable-net45+win8\System.Reflection.Metadata.dll</HintPath>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Generators\" />
+    <Folder Include="Generators\Methods\" />
+    <Folder Include="Metadata\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

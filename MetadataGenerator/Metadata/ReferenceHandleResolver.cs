@@ -8,7 +8,7 @@ using SRM = System.Reflection.Metadata;
 
 namespace MetadataGenerator
 {
-    public class ReferencesProvider
+    class ReferenceHandleResolver
     {
         private readonly Assembly assembly;
         private readonly ECMA335.MetadataBuilder metadata;
@@ -16,7 +16,7 @@ namespace MetadataGenerator
         private readonly IDictionary<string, SRM.TypeReferenceHandle> typeReferences = new Dictionary<string, SRM.TypeReferenceHandle>();
         private readonly IDictionary<string, SRM.MemberReferenceHandle> methodReferences = new Dictionary<string, SRM.MemberReferenceHandle>();
 
-        public ReferencesProvider(ECMA335.MetadataBuilder metadata, Assembly assembly)
+        public ReferenceHandleResolver(ECMA335.MetadataBuilder metadata, Assembly assembly)
         {
             this.metadata = metadata;
             this.assembly = assembly;
@@ -39,7 +39,7 @@ namespace MetadataGenerator
         /*
          * Returns a TypeReference for type. It stores references because metadata does not have a getOrAddTypeReference.
          */
-        public SRM.EntityHandle TypeReferenceOf(IBasicType type)
+        public SRM.TypeReferenceHandle ReferenceHandleOf(IBasicType type)
         {
             var typeReferenceKey = $"{type.ContainingAssembly.Name}.{type.ContainingNamespace}.{(type.ContainingType != null ? (type.ContainingType.Name + ".") : "")}{type.Name}";
             if (!typeReferences.TryGetValue(typeReferenceKey, out SRM.TypeReferenceHandle typeReference)) // If stored then return that
@@ -53,7 +53,7 @@ namespace MetadataGenerator
                 }
                 else
                 { // if not, recursively get a reference for the containing type and use that as the resolution scopeø
-                    resolutionScope = TypeReferenceOf(type.ContainingType);
+                    resolutionScope = ReferenceHandleOf(type.ContainingType);
                 }
                 typeReference = metadata.AddTypeReference(
                     resolutionScope: resolutionScope,
@@ -64,13 +64,13 @@ namespace MetadataGenerator
             return typeReference;
         }
 
-        public SRM.MemberReferenceHandle MethodReferenceOf(IMethodReference method, SRM.BlobBuilder methodSignature)
+        public SRM.MemberReferenceHandle ReferenceHandleOf(IMethodReference method, SRM.BlobBuilder methodSignature)
         {
             var key = $"{method.ContainingType.ContainingAssembly.Name}.{method.ContainingType.ContainingNamespace}.{method.ContainingType.Name}.{method.Name}";
             if (!methodReferences.TryGetValue(key, out SRM.MemberReferenceHandle memberReferenceHandle))
             {
                 memberReferenceHandle = metadata.AddMemberReference(
-                        parent: TypeReferenceOf(method.ContainingType),
+                        parent: ReferenceHandleOf(method.ContainingType),
                         name: metadata.GetOrAddString(method.Name),
                         signature: metadata.GetOrAddBlob(methodSignature));
                 methodReferences.Add(key, memberReferenceHandle);

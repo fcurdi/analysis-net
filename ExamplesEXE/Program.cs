@@ -1,4 +1,4 @@
-﻿using Classes;
+﻿using System;
 
 namespace ExamplesEXE
 {
@@ -6,7 +6,7 @@ namespace ExamplesEXE
     {
         public static void Main(string[] args)
         {
-            _ = new SimpleClass();
+            Console.WriteLine("Hola");
         }
     }
 }

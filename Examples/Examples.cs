@@ -613,6 +613,7 @@ namespace MethodBody
             int minusOne = -1; // ldc.i4.m1
             int i = 20; // ldc.i4.s 20
             int k = int.MaxValue; // ldc.i4
+            long q = int.MaxValue; // ldc.i4 + conv.i8
             long l = long.MinValue;  // ldc.i8
             float f = float.MinValue;  // ldc.r4
             double d = double.MinValue;  // ldc.r8
