@@ -1,4 +1,5 @@
 ﻿using System;
+using Model.ThreeAddressCode.Values;
 using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
@@ -22,22 +23,22 @@ namespace MetadataGenerator.Generators.Methods
         {
             var controlFlowBuilder = new ECMA335.ControlFlowBuilder();
             var instructionEncoder = new ECMA335.InstructionEncoder(new SRM.BlobBuilder(), controlFlowBuilder);
+            /*   var labelMapping = new Dictionary<string, IList<ECMA335.LabelHandle>>();
+               ECMA335.LabelHandle labelHandleFor(string label)
+               {
+                   var labelHandle = instructionEncoder.DefineLabel();
+                   if (labelMapping.TryGetValue(label, out var labelHandles))
+                   {
+                       labelHandles.Add(labelHandle);
+                   }
+                   else
+                   {
+                       labelMapping.Add(label, new List<ECMA335.LabelHandle> { labelHandle });
+                   }
+                   return labelHandle;
+               }*/
 
             /** Exception handling, uncomment once ial other instructions are generated correctly. If not, labels don't match (because operations are missing)
-            var exceptionMapping = new Dictionary<string, IList<LabelHandle>>();
-            LabelHandle addMapping(string label)
-            {
-                var labelHandle = instructionsEncoder.DefineLabel();
-                if (exceptionMapping.TryGetValue(label, out var labelHandles))
-                {
-                    labelHandles.Add(labelHandle);
-                }
-                else
-                {
-                    exceptionMapping.Add(label, new List<LabelHandle> { labelHandle });
-                }
-                return labelHandle;
-            }
 
             foreach (var protectedBlock in body.ExceptionInformation)
             {
@@ -64,13 +65,13 @@ namespace MetadataGenerator.Generators.Methods
             foreach (var instruction in body.Instructions)
             {
 
-                /** Exception handling, uncomment once al other instructions are generated correctly. If not, labels don't match (because operations are missing)
+                /** uncomment once al other instructions are generated correctly. If not, labels don't match (because operations are missing)
                  * FIXME instruction has offset field. maybe that can be used with instructionsEncoder.offset instead of mapping labels (and using the extension method)
-                if (exceptionMapping.TryGetValue(instructionsEncoder.CurrentLabelString(), out var labels))
+                  if (labelMapping.TryGetValue(instructionEncoder.CurrentLabelString(), out var labels))
                 {
                     foreach (var label in labels)
                     {
-                        instructionsEncoder.MarkLabel(label);
+                        instructionEncoder.MarkLabel(label);
                     }
                 }
                 */
@@ -155,17 +156,21 @@ namespace MetadataGenerator.Generators.Methods
                             instructionEncoder.OpCode(SRM.ILOpCode.Initblk);
                             break;
                         case Model.Bytecode.BasicOperation.InitObject:
-                            // FIXME basicInstruction is missing type. Should be initObj type
+                            // FIXME InitObject needs an operand (should not be BasicInstruction)
                             // instructionEncoder.OpCode(ILOpCode.Initobj);
                             // instructionEncoder.Token(type)
                             break;
                         case Model.Bytecode.BasicOperation.CopyObject:
                             break;
                         case Model.Bytecode.BasicOperation.CopyBlock:
+                            instructionEncoder.OpCode(SRM.ILOpCode.Cpblk);
                             break;
                         case Model.Bytecode.BasicOperation.LoadArrayLength:
                             break;
                         case Model.Bytecode.BasicOperation.IndirectLoad:
+                            // FIXME IndirectLoad needs an operand (should not be BasicInstruction)
+                            // TODO depending on type of operand instructionEncoder.OpCode(SRM.ILOpCode.Ldind_X);
+                            // example is already generated for all variants
                             break;
                         case Model.Bytecode.BasicOperation.LoadArrayElement:
                             break;
@@ -176,6 +181,7 @@ namespace MetadataGenerator.Generators.Methods
                         case Model.Bytecode.BasicOperation.StoreArrayElement:
                             break;
                         case Model.Bytecode.BasicOperation.Breakpoint:
+                            instructionEncoder.OpCode(SRM.ILOpCode.Break);
                             break;
                         case Model.Bytecode.BasicOperation.Return:
                             instructionEncoder.OpCode(SRM.ILOpCode.Ret);
@@ -188,6 +194,8 @@ namespace MetadataGenerator.Generators.Methods
                     switch (branchInstruction.Operation)
                     {
                         // TODO
+                        // This relies on marking labels and that depends on generating all instructions correctly (if not labels don't match)
+                        // There is only one example and it is not tested
                         case Model.Bytecode.BranchOperation.False:
                             break;
                         case Model.Bytecode.BranchOperation.True:
@@ -205,6 +213,9 @@ namespace MetadataGenerator.Generators.Methods
                         case Model.Bytecode.BranchOperation.Ge:
                             break;
                         case Model.Bytecode.BranchOperation.Branch:
+                            // FIXME 
+                            // instructionEncoder.Branch(SRM.ILOpCode.Br, labelHandleFor(branchInstruction.Target));
+                            // instructionEncoder.Branch(SRM.ILOpCode.Br_s, labelHandleFor(branchInstruction.Target));
                             break;
                         case Model.Bytecode.BranchOperation.Leave:
                             break;
@@ -248,21 +259,37 @@ namespace MetadataGenerator.Generators.Methods
                     switch (loadlInstruction.Operation)
                     {
                         case Model.Bytecode.LoadOperation.Address:
+                            // FIXME CAST
+                            //FIXME duplicated code with LoadOperation.Content
+                            var operandVariable = (IVariable)loadlInstruction.Operand;
+                            if (operandVariable.IsParameter)
+                            {
+                                instructionEncoder.LoadArgumentAddress(body.Parameters.IndexOf(operandVariable));
+                            }
+                            else
+                            {
+                                instructionEncoder.LoadLocalAddress(body.LocalVariables.IndexOf(operandVariable));
+                            }
                             break;
                         case Model.Bytecode.LoadOperation.Value:
-                            //FIXME TAC, CASTS?
+                            if (((Constant)loadlInstruction.Operand).Value == null)
+                            {
+                                instructionEncoder.OpCode(SRM.ILOpCode.Ldnull);
+                            }
                             if (loadlInstruction.Operand.Type.Equals(PlatformTypes.String))
                             {
-                                var value = (string)(loadlInstruction.Operand as Model.ThreeAddressCode.Values.Constant).Value;
+                                var value = (string)(loadlInstruction.Operand as Constant).Value;
                                 instructionEncoder.LoadString(metadataContainer.metadataBuilder.GetOrAddUserString(value));
                             }
 
                             // TODO see ECMA ldc instruction. It says some cases should be follow by conv.i8 operations but the bytecode (original) does not have that
                             else if (loadlInstruction.Operand.Type.Equals(PlatformTypes.Int8) || loadlInstruction.Operand.Type.Equals(PlatformTypes.UInt8))
                             {
-                                var value = (int)(loadlInstruction.Operand as Model.ThreeAddressCode.Values.Constant).Value;
+                                var value = (int)(loadlInstruction.Operand as Constant).Value;
                                 instructionEncoder.OpCode(SRM.ILOpCode.Ldc_i4_s);
                                 instructionEncoder.Token(value);
+                                // FIXME: do only if value variable storing the 8 bit number is 8 byte integer.
+                                // instructionEncoder.OpCode(SRM.ILOpCode.Conv_i8);
                             }
                             else if (
                                 loadlInstruction.Operand.Type.Equals(PlatformTypes.Int16) ||
@@ -270,42 +297,58 @@ namespace MetadataGenerator.Generators.Methods
                                 loadlInstruction.Operand.Type.Equals(PlatformTypes.UInt16) ||
                                 loadlInstruction.Operand.Type.Equals(PlatformTypes.UInt32))
                             {
-                                var value = (int)(loadlInstruction.Operand as Model.ThreeAddressCode.Values.Constant).Value;
+                                var value = (int)(loadlInstruction.Operand as Constant).Value;
                                 instructionEncoder.LoadConstantI4(value);
+                                // FIXME: do only if value variable storing the 16/32 bit number is 8 byte integer.
+                                //    instructionEncoder.OpCode(SRM.ILOpCode.Conv_i8);
                             }
                             else if (loadlInstruction.Operand.Type.Equals(PlatformTypes.Int64) || loadlInstruction.Operand.Type.Equals(PlatformTypes.UInt64))
                             {
-                                var value = (long)(loadlInstruction.Operand as Model.ThreeAddressCode.Values.Constant).Value;
+                                var value = (long)(loadlInstruction.Operand as Constant).Value;
                                 instructionEncoder.LoadConstantI8(value);
                             }
                             else if (loadlInstruction.Operand.Type.Equals(PlatformTypes.Float32))
                             {
-                                var value = (float)(loadlInstruction.Operand as Model.ThreeAddressCode.Values.Constant).Value;
+                                var value = (float)(loadlInstruction.Operand as Constant).Value;
                                 instructionEncoder.LoadConstantR4(value);
                             }
                             else if (loadlInstruction.Operand.Type.Equals(PlatformTypes.Float64))
                             {
-                                var value = (double)(loadlInstruction.Operand as Model.ThreeAddressCode.Values.Constant).Value;
+                                var value = (double)(loadlInstruction.Operand as Constant).Value;
                                 instructionEncoder.LoadConstantR8(value);
                             }
                             break;
                         case Model.Bytecode.LoadOperation.Content:
+                            // FIXME CAST
+                            operandVariable = (IVariable)loadlInstruction.Operand;
+                            if (operandVariable.IsParameter)
+                            {
+                                instructionEncoder.LoadArgument(body.Parameters.IndexOf(operandVariable));
+                            }
+                            else
+                            {
+                                instructionEncoder.LoadLocal(body.LocalVariables.IndexOf(operandVariable));
+                            }
                             break;
                     }
                 }
                 else if (instruction is Model.Bytecode.LoadFieldInstruction loadFieldInstruction) { }
                 else if (instruction is Model.Bytecode.LoadArrayElementInstruction loadArrayElementInstruction) { }
-                else if (instruction is Model.Bytecode.LoadMethodAddressInstruction loadMethodAdressInstruction) { }
+                else if (instruction is Model.Bytecode.LoadMethodAddressInstruction loadMethodAdressInstruction)
+                {
+                    instructionEncoder.OpCode(SRM.ILOpCode.Ldftn);
+                    var signature = methodSignatureGenerator.GenerateSignatureOf(loadMethodAdressInstruction.Method);
+                    instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadMethodAdressInstruction.Method, signature));
+                }
                 else if (instruction is Model.Bytecode.CreateArrayInstruction createArrayInstruction)
                 {
-                    //         var size = 1; // FIXME array size not in the model (ArrayType)
+                    //         var size = 1; // FIXME array size cannot be known ([])
                     //       instructionEncoder.LoadConstantI4(size); // FIXME I4 = int, I8 = long. Could it be long?
                     //     instructionEncoder.OpCode(ILOpCode.Newarr);
                     // FIXME (cast). ElementsType could be Pointer or BasicType. MultiDimensional Arrays are handled by newObj insteado of newArr
                     //        instructionEncoder.Token(referenceHandleResolver.TypeReferenceOf(createArrayInstruction.Type.ElementsType as IBasicType));
                 }
                 else if (instruction is Model.Bytecode.CreateObjectInstruction createObjectInstruction) { }
-                else if (instruction is Model.Bytecode.LoadMethodAddressInstruction loadMethodAddressInstruction) { }
                 else if (instruction is Model.Bytecode.StoreInstruction storeInstruction) { }
                 else if (instruction is Model.Bytecode.StoreFieldInstruction storeFieldInstruction) { }
                 else if (instruction is Model.Bytecode.SwitchInstruction switchInstruction) { }

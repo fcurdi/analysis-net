@@ -591,11 +591,12 @@ namespace MethodBody
             a = (int)x;
         }
 
-        public void Branch()
+        public void Branch(bool b)
         {
-            if (!true)
-            {
-            }
+
+            if (false) { } // br.s $target
+
+
         }
 
         public void LoadConstant()
@@ -612,11 +613,84 @@ namespace MethodBody
             int eight = 8; // ldc.i4.8
             int minusOne = -1; // ldc.i4.m1
             int i = 20; // ldc.i4.s 20
+            long c = (char)9; // ldc.i4.s 9 + conv.i8
             int k = int.MaxValue; // ldc.i4
             long q = int.MaxValue; // ldc.i4 + conv.i8
             long l = long.MinValue;  // ldc.i8
             float f = float.MinValue;  // ldc.r4
             double d = double.MinValue;  // ldc.r8
+        }
+
+        public void LoadArgument(int arg1, string arg2, bool arg3, int arg4)
+        {
+            var i0 = this; // ldarg.0
+            var i1 = arg1; // ldarg.1
+            var i2 = arg2; // ldarg.2
+            var i3 = arg3; // ldarg.3
+            var i4 = arg4; // ldarg.s $value
+            // TODO ldarg $value (see ecma)
+        }
+
+        public void LoadLocal()
+        {
+            var x0 = 10;
+            var x1 = 12;
+            var x2 = 23;
+            var x3 = 23;
+            var x4 = 14;
+
+            var y0 = x0; // ldloc.0
+            var y1 = x1; // ldloc.1
+            var y2 = x2; // ldloc.2
+            var y3 = x3; // ldloc.3
+            var y4 = x4; // ldloc.s $index (=4)
+            // TODO ldloc $index (see ecma)
+        }
+
+        public void LoadAddress(int x)
+        {
+            unsafe
+            {
+                var p = default(int*); // ldloca.s 0
+                // TODO ldloca $argNum
+                var q = &x; // ldarga.s 0
+                // TODO ldarga $argNum
+            }
+        }
+
+        public void LoadPointer()
+        {
+            Action<int> x = LoadAddress; // ldftn $method
+            Action<int> y = null; // ldnull
+        }
+
+        public void LoadIndirect(ref object g)
+        {
+            unsafe
+            {
+                sbyte a_1 = sbyte.MinValue;
+                byte a_2 = byte.MinValue;
+                short b_1 = short.MinValue;
+                ushort b_2 = ushort.MinValue;
+                int c_1 = int.MinValue;
+                uint c_2 = uint.MinValue;
+                long d = long.MinValue;
+                float e = float.MinValue;
+                double f = double.MinValue;
+                IntPtr h = default;
+
+                var x1 = *&a_1; // ldind.i1 
+                var x2 = *&a_2; // ldind.u1 
+                var x3 = *&b_1; // ldind.i2 
+                var x4 = *&b_2; // ldind.u2 
+                var x5 = *&c_1; // ldind.i4 
+                var x6 = *&c_2; // ldind.u4 
+                var x7 = *&d; // ldind.i8 (ldind.u8 is alias for ldind.i8)
+                var x8 = *&e; // ldind.r4 
+                var x9 = *&f; // ldind.r8
+                var x10 = *&h; // ldind.i
+                var x11 = g; // ldind.ref
+            }
         }
     }
 }
