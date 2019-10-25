@@ -11,7 +11,7 @@ namespace MetadataGenerator.Generators.Methods
     class MethodBodyGenerator
     {
         private readonly MetadataContainer metadataContainer;
-        private readonly MethodSignatureGenerator methodSignatureGenerator;
+        private readonly MethodSignatureGenerator methodSignatureGenerator; // FIXME maybe this can be used inside MetadataContainer?
 
         public MethodBodyGenerator(MetadataContainer metadataContainer, MethodSignatureGenerator methodSignatureGenerator)
         {
@@ -84,7 +84,7 @@ namespace MetadataGenerator.Generators.Methods
                     {
                         // TODO 
                         // check overflow for variants (ej: add, add_ovf, add_ovf_un)
-                        // see all IlOpCode constants
+                        // see all IlOpCode constants and ECMA
 
                         case Model.Bytecode.BasicOperation.Nop:
                             instructionEncoder.OpCode(SRM.ILOpCode.Nop);
@@ -120,10 +120,13 @@ namespace MetadataGenerator.Generators.Methods
                             instructionEncoder.OpCode(SRM.ILOpCode.Shr);
                             break;
                         case Model.Bytecode.BasicOperation.Eq:
+                            instructionEncoder.OpCode(SRM.ILOpCode.Ceq);
                             break;
                         case Model.Bytecode.BasicOperation.Lt:
+                            instructionEncoder.OpCode(SRM.ILOpCode.Clt);
                             break;
                         case Model.Bytecode.BasicOperation.Gt:
+                            instructionEncoder.OpCode(SRM.ILOpCode.Cgt);
                             break;
                         case Model.Bytecode.BasicOperation.Throw:
                             instructionEncoder.OpCode(SRM.ILOpCode.Throw);
@@ -161,11 +164,13 @@ namespace MetadataGenerator.Generators.Methods
                             // instructionEncoder.Token(type)
                             break;
                         case Model.Bytecode.BasicOperation.CopyObject:
+                            // FIXME CopyObject needs an operand (should not be BasicInstruction)
                             break;
                         case Model.Bytecode.BasicOperation.CopyBlock:
                             instructionEncoder.OpCode(SRM.ILOpCode.Cpblk);
                             break;
                         case Model.Bytecode.BasicOperation.LoadArrayLength:
+                            instructionEncoder.OpCode(SRM.ILOpCode.Ldlen);
                             break;
                         case Model.Bytecode.BasicOperation.IndirectLoad:
                             // FIXME IndirectLoad needs an operand (should not be BasicInstruction)
@@ -173,12 +178,27 @@ namespace MetadataGenerator.Generators.Methods
                             // example is already generated for all variants
                             break;
                         case Model.Bytecode.BasicOperation.LoadArrayElement:
+                            // FIXME LoadArrayElement needs an operand (should not be BasicInstruction)
+                            // TODO depending on type of operand instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_X);
+                            // example is already generated
                             break;
                         case Model.Bytecode.BasicOperation.LoadArrayElementAddress:
+                            // FIXME LoadArrayElementAddress needs an operand (should not be BasicInstruction)
+                            // instructionEncoder.OpCode(SRM.ILOpCode.Ldelema);
+                            // instructionEncoder.token(type);
+                            // example is already generated
                             break;
                         case Model.Bytecode.BasicOperation.IndirectStore:
+                            // FIXME IndirectStore needs an operand (should not be BasicInstruction)
+                            // instructionEncoder.OpCode(SRM.ILOpCode.Stobj);
+                            // instructionEncoder.token();
                             break;
                         case Model.Bytecode.BasicOperation.StoreArrayElement:
+                            // FIXME StoreArrayElement needs an operand (should not be BasicInstruction)
+                            // instructionEncoder.OpCode(SRM.ILOpCode.Stelem_X);
+
+                            // instructionEncoder.OpCode(SRM.ILOpCode.Stelem);
+                            // instructionEncoder.token();
                             break;
                         case Model.Bytecode.BasicOperation.Breakpoint:
                             instructionEncoder.OpCode(SRM.ILOpCode.Break);
@@ -230,9 +250,9 @@ namespace MetadataGenerator.Generators.Methods
                         case Model.Bytecode.ConvertOperation.Cast:
                             break;
                         case Model.Bytecode.ConvertOperation.Box:
-                            instructionEncoder.OpCode(SRM.ILOpCode.Box);
                             // FIXME ConversionType is IType. It can be IBasicType, ArrayType or PointerType. 
-                            instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(convertInstruction.ConversionType as IBasicType));
+                            // instructionEncoder.OpCode(SRM.ILOpCode.Box);
+                            // instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(convertInstruction.ConversionType as IBasicType));
                             break;
                         case Model.Bytecode.ConvertOperation.Unbox:
                             break;
@@ -332,23 +352,51 @@ namespace MetadataGenerator.Generators.Methods
                             break;
                     }
                 }
-                else if (instruction is Model.Bytecode.LoadFieldInstruction loadFieldInstruction) { }
+                else if (instruction is Model.Bytecode.LoadFieldInstruction loadFieldInstruction)
+                {
+                    // TODO handle ldflda. Example present but not supported in model?
+
+                    //FIXME this logic is the same as in FieldGenerator. Maybe FieldSignatureGenerator?
+                    var fieldSignature = new SRM.BlobBuilder();
+                    metadataContainer.Encode(loadFieldInstruction.Field.Type, new ECMA335.BlobEncoder(fieldSignature).FieldSignature());
+                    //
+                    instructionEncoder.OpCode(SRM.ILOpCode.Ldfld);
+                    instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadFieldInstruction.Field, fieldSignature));
+                }
                 else if (instruction is Model.Bytecode.LoadArrayElementInstruction loadArrayElementInstruction) { }
                 else if (instruction is Model.Bytecode.LoadMethodAddressInstruction loadMethodAdressInstruction)
                 {
+                    var methodSignature = methodSignatureGenerator.GenerateSignatureOf(loadMethodAdressInstruction.Method);
                     instructionEncoder.OpCode(SRM.ILOpCode.Ldftn);
-                    var signature = methodSignatureGenerator.GenerateSignatureOf(loadMethodAdressInstruction.Method);
-                    instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadMethodAdressInstruction.Method, signature));
+                    instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadMethodAdressInstruction.Method, methodSignature));
                 }
                 else if (instruction is Model.Bytecode.CreateArrayInstruction createArrayInstruction)
                 {
-                    //         var size = 1; // FIXME array size cannot be known ([])
-                    //       instructionEncoder.LoadConstantI4(size); // FIXME I4 = int, I8 = long. Could it be long?
-                    //     instructionEncoder.OpCode(ILOpCode.Newarr);
-                    // FIXME (cast). ElementsType could be Pointer or BasicType. MultiDimensional Arrays are handled by newObj insteado of newArr
-                    //        instructionEncoder.Token(referenceHandleResolver.TypeReferenceOf(createArrayInstruction.Type.ElementsType as IBasicType));
+                    if (createArrayInstruction.Type.IsVector)
+                    {
+                        if (createArrayInstruction.Type.ElementsType is IBasicType basicType)
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Newarr);
+                            instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(basicType));
+                        }
+                        else
+                        { // PointerType
+                            // TODO could be multiple levels (*, **, *******, etc)
+                        }
+
+                    }
+                    else
+                    {
+                        throw new Exception("newarr only handles one dimension and zero based arrays");
+                    }
                 }
-                else if (instruction is Model.Bytecode.CreateObjectInstruction createObjectInstruction) { }
+                else if (instruction is Model.Bytecode.CreateObjectInstruction createObjectInstruction)
+                {
+                    var methodSignature = methodSignatureGenerator.GenerateSignatureOf(createObjectInstruction.Constructor);
+                    var method = metadataContainer.ResolveReferenceHandleFor(createObjectInstruction.Constructor, methodSignature);
+                    instructionEncoder.OpCode(SRM.ILOpCode.Newobj);
+                    instructionEncoder.Token(method);
+                }
                 else if (instruction is Model.Bytecode.StoreInstruction storeInstruction) { }
                 else if (instruction is Model.Bytecode.StoreFieldInstruction storeFieldInstruction) { }
                 else if (instruction is Model.Bytecode.SwitchInstruction switchInstruction) { }

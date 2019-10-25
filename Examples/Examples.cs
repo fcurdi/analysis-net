@@ -67,7 +67,7 @@ namespace Classes
 
     public class SimpleClass
     {
-        private readonly int readOnlyIntField = 212;
+        public readonly int readOnlyIntField = 212;
         public string unassignedString;
         public const string CONST_STRING = "const";
 
@@ -118,7 +118,7 @@ namespace Classes
         public string[][] stringArrayArrayField;
         public string[,,] stringJaggedArrayField;
         public Exception[] exceptionArrayField;
-        private Nested.NestedNamespace.NestedNestedNamesace.B b;
+        public Nested.NestedNamespace.NestedNestedNamesace.B b;
 
         public void MethodWithOptionalParameters(
             string someParam,
@@ -691,6 +691,67 @@ namespace MethodBody
                 var x10 = *&h; // ldind.i
                 var x11 = g; // ldind.ref
             }
+        }
+
+        public void Compare(int b)
+        {
+            var a = b == 2; // ceq
+            a = b > 2; // cgt
+            a = b < 2; // clt
+        }
+
+        public void Create()
+        {
+            new Classes.SimpleClass(1, "a"); // newobj $methodCall
+            var a = new int[] { 1, 2, 3 }; // newarr int
+            var b = new Exception[] { }; // newarr Clases.SimpleClass
+            unsafe
+            {
+                var c = new int*[] { };  // newarr int*
+                var d = new int**[] { }; // newarr int**
+            }
+        }
+        public void LoadArray(Exception[] x, int[] q)
+        {
+            var a = x[1]; // ldelem.ref
+            var b = (new sbyte[] { })[0]; // ldelem.i1
+            var c = (new byte[] { })[0]; // ldelem.u1
+            var d = (new short[] { })[0]; // ldelem.i2
+            var e = (new ushort[] { })[0]; // ldelem.u2
+            var f = (new int[] { })[0]; // ldelem.i4
+            var g = (new uint[] { })[0];// ldelem.u4
+            var h = (new long[] { })[0]; // ldelem.i8 -- ldelem.u8 (alias)
+            var j = (new float[] { })[0];// ldelem.r4
+            var k = (new double[] { })[0];// ldelem.r8
+
+            // TODO ldelem.i ???
+            // TODO ldelem typeTok ???
+            /* 
+             * FIXME framework read not working. Something not implemented? Maybe avoid fixed keyword?
+            unsafe
+            {
+                fixed (int* p = &q[0]) // ldelema $type
+                {
+                }
+            }
+            */
+
+            var l = (new int[] { 1, 2, 3 }).Length; // ldlen
+        }
+
+        public void LoadField()
+        {
+            var a = new Classes.SimpleClass(1, "b").unassignedString; // ldfld string $field
+            var b = new Classes.SimpleClass(1, "b").readOnlyIntField; // ldfld int $field
+            var c = new Classes.ClassWithMoreComplexFieldsAndParamtersOrReturnTypes().b; // ldfld class $field
+
+            /* FIXME framework read not working. Something not implemented? Maybe avoid fixed keyword?
+            unsafe
+            {
+                fixed (int* d = &(new Classes.SimpleClass(1, "b")).readOnlyIntField) // ldflda int32 $field
+                { }
+            }
+            */
         }
     }
 }

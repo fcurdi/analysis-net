@@ -64,7 +64,7 @@ namespace MetadataGenerator
             return typeReference;
         }
 
-        public SRM.MemberReferenceHandle ReferenceHandleOf(IMethodReference method, SRM.BlobBuilder methodSignature)
+        public SRM.MemberReferenceHandle ReferenceHandleOf(IMethodReference method, SRM.BlobBuilder signature)
         {
             var key = $"{method.ContainingType.ContainingAssembly.Name}.{method.ContainingType.ContainingNamespace}.{method.ContainingType.Name}.{method.Name}";
             if (!methodReferences.TryGetValue(key, out SRM.MemberReferenceHandle memberReferenceHandle))
@@ -72,7 +72,22 @@ namespace MetadataGenerator
                 memberReferenceHandle = metadata.AddMemberReference(
                         parent: ReferenceHandleOf(method.ContainingType),
                         name: metadata.GetOrAddString(method.Name),
-                        signature: metadata.GetOrAddBlob(methodSignature));
+                        signature: metadata.GetOrAddBlob(signature));
+                methodReferences.Add(key, memberReferenceHandle);
+            }
+            return memberReferenceHandle;
+        }
+
+        // FIXME extract method for both method and field? identical
+        public SRM.MemberReferenceHandle ReferenceHandleOf(IFieldReference field, SRM.BlobBuilder signature)
+        {
+            var key = $"{field.ContainingType.ContainingAssembly.Name}.{field.ContainingType.ContainingNamespace}.{field.ContainingType.Name}.{field.Name}";
+            if (!methodReferences.TryGetValue(key, out SRM.MemberReferenceHandle memberReferenceHandle))
+            {
+                memberReferenceHandle = metadata.AddMemberReference(
+                        parent: ReferenceHandleOf(field.ContainingType),
+                        name: metadata.GetOrAddString(field.Name),
+                        signature: metadata.GetOrAddBlob(signature));
                 methodReferences.Add(key, memberReferenceHandle);
             }
             return memberReferenceHandle;

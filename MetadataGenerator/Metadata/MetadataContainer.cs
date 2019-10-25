@@ -35,6 +35,7 @@ namespace MetadataGenerator
 
         public SRM.EntityHandle ResolveReferenceHandleFor(IBasicType type) => referenceHandleResolver.ReferenceHandleOf(type);
         public SRM.MemberReferenceHandle ResolveReferenceHandleFor(IMethodReference method, SRM.BlobBuilder signature) => referenceHandleResolver.ReferenceHandleOf(method, signature);
+        public SRM.MemberReferenceHandle ResolveReferenceHandleFor(IFieldReference field, SRM.BlobBuilder signature) => referenceHandleResolver.ReferenceHandleOf(field, signature);
         //FIXME name
         public void Encode(IType type, ECMA335.SignatureTypeEncoder encoder) => typeEncoder.Encode(type, encoder);
     }
