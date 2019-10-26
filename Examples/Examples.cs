@@ -57,11 +57,15 @@ namespace Classes
     public static class StaticClass
     {
         static readonly double StaticDouble;
+        public static Exception e;
+        public static int i;
 
         static StaticClass()
         {
             StaticDouble = 0.5;
         }
+
+        public static void DoNothing(int x) { }
     }
 
 
@@ -557,6 +561,8 @@ namespace MethodBody
             Console.WriteLine("A method call"); // static
             simpleClass.DoNothing(); // virtual
             Alloc(); // normal
+
+            // TODO calli (indirect)
         }
 
         public void Arrays()
@@ -571,24 +577,17 @@ namespace MethodBody
             }
         }
 
-        // TODO unboxPtr???
-        public void Convert()
+        public void Convert(object o)
         {
-            int i = 123;
-            object o = i; // boxing
+            string s = (string)(object)"asd"; // castclass $class
 
-            o = 123;
-            i = (int)o;  // unboxing
+            // FIXME framework read not working.
+            //    var b = o is Classes.SimpleClass; // isinst $class
 
-            // Implicit conversion. A long can hold any value an int can hold, and more!
-            int num = 2147483647;
-            long bigNum = num;
+            object l = 1; // box int
+            int i = (int)l; // unbox.any int
 
-            double x = 1234.7;
-            int a;
-
-            // Cast double to int.
-            a = (int)x;
+            // TODO unbox (unbox ptr)
         }
 
         public void Branch(bool b)
@@ -753,5 +752,38 @@ namespace MethodBody
             }
             */
         }
+
+        public void StoreField()
+        {
+            new Classes.SimpleClass(1, "b").unassignedString = ""; // stfld string $field
+            Classes.StaticClass.i = 1; // stsfld int $field
+            Classes.StaticClass.e = new Exception(); // stsfld Exception $field
+        }
+
+        public void StoreValue(int arg)
+        {
+            int l0, l1, l2, l3, l4;
+            l0 = 1; // stloc.0
+            l1 = 1; // stloc.1
+            l2 = 1; // stloc.2
+            l3 = 1; // stloc.3
+            l4 = 1; // stloc.s 4
+            // TODO stloc indx (not short form)
+
+            arg = 1; // starg.s arg
+            // TODO starg arg (not short form)
+        }
+
+        public void SizeOf()
+        {
+            unsafe
+            {
+                // FIXME framework read not working
+                // var x = sizeof(Structs.NonEmptyStruct); // sizeof $type
+                var z = sizeof(Structs.NonEmptyStruct***); // sizeof $type***
+                var y = sizeof(int*); // sizeof int*
+            }
+        }
+
     }
 }

@@ -14,7 +14,7 @@ namespace MetadataGenerator
         private readonly ECMA335.MetadataBuilder metadata;
         private readonly IDictionary<string, SRM.AssemblyReferenceHandle> assemblyReferences = new Dictionary<string, SRM.AssemblyReferenceHandle>();
         private readonly IDictionary<string, SRM.TypeReferenceHandle> typeReferences = new Dictionary<string, SRM.TypeReferenceHandle>();
-        private readonly IDictionary<string, SRM.MemberReferenceHandle> methodReferences = new Dictionary<string, SRM.MemberReferenceHandle>();
+        private readonly IDictionary<string, SRM.MemberReferenceHandle> memberReferences = new Dictionary<string, SRM.MemberReferenceHandle>();
 
         public ReferenceHandleResolver(ECMA335.MetadataBuilder metadata, Assembly assembly)
         {
@@ -67,13 +67,13 @@ namespace MetadataGenerator
         public SRM.MemberReferenceHandle ReferenceHandleOf(IMethodReference method, SRM.BlobBuilder signature)
         {
             var key = $"{method.ContainingType.ContainingAssembly.Name}.{method.ContainingType.ContainingNamespace}.{method.ContainingType.Name}.{method.Name}";
-            if (!methodReferences.TryGetValue(key, out SRM.MemberReferenceHandle memberReferenceHandle))
+            if (!memberReferences.TryGetValue(key, out SRM.MemberReferenceHandle memberReferenceHandle))
             {
                 memberReferenceHandle = metadata.AddMemberReference(
                         parent: ReferenceHandleOf(method.ContainingType),
                         name: metadata.GetOrAddString(method.Name),
                         signature: metadata.GetOrAddBlob(signature));
-                methodReferences.Add(key, memberReferenceHandle);
+                memberReferences.Add(key, memberReferenceHandle);
             }
             return memberReferenceHandle;
         }
@@ -82,13 +82,13 @@ namespace MetadataGenerator
         public SRM.MemberReferenceHandle ReferenceHandleOf(IFieldReference field, SRM.BlobBuilder signature)
         {
             var key = $"{field.ContainingType.ContainingAssembly.Name}.{field.ContainingType.ContainingNamespace}.{field.ContainingType.Name}.{field.Name}";
-            if (!methodReferences.TryGetValue(key, out SRM.MemberReferenceHandle memberReferenceHandle))
+            if (!memberReferences.TryGetValue(key, out SRM.MemberReferenceHandle memberReferenceHandle))
             {
                 memberReferenceHandle = metadata.AddMemberReference(
                         parent: ReferenceHandleOf(field.ContainingType),
                         name: metadata.GetOrAddString(field.Name),
                         signature: metadata.GetOrAddBlob(signature));
-                methodReferences.Add(key, memberReferenceHandle);
+                memberReferences.Add(key, memberReferenceHandle);
             }
             return memberReferenceHandle;
         }

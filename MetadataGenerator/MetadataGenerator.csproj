@@ -29,7 +29,6 @@
     <Compile Include="AttributesProvider.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="Generators\AssemblyGenerator.cs" />
-    <Compile Include="Generators\FieldGenerator.cs" />
     <Compile Include="Generators\Generator.cs" />
     <Compile Include="Generators\Methods\MethodGenerator.cs" />
     <Compile Include="Generators\Methods\MethodSignatureGenerator.cs" />
@@ -39,6 +38,8 @@
     <Compile Include="Metadata\MetadataContainer.cs" />
     <Compile Include="Metadata\ReferenceHandleResolver.cs" />
     <Compile Include="Metadata\TypeEncoder.cs" />
+    <Compile Include="Generators\Fields\FieldGenerator.cs" />
+    <Compile Include="Generators\Fields\FieldSignatureGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Model\Model.csproj">
@@ -58,6 +59,7 @@
     <Folder Include="Generators\" />
     <Folder Include="Generators\Methods\" />
     <Folder Include="Metadata\" />
+    <Folder Include="Generators\Fields\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

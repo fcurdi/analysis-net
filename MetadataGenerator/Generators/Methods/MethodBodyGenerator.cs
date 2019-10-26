@@ -1,4 +1,5 @@
 ﻿using System;
+using MetadataGenerator.Generators.Fields;
 using Model.ThreeAddressCode.Values;
 using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
@@ -12,11 +13,13 @@ namespace MetadataGenerator.Generators.Methods
     {
         private readonly MetadataContainer metadataContainer;
         private readonly MethodSignatureGenerator methodSignatureGenerator; // FIXME maybe this can be used inside MetadataContainer?
+        private readonly FieldSignatureGenerator fieldSignatureGenerator; // FIXME maybe this can be used inside MetadataContainer?
 
         public MethodBodyGenerator(MetadataContainer metadataContainer, MethodSignatureGenerator methodSignatureGenerator)
         {
             this.metadataContainer = metadataContainer;
             this.methodSignatureGenerator = methodSignatureGenerator;
+            fieldSignatureGenerator = new FieldSignatureGenerator(metadataContainer);
         }
 
         public ECMA335.InstructionEncoder Generate(MethodBody body)
@@ -248,6 +251,9 @@ namespace MetadataGenerator.Generators.Methods
                         case Model.Bytecode.ConvertOperation.Conv:
                             break;
                         case Model.Bytecode.ConvertOperation.Cast:
+                            // FIXME ConversionType is IType. It can be IBasicType, ArrayType or PointerType. 
+                            // instructionEncoder.OpCode(SRM.ILOpCode.Castclass);
+                            // instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(convertInstruction.ConversionType));
                             break;
                         case Model.Bytecode.ConvertOperation.Box:
                             // FIXME ConversionType is IType. It can be IBasicType, ArrayType or PointerType. 
@@ -356,10 +362,7 @@ namespace MetadataGenerator.Generators.Methods
                 {
                     // TODO handle ldflda. Example present but not supported in model?
 
-                    //FIXME this logic is the same as in FieldGenerator. Maybe FieldSignatureGenerator?
-                    var fieldSignature = new SRM.BlobBuilder();
-                    metadataContainer.Encode(loadFieldInstruction.Field.Type, new ECMA335.BlobEncoder(fieldSignature).FieldSignature());
-                    //
+                    var fieldSignature = fieldSignatureGenerator.Generate(loadFieldInstruction.Field);
                     instructionEncoder.OpCode(SRM.ILOpCode.Ldfld);
                     instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadFieldInstruction.Field, fieldSignature));
                 }
@@ -383,7 +386,6 @@ namespace MetadataGenerator.Generators.Methods
                         { // PointerType
                             // TODO could be multiple levels (*, **, *******, etc)
                         }
-
                     }
                     else
                     {
@@ -397,15 +399,47 @@ namespace MetadataGenerator.Generators.Methods
                     instructionEncoder.OpCode(SRM.ILOpCode.Newobj);
                     instructionEncoder.Token(method);
                 }
-                else if (instruction is Model.Bytecode.StoreInstruction storeInstruction) { }
-                else if (instruction is Model.Bytecode.StoreFieldInstruction storeFieldInstruction) { }
+                else if (instruction is Model.Bytecode.StoreInstruction storeInstruction)
+                {
+                    if (storeInstruction.Target.IsParameter)
+                    {
+                        instructionEncoder.StoreArgument(body.Parameters.IndexOf(storeInstruction.Target));
+                    }
+                    else
+                    {
+                        instructionEncoder.StoreLocal(body.LocalVariables.IndexOf(storeInstruction.Target));
+                    }
+                }
+                else if (instruction is Model.Bytecode.StoreFieldInstruction storeFieldInstruction)
+                {
+                    var fieldSignature = fieldSignatureGenerator.Generate(storeFieldInstruction.Field);
+                    instructionEncoder.OpCode(storeFieldInstruction.Field.IsStatic ? SRM.ILOpCode.Stsfld : SRM.ILOpCode.Stfld);
+                    instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(storeFieldInstruction.Field, fieldSignature));
+                }
                 else if (instruction is Model.Bytecode.SwitchInstruction switchInstruction) { }
-                else if (instruction is Model.Bytecode.SizeofInstruction sizeofInstruction) { }
+                else if (instruction is Model.Bytecode.SizeofInstruction sizeofInstruction)
+                {
+                    instructionEncoder.OpCode(SRM.ILOpCode.Sizeof);
+                    if (sizeofInstruction.MeasuredType is IBasicType basicType)
+                    {
+                        instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(basicType));
+
+                    }
+                    else if (sizeofInstruction.MeasuredType is PointerType pointerType)
+                    {
+                        // TODO could be multiple indirections
+                        // example already generated
+                    }
+                    else
+                    {
+                        // FIXME check if array type is really possible with sizeof. I think not
+                        throw new Exception();
+                    }
+                }
                 else if (instruction is Model.Bytecode.LoadTokenInstruction loadTokenInstruction) { }
                 else if (instruction is Model.Bytecode.IndirectMethodCallInstruction indirectMethodCallInstruction) { }
                 else if (instruction is Model.Bytecode.StoreArrayElementInstruction storeArrayElementInstruction) { }
                 else throw new Exception("instruction type not handled");
-
             }
 
             return instructionEncoder;
