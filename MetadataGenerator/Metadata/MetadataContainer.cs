@@ -10,8 +10,7 @@ namespace MetadataGenerator
     class MetadataContainer
     {
         public readonly ECMA335.MetadataBuilder metadataBuilder;
-        private readonly TypeEncoder typeEncoder;
-        private readonly ReferenceHandleResolver referenceHandleResolver;
+        private readonly MetadataResolver metadataResolver;
         public readonly ECMA335.MethodBodyStreamEncoder methodBodyStream;
         private SRM.MethodDefinitionHandle? mainMethodHandle;
         public SRM.MethodDefinitionHandle? MainMethodHandle
@@ -28,15 +27,11 @@ namespace MetadataGenerator
         public MetadataContainer(Assembly assembly)
         {
             metadataBuilder = new ECMA335.MetadataBuilder();
-            referenceHandleResolver = new ReferenceHandleResolver(metadataBuilder, assembly);
-            typeEncoder = new TypeEncoder(referenceHandleResolver);
             methodBodyStream = new ECMA335.MethodBodyStreamEncoder(new SRM.BlobBuilder());
+            metadataResolver = new MetadataResolver(this, assembly);
         }
 
-        public SRM.EntityHandle ResolveReferenceHandleFor(IBasicType type) => referenceHandleResolver.ReferenceHandleOf(type);
-        public SRM.MemberReferenceHandle ResolveReferenceHandleFor(IMethodReference method, SRM.BlobBuilder signature) => referenceHandleResolver.ReferenceHandleOf(method, signature);
-        public SRM.MemberReferenceHandle ResolveReferenceHandleFor(IFieldReference field, SRM.BlobBuilder signature) => referenceHandleResolver.ReferenceHandleOf(field, signature);
-        //FIXME name
-        public void Encode(IType type, ECMA335.SignatureTypeEncoder encoder) => typeEncoder.Encode(type, encoder);
+        public SRM.EntityHandle ResolveReferenceHandleFor(IMetadataReference metadataReference) => metadataResolver.ReferenceHandleOf(metadataReference);
+        public void Encode(IType type, ECMA335.SignatureTypeEncoder encoder) => metadataResolver.Encode(type, encoder);
     }
 }

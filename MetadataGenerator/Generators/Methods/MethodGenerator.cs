@@ -22,7 +22,7 @@ namespace MetadataGenerator
         {
             this.metadataContainer = metadataContainer;
             methodSignatureGenerator = new MethodSignatureGenerator(metadataContainer);
-            methodBodyGenerator = new MethodBodyGenerator(metadataContainer, methodSignatureGenerator);
+            methodBodyGenerator = new MethodBodyGenerator(metadataContainer);
         }
 
         public SRM.MethodDefinitionHandle Generate(MethodDefinition method)

@@ -17,7 +17,7 @@ namespace MetadataGenerator
 
         public SRM.FieldDefinitionHandle Generate(FieldDefinition field)
         {
-            var fieldSignature = fieldSignatureGenerator.Generate(field);
+            var fieldSignature = fieldSignatureGenerator.GenerateSignatureOf(field);
             var fieldDefinitionHandle = metadataContainer.metadataBuilder.AddFieldDefinition(
                     attributes: GetFieldAttributesFor(field),
                     name: metadataContainer.metadataBuilder.GetOrAddString(field.Name),

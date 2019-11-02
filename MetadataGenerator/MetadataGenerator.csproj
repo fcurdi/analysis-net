@@ -36,8 +36,7 @@
     <Compile Include="Generators\NamespaceGenerator.cs" />
     <Compile Include="Generators\TypeGenerator.cs" />
     <Compile Include="Metadata\MetadataContainer.cs" />
-    <Compile Include="Metadata\ReferenceHandleResolver.cs" />
-    <Compile Include="Metadata\TypeEncoder.cs" />
+    <Compile Include="Metadata\MetadataResolver.cs" />
     <Compile Include="Generators\Fields\FieldGenerator.cs" />
     <Compile Include="Generators\Fields\FieldSignatureGenerator.cs" />
   </ItemGroup>

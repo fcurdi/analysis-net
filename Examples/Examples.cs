@@ -580,9 +580,11 @@ namespace MethodBody
         public void Convert(object o)
         {
             string s = (string)(object)"asd"; // castclass $class
+            var x = (int[])(object)new int[] { };
+
 
             // FIXME framework read not working.
-            //    var b = o is Classes.SimpleClass; // isinst $class
+            //   var b = o is Classes.SimpleClass; // isinst $class
 
             object l = 1; // box int
             int i = (int)l; // unbox.any int
@@ -784,6 +786,12 @@ namespace MethodBody
                 var y = sizeof(int*); // sizeof int*
             }
         }
-
+        /*
+         * doesnt work yet
+        // TODO other cases
+        public void LoadToken<T>()
+        {
+            var x = typeof(T);
+        }*/
     }
 }

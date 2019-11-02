@@ -1,5 +1,4 @@
 ﻿using System;
-using MetadataGenerator.Generators.Fields;
 using Model.ThreeAddressCode.Values;
 using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
@@ -12,14 +11,9 @@ namespace MetadataGenerator.Generators.Methods
     class MethodBodyGenerator
     {
         private readonly MetadataContainer metadataContainer;
-        private readonly MethodSignatureGenerator methodSignatureGenerator; // FIXME maybe this can be used inside MetadataContainer?
-        private readonly FieldSignatureGenerator fieldSignatureGenerator; // FIXME maybe this can be used inside MetadataContainer?
-
-        public MethodBodyGenerator(MetadataContainer metadataContainer, MethodSignatureGenerator methodSignatureGenerator)
+        public MethodBodyGenerator(MetadataContainer metadataContainer)
         {
             this.metadataContainer = metadataContainer;
-            this.methodSignatureGenerator = methodSignatureGenerator;
-            fieldSignatureGenerator = new FieldSignatureGenerator(metadataContainer);
         }
 
         public ECMA335.InstructionEncoder Generate(MethodBody body)
@@ -249,34 +243,34 @@ namespace MetadataGenerator.Generators.Methods
                     switch (convertInstruction.Operation)
                     {
                         case Model.Bytecode.ConvertOperation.Conv:
+                            // TODO
                             break;
                         case Model.Bytecode.ConvertOperation.Cast:
-                            // FIXME ConversionType is IType. It can be IBasicType, ArrayType or PointerType. 
-                            // instructionEncoder.OpCode(SRM.ILOpCode.Castclass);
-                            // instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(convertInstruction.ConversionType));
+                            instructionEncoder.OpCode(SRM.ILOpCode.Castclass);
+                            // FIXME could also be instructionEncoder.OpCode(SRM.ILOpCode.Isinst);
                             break;
                         case Model.Bytecode.ConvertOperation.Box:
-                            // FIXME ConversionType is IType. It can be IBasicType, ArrayType or PointerType. 
-                            // instructionEncoder.OpCode(SRM.ILOpCode.Box);
-                            // instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(convertInstruction.ConversionType as IBasicType));
+                            instructionEncoder.OpCode(SRM.ILOpCode.Box);
                             break;
                         case Model.Bytecode.ConvertOperation.Unbox:
+                            instructionEncoder.OpCode(SRM.ILOpCode.Unbox_any);
                             break;
                         case Model.Bytecode.ConvertOperation.UnboxPtr:
+                            instructionEncoder.OpCode(SRM.ILOpCode.Unbox);
                             break;
                     }
+                    instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(convertInstruction.ConversionType));
                 }
                 else if (instruction is Model.Bytecode.MethodCallInstruction methodCallInstruction)
                 {
-                    var methodSignature = methodSignatureGenerator.GenerateSignatureOf(methodCallInstruction.Method);
                     switch (methodCallInstruction.Operation)
                     {
                         case Model.Bytecode.MethodCallOperation.Virtual:
-                            instructionEncoder.CallVirtual(metadataContainer.ResolveReferenceHandleFor(methodCallInstruction.Method, methodSignature));
+                            instructionEncoder.CallVirtual(metadataContainer.ResolveReferenceHandleFor(methodCallInstruction.Method));
                             break;
                         case Model.Bytecode.MethodCallOperation.Static:
                         case Model.Bytecode.MethodCallOperation.Jump:
-                            instructionEncoder.Call(metadataContainer.ResolveReferenceHandleFor(methodCallInstruction.Method, methodSignature));
+                            instructionEncoder.Call(metadataContainer.ResolveReferenceHandleFor(methodCallInstruction.Method));
                             break;
                     }
                 }
@@ -286,7 +280,6 @@ namespace MetadataGenerator.Generators.Methods
                     {
                         case Model.Bytecode.LoadOperation.Address:
                             // FIXME CAST
-                            //FIXME duplicated code with LoadOperation.Content
                             var operandVariable = (IVariable)loadlInstruction.Operand;
                             if (operandVariable.IsParameter)
                             {
@@ -295,6 +288,18 @@ namespace MetadataGenerator.Generators.Methods
                             else
                             {
                                 instructionEncoder.LoadLocalAddress(body.LocalVariables.IndexOf(operandVariable));
+                            }
+                            break;
+                        case Model.Bytecode.LoadOperation.Content:
+                            // FIXME CAST
+                            operandVariable = (IVariable)loadlInstruction.Operand;
+                            if (operandVariable.IsParameter)
+                            {
+                                instructionEncoder.LoadArgument(body.Parameters.IndexOf(operandVariable));
+                            }
+                            else
+                            {
+                                instructionEncoder.LoadLocal(body.LocalVariables.IndexOf(operandVariable));
                             }
                             break;
                         case Model.Bytecode.LoadOperation.Value:
@@ -344,48 +349,27 @@ namespace MetadataGenerator.Generators.Methods
                                 instructionEncoder.LoadConstantR8(value);
                             }
                             break;
-                        case Model.Bytecode.LoadOperation.Content:
-                            // FIXME CAST
-                            operandVariable = (IVariable)loadlInstruction.Operand;
-                            if (operandVariable.IsParameter)
-                            {
-                                instructionEncoder.LoadArgument(body.Parameters.IndexOf(operandVariable));
-                            }
-                            else
-                            {
-                                instructionEncoder.LoadLocal(body.LocalVariables.IndexOf(operandVariable));
-                            }
-                            break;
                     }
                 }
                 else if (instruction is Model.Bytecode.LoadFieldInstruction loadFieldInstruction)
                 {
                     // TODO handle ldflda. Example present but not supported in model?
 
-                    var fieldSignature = fieldSignatureGenerator.Generate(loadFieldInstruction.Field);
                     instructionEncoder.OpCode(SRM.ILOpCode.Ldfld);
-                    instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadFieldInstruction.Field, fieldSignature));
+                    instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadFieldInstruction.Field));
                 }
                 else if (instruction is Model.Bytecode.LoadArrayElementInstruction loadArrayElementInstruction) { }
                 else if (instruction is Model.Bytecode.LoadMethodAddressInstruction loadMethodAdressInstruction)
                 {
-                    var methodSignature = methodSignatureGenerator.GenerateSignatureOf(loadMethodAdressInstruction.Method);
                     instructionEncoder.OpCode(SRM.ILOpCode.Ldftn);
-                    instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadMethodAdressInstruction.Method, methodSignature));
+                    instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadMethodAdressInstruction.Method));
                 }
                 else if (instruction is Model.Bytecode.CreateArrayInstruction createArrayInstruction)
                 {
                     if (createArrayInstruction.Type.IsVector)
                     {
-                        if (createArrayInstruction.Type.ElementsType is IBasicType basicType)
-                        {
-                            instructionEncoder.OpCode(SRM.ILOpCode.Newarr);
-                            instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(basicType));
-                        }
-                        else
-                        { // PointerType
-                            // TODO could be multiple levels (*, **, *******, etc)
-                        }
+                        instructionEncoder.OpCode(SRM.ILOpCode.Newarr);
+                        instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(createArrayInstruction.Type.ElementsType));
                     }
                     else
                     {
@@ -394,8 +378,7 @@ namespace MetadataGenerator.Generators.Methods
                 }
                 else if (instruction is Model.Bytecode.CreateObjectInstruction createObjectInstruction)
                 {
-                    var methodSignature = methodSignatureGenerator.GenerateSignatureOf(createObjectInstruction.Constructor);
-                    var method = metadataContainer.ResolveReferenceHandleFor(createObjectInstruction.Constructor, methodSignature);
+                    var method = metadataContainer.ResolveReferenceHandleFor(createObjectInstruction.Constructor);
                     instructionEncoder.OpCode(SRM.ILOpCode.Newobj);
                     instructionEncoder.Token(method);
                 }
@@ -412,31 +395,20 @@ namespace MetadataGenerator.Generators.Methods
                 }
                 else if (instruction is Model.Bytecode.StoreFieldInstruction storeFieldInstruction)
                 {
-                    var fieldSignature = fieldSignatureGenerator.Generate(storeFieldInstruction.Field);
                     instructionEncoder.OpCode(storeFieldInstruction.Field.IsStatic ? SRM.ILOpCode.Stsfld : SRM.ILOpCode.Stfld);
-                    instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(storeFieldInstruction.Field, fieldSignature));
+                    instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(storeFieldInstruction.Field));
                 }
                 else if (instruction is Model.Bytecode.SwitchInstruction switchInstruction) { }
                 else if (instruction is Model.Bytecode.SizeofInstruction sizeofInstruction)
                 {
                     instructionEncoder.OpCode(SRM.ILOpCode.Sizeof);
-                    if (sizeofInstruction.MeasuredType is IBasicType basicType)
-                    {
-                        instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(basicType));
-
-                    }
-                    else if (sizeofInstruction.MeasuredType is PointerType pointerType)
-                    {
-                        // TODO could be multiple indirections
-                        // example already generated
-                    }
-                    else
-                    {
-                        // FIXME check if array type is really possible with sizeof. I think not
-                        throw new Exception();
-                    }
+                    instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(sizeofInstruction.MeasuredType));
                 }
-                else if (instruction is Model.Bytecode.LoadTokenInstruction loadTokenInstruction) { }
+                else if (instruction is Model.Bytecode.LoadTokenInstruction loadTokenInstruction)
+                {
+                    instructionEncoder.OpCode(SRM.ILOpCode.Ldtoken);
+                    instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadTokenInstruction.Token));
+                }
                 else if (instruction is Model.Bytecode.IndirectMethodCallInstruction indirectMethodCallInstruction) { }
                 else if (instruction is Model.Bytecode.StoreArrayElementInstruction storeArrayElementInstruction) { }
                 else throw new Exception("instruction type not handled");
