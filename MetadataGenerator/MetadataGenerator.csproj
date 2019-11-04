@@ -39,6 +39,7 @@
     <Compile Include="Metadata\MetadataResolver.cs" />
     <Compile Include="Generators\Fields\FieldGenerator.cs" />
     <Compile Include="Generators\Fields\FieldSignatureGenerator.cs" />
+    <Compile Include="Generators\Methods\MethodLocalsGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Model\Model.csproj">

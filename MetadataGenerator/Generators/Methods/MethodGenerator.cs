@@ -17,12 +17,14 @@ namespace MetadataGenerator
         private readonly MetadataContainer metadataContainer;
         private readonly MethodSignatureGenerator methodSignatureGenerator;
         private readonly MethodBodyGenerator methodBodyGenerator;
+        private readonly MethodLocalsGenerator methodLocalsGenerator;
 
         public MethodGenerator(MetadataContainer metadataContainer)
         {
             this.metadataContainer = metadataContainer;
             methodSignatureGenerator = new MethodSignatureGenerator(metadataContainer);
             methodBodyGenerator = new MethodBodyGenerator(metadataContainer);
+            methodLocalsGenerator = new MethodLocalsGenerator(metadataContainer);
         }
 
         public SRM.MethodDefinitionHandle Generate(MethodDefinition method)
@@ -47,17 +49,22 @@ namespace MetadataGenerator
             var methodBody = method.HasBody
                 ? metadataContainer.methodBodyStream.AddMethodBody(
                     instructionEncoder: methodBodyGenerator.Generate(method.Body),
+                    localVariablesSignature: methodLocalsGenerator.GenerateLocalVariablesSignatureFor(method.Body),
                     maxStack: method.Body.MaxStack)
                 : default;
 
             var nextParameterHandle = ECMA335.MetadataTokens.ParameterHandle(metadataContainer.metadataBuilder.NextRowFor(ECMA335.TableIndex.Param));
-            return metadataContainer.metadataBuilder.AddMethodDefinition(
+            var methodDefinitionHandle = metadataContainer.metadataBuilder.AddMethodDefinition(
                 attributes: GetMethodAttributesFor(method),
                 implAttributes: SR.MethodImplAttributes.IL | SR.MethodImplAttributes.Managed, // FIXME what else?
                 name: metadataContainer.metadataBuilder.GetOrAddString(method.Name),
                 signature: metadataContainer.metadataBuilder.GetOrAddBlob(methodSignature),
                 bodyOffset: methodBody,
                 parameterList: firstParameterHandle ?? nextParameterHandle);
+
+            methodLocalsGenerator.GenerateLocalVariables(method.Body, methodDefinitionHandle);
+
+            return methodDefinitionHandle;
         }
     }
 }

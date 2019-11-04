@@ -20,6 +20,7 @@ namespace MetadataGenerator.Generators.Methods
         {
             var controlFlowBuilder = new ECMA335.ControlFlowBuilder();
             var instructionEncoder = new ECMA335.InstructionEncoder(new SRM.BlobBuilder(), controlFlowBuilder);
+
             /*   var labelMapping = new Dictionary<string, IList<ECMA335.LabelHandle>>();
                ECMA335.LabelHandle labelHandleFor(string label)
                {
