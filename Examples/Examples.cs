@@ -1,4 +1,5 @@
-﻿using System;
+﻿#region metadata
+using System;
 using System.Collections.Generic;
 
 namespace Enums
@@ -440,7 +441,9 @@ namespace Generics
     }
 
 }
+#endregion
 
+#region method body
 namespace MethodBody
 {
     public abstract class ContainingClass
@@ -495,56 +498,6 @@ namespace MethodBody
             z = x == 1;
         }
 
-        public void ExceptionHandlingTryCatch(int x)
-        {
-            try
-            {
-                var y = 1 / x;
-            }
-            catch
-            {
-
-            }
-        }
-        public void ExceptionHandlingTryCatchSpecific(int x)
-        {
-            try
-            {
-                var y = 1 / x;
-            }
-            catch (Exception ex)
-            {
-
-            }
-        }
-
-        public void ExceptionHandlingTryCatchFilter(int x)
-        {
-            try
-            {
-                var y = 1 / x;
-            }
-            catch (Exception ex) when (ex.Message.Contains("by zero"))
-            {
-
-            }
-        }
-
-        public void ExceptionHandlingTryCatchFinally(Exception e)
-        {
-            try
-            {
-                throw e;
-            }
-            catch
-            {
-                throw; // rethrow
-            }
-            finally
-            {
-                Console.WriteLine("finally");
-            }
-        }
 
         public abstract void NoBody();
 
@@ -590,14 +543,6 @@ namespace MethodBody
             int i = (int)l; // unbox.any int
 
             // TODO unbox (unbox ptr)
-        }
-
-        public void Branch(bool b)
-        {
-
-            if (false) { } // br.s $target
-
-
         }
 
         public void LoadConstant()
@@ -727,15 +672,15 @@ namespace MethodBody
 
             // TODO ldelem.i ???
             // TODO ldelem typeTok ???
-            /* 
-             * FIXME framework read not working. Something not implemented? Maybe avoid fixed keyword?
-            unsafe
-            {
-                fixed (int* p = &q[0]) // ldelema $type
-                {
-                }
-            }
-            */
+            // 
+            // FIXME framework read not working. Something not implemented? Maybe avoid fixed keyword?
+            //            unsafe
+            //            {
+            //                fixed (int* p = &q[0]) // ldelema $type
+            //                {
+            //                }
+            //            }
+
 
             var l = (new int[] { 1, 2, 3 }).Length; // ldlen
         }
@@ -746,13 +691,12 @@ namespace MethodBody
             var b = new Classes.SimpleClass(1, "b").readOnlyIntField; // ldfld int $field
             var c = new Classes.ClassWithMoreComplexFieldsAndParamtersOrReturnTypes().b; // ldfld class $field
 
-            /* FIXME framework read not working. Something not implemented? Maybe avoid fixed keyword?
-            unsafe
-            {
-                fixed (int* d = &(new Classes.SimpleClass(1, "b")).readOnlyIntField) // ldflda int32 $field
-                { }
-            }
-            */
+            //FIXME framework read not working. Something not implemented? Maybe avoid fixed keyword?
+            //        unsafe
+            //          {
+            //                fixed (int* d = &(new Classes.SimpleClass(1, "b")).readOnlyIntField) // ldflda int32 $field
+            //                { }
+            //            }
         }
 
         public void StoreField()
@@ -786,12 +730,123 @@ namespace MethodBody
                 var y = sizeof(int*); // sizeof int*
             }
         }
-        /*
-         * doesnt work yet
+
+        // doesnt work yet
         // TODO other cases
-        public void LoadToken<T>()
-        {
-            var x = typeof(T);
-        }*/
+        //        public void LoadToken<T>()
+        //{
+        //var x = typeof(T);
+        //}
     }
 }
+#endregion
+
+
+// branch and exception handling
+#region method body (labels)
+namespace MethodBodyBranchesAndExceptionHandling
+{
+
+    public class ContainerClass
+    {
+        public void Branch(int a, int b, Exception e)
+        {
+            // TODO
+            // beq
+            // bge, bge.s
+            // bge.un, bge.un.s
+            // bgt, bgt.s
+            // bgt.un, bgt.un.s
+            // ble, ble.s
+            // ble.un, ble.un.s
+            // blt, blt.s
+            // blt.un, blt.un.s
+            // bne, bne.s
+            // bne.un, bne.un.s
+            // br (not short form)
+            // brfalse (not short form)
+            // brnull.s
+            // brnull (not short form)
+            // brzero.s
+            // brzero (not short form) 
+            // brtrue (not short form)
+            // brinst.s
+            // brinst (not short form)
+
+            goto Label; // br.s 
+        Label:
+            int x;
+
+            if (a > 2) // brfalse.s
+            {
+            }
+
+            switch (a)
+            {
+                case 2: break; // beq.s
+            }
+
+            if (e?.Message != null) { } // brtrue.s
+
+        }
+
+        public void ExceptionHandlingTryCatch(int x)
+        {
+            try
+            {
+                var y = 1 / x;
+            }
+            catch
+            {
+
+            }
+        }
+
+
+        public void ExceptionHandlingTryCatchSpecific(int x)
+        {
+            try
+            {
+                var y = 1 / x;
+            }
+            catch (Exception ex)
+            {
+
+            }
+        }
+
+
+        public void ExceptionHandlingTryCatchFilter(int x)
+        {
+            try
+            {
+                var y = 1 / x;
+            }
+            catch (Exception ex) when (ex.Message.Contains("by zero"))
+            {
+
+            }
+        }
+
+        public void ExceptionHandlingTryCatchFinally(Exception e)
+        {
+            try
+            {
+                throw e;
+            }
+            catch
+            {
+                throw; // rethrow
+            }
+            finally
+            {
+                Console.WriteLine("finally");
+            }
+        }
+
+    }
+
+}
+
+
+#endregion

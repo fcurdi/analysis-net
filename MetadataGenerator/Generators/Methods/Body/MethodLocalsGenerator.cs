@@ -3,6 +3,7 @@ using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 namespace MetadataGenerator.Generators.Methods
 {
+    // FIXME name
     class MethodLocalsGenerator
     {
         private readonly MetadataContainer metadataContainer;
@@ -38,7 +39,7 @@ namespace MetadataGenerator.Generators.Methods
              y no agrega las variables por lo que no deberia andar. Sin embargo parece que anda solo con eso. 
             Ver si es necesario este codigo de abajo o no
             No aparecen los nombres de las variables locales (similar a lo que pasaba con los parameters cuadno solo ponia la firma)
-            Asi que tiene gustito a que es necesario hacer esto. Sin embargo al hacerlo no cambia nada.
+            Asi que tiene pinta a que es necesario hacer esto. Sin embargo al hacerlo no cambia nada.
             Quiza estan mal algunos de los valores de addLocalScope y por eso no anda
             */
             if (body?.LocalVariables?.Count > 0)

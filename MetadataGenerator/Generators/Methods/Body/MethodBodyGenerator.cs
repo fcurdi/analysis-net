@@ -1,4 +1,5 @@
 ﻿using System;
+using MetadataGenerator.Generators.Methods.Body;
 using Model.ThreeAddressCode.Values;
 using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
@@ -18,64 +19,15 @@ namespace MetadataGenerator.Generators.Methods
 
         public ECMA335.InstructionEncoder Generate(MethodBody body)
         {
-            var controlFlowBuilder = new ECMA335.ControlFlowBuilder();
-            var instructionEncoder = new ECMA335.InstructionEncoder(new SRM.BlobBuilder(), controlFlowBuilder);
+            var instructionEncoder = new ECMA335.InstructionEncoder(new SRM.BlobBuilder(), new ECMA335.ControlFlowBuilder());
+            var controlFlowGenerator = new MethodBodyControlFlowGenerator(instructionEncoder, metadataContainer);
 
-            /*   var labelMapping = new Dictionary<string, IList<ECMA335.LabelHandle>>();
-               ECMA335.LabelHandle labelHandleFor(string label)
-               {
-                   var labelHandle = instructionEncoder.DefineLabel();
-                   if (labelMapping.TryGetValue(label, out var labelHandles))
-                   {
-                       labelHandles.Add(labelHandle);
-                   }
-                   else
-                   {
-                       labelMapping.Add(label, new List<ECMA335.LabelHandle> { labelHandle });
-                   }
-                   return labelHandle;
-               }*/
-
-            /** Exception handling, uncomment once ial other instructions are generated correctly. If not, labels don't match (because operations are missing)
-
-            foreach (var protectedBlock in body.ExceptionInformation)
-            {
-                var tryStart = addMapping(protectedBlock.Start);
-                var tryEnd = addMapping(protectedBlock.End);
-                var handlerStart = addMapping(protectedBlock.Handler.Start);
-                var handlerEnd = addMapping(protectedBlock.Handler.End);
-
-                switch (protectedBlock.Handler.Kind)
-                {
-                    case Model.ExceptionHandlerBlockKind.Filter: // TODO 
-                        break;
-                    case Model.ExceptionHandlerBlockKind.Catch:
-                        EntityHandle catchType = referenceHandleResolver.TypeReferenceOf(PlatformTypes.Object); // FIXME
-                        controlFlowBuilder.AddCatchRegion(tryStart, tryEnd, handlerStart, handlerEnd, catchType);
-                        break;
-                    case Model.ExceptionHandlerBlockKind.Fault: // TODO 
-                        break;
-                    case Model.ExceptionHandlerBlockKind.Finally: // TODO 
-                        break;
-                }
-            }*/
+            controlFlowGenerator.ProcessExceptionInformation(body.ExceptionInformation);
 
             foreach (var instruction in body.Instructions)
             {
+                controlFlowGenerator.MarkCurrentLabel();
 
-                /** uncomment once al other instructions are generated correctly. If not, labels don't match (because operations are missing)
-                 * FIXME instruction has offset field. maybe that can be used with instructionsEncoder.offset instead of mapping labels (and using the extension method)
-                  if (labelMapping.TryGetValue(instructionEncoder.CurrentLabelString(), out var labels))
-                {
-                    foreach (var label in labels)
-                    {
-                        instructionEncoder.MarkLabel(label);
-                    }
-                }
-                */
-
-
-                // FIXME visitor like in the model? or something better than this ifs?
                 if (instruction is Model.Bytecode.BasicInstruction basicInstruction)
                 {
                     switch (basicInstruction.Operation)
@@ -208,36 +160,43 @@ namespace MetadataGenerator.Generators.Methods
                 }
                 else if (instruction is Model.Bytecode.BranchInstruction branchInstruction)
                 {
-
+                    var opCode = SRM.ILOpCode.Br_s;
                     switch (branchInstruction.Operation)
                     {
-                        // TODO
                         // This relies on marking labels and that depends on generating all instructions correctly (if not labels don't match)
-                        // There is only one example and it is not tested
+                        // TODO all short forms can also be not short form (ex: br and br.s) and there's "un" variants
                         case Model.Bytecode.BranchOperation.False:
+                            opCode = SRM.ILOpCode.Brfalse_s;
                             break;
                         case Model.Bytecode.BranchOperation.True:
+                            opCode = SRM.ILOpCode.Brtrue_s;
                             break;
                         case Model.Bytecode.BranchOperation.Eq:
+                            opCode = SRM.ILOpCode.Beq_s;
                             break;
                         case Model.Bytecode.BranchOperation.Neq:
+                            opCode = SRM.ILOpCode.Bne_un_s;
                             break;
                         case Model.Bytecode.BranchOperation.Lt:
+                            opCode = SRM.ILOpCode.Blt_s;
                             break;
                         case Model.Bytecode.BranchOperation.Le:
+                            opCode = SRM.ILOpCode.Ble_s;
                             break;
                         case Model.Bytecode.BranchOperation.Gt:
+                            opCode = SRM.ILOpCode.Bgt_s;
                             break;
                         case Model.Bytecode.BranchOperation.Ge:
+                            opCode = SRM.ILOpCode.Bge_s;
                             break;
                         case Model.Bytecode.BranchOperation.Branch:
-                            // FIXME 
-                            // instructionEncoder.Branch(SRM.ILOpCode.Br, labelHandleFor(branchInstruction.Target));
-                            // instructionEncoder.Branch(SRM.ILOpCode.Br_s, labelHandleFor(branchInstruction.Target));
+                            opCode = SRM.ILOpCode.Br_s;
                             break;
                         case Model.Bytecode.BranchOperation.Leave:
+                            opCode = SRM.ILOpCode.Leave_s;
                             break;
                     }
+                    instructionEncoder.Branch(opCode, controlFlowGenerator.LabelHandleFor(branchInstruction.Target));
                 }
                 else if (instruction is Model.Bytecode.ConvertInstruction convertInstruction)
                 {
@@ -280,7 +239,6 @@ namespace MetadataGenerator.Generators.Methods
                     switch (loadlInstruction.Operation)
                     {
                         case Model.Bytecode.LoadOperation.Address:
-                            // FIXME CAST
                             var operandVariable = (IVariable)loadlInstruction.Operand;
                             if (operandVariable.IsParameter)
                             {
@@ -292,7 +250,6 @@ namespace MetadataGenerator.Generators.Methods
                             }
                             break;
                         case Model.Bytecode.LoadOperation.Content:
-                            // FIXME CAST
                             operandVariable = (IVariable)loadlInstruction.Operand;
                             if (operandVariable.IsParameter)
                             {
@@ -354,7 +311,7 @@ namespace MetadataGenerator.Generators.Methods
                 }
                 else if (instruction is Model.Bytecode.LoadFieldInstruction loadFieldInstruction)
                 {
-                    // TODO handle ldflda. Example present but not supported in model?
+                    // TODO handle ldflda. Example present but not supported in model
 
                     instructionEncoder.OpCode(SRM.ILOpCode.Ldfld);
                     instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadFieldInstruction.Field));
@@ -414,6 +371,8 @@ namespace MetadataGenerator.Generators.Methods
                 else if (instruction is Model.Bytecode.StoreArrayElementInstruction storeArrayElementInstruction) { }
                 else throw new Exception("instruction type not handled");
             }
+
+            controlFlowGenerator.MarkAllUnmarkedLabels();
 
             return instructionEncoder;
         }

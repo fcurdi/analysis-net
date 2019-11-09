@@ -32,14 +32,15 @@
     <Compile Include="Generators\Generator.cs" />
     <Compile Include="Generators\Methods\MethodGenerator.cs" />
     <Compile Include="Generators\Methods\MethodSignatureGenerator.cs" />
-    <Compile Include="Generators\Methods\MethodBodyGenerator.cs" />
     <Compile Include="Generators\NamespaceGenerator.cs" />
     <Compile Include="Generators\TypeGenerator.cs" />
     <Compile Include="Metadata\MetadataContainer.cs" />
     <Compile Include="Metadata\MetadataResolver.cs" />
     <Compile Include="Generators\Fields\FieldGenerator.cs" />
     <Compile Include="Generators\Fields\FieldSignatureGenerator.cs" />
-    <Compile Include="Generators\Methods\MethodLocalsGenerator.cs" />
+    <Compile Include="Generators\Methods\Body\MethodBodyGenerator.cs" />
+    <Compile Include="Generators\Methods\Body\MethodLocalsGenerator.cs" />
+    <Compile Include="Generators\Methods\Body\MethodBodyControlFlowGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Model\Model.csproj">
@@ -60,6 +61,7 @@
     <Folder Include="Generators\Methods\" />
     <Folder Include="Metadata\" />
     <Folder Include="Generators\Fields\" />
+    <Folder Include="Generators\Methods\Body\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
