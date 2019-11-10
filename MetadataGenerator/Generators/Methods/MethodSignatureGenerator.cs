@@ -1,4 +1,5 @@
-﻿using Model.Types;
+﻿using System.Collections.Generic;
+using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
@@ -15,35 +16,54 @@ namespace MetadataGenerator.Generators.Methods
 
         public SRM.BlobBuilder GenerateSignatureOf(IMethodReference method)
         {
+            return GenerateMethodSignature(method.IsStatic, method.GenericParameterCount, method.Parameters, method.ReturnType);
+        }
+        public SRM.BlobBuilder GenerateSignatureOf(FunctionPointerType method)
+        {
+            // FIXME 0 because FunctionPointerType does not have that property (there's a fixme in that class)
+            return GenerateMethodSignature(method.IsStatic, 0, method.Parameters, method.ReturnType);
+        }
+
+        private SRM.BlobBuilder GenerateMethodSignature(bool isStatic, int genericParameterCount, IList<IMethodParameterReference> parameters, IType returnType)
+        {
             var methodSignature = new SRM.BlobBuilder();
             new ECMA335.BlobEncoder(methodSignature)
-                .MethodSignature(isInstanceMethod: !method.IsStatic, genericParameterCount: method.GenericParameterCount)
+                .MethodSignature(isInstanceMethod: !isStatic, genericParameterCount: genericParameterCount)
                 .Parameters(
-                    method.Parameters.Count,
-                    returnType =>
+                    parameters.Count,
+                    returnTypeEncoder =>
                     {
-                        if (method.ReturnType.Equals(PlatformTypes.Void))
+                        if (returnType.Equals(PlatformTypes.Void))
                         {
-                            returnType.Void();
+                            returnTypeEncoder.Void();
                         }
                         else
                         {
                             // TODO isByRef param. ref in return type is not in the model
-                            var encoder = returnType.Type();
-                            metadataContainer.Encode(method.ReturnType, encoder);
+                            var encoder = returnTypeEncoder.Type();
+                            metadataContainer.Encode(returnType, encoder);
                         }
-
                     },
-                    parameters =>
+                    parametersEncoder =>
                     {
-                        foreach (var parameter in method.Parameters)
+                        foreach (var parameter in parameters)
                         {
                             bool isByRef = parameter.Kind.IsOneOf(MethodParameterKind.Out, MethodParameterKind.Ref);
                             var type = isByRef ? (parameter.Type as PointerType).TargetType : parameter.Type;
-                            var encoder = parameters.AddParameter().Type(isByRef);
+                            var encoder = parametersEncoder.AddParameter().Type(isByRef);
                             metadataContainer.Encode(type, encoder);
                         }
                     });
+
+            /* // FIXME ???? falta agregar la instanciacion en caso de llamado a un generic method???? algo asi?
+            if (method.GenericMethod != null)
+            {
+                var genericParameterEncoder = new ECMA335.BlobEncoder(methodSignature).MethodSpecificationSignature(method.GenericParameterCount);
+                foreach (var param in method.GenericMethod.ResolvedMethod.GenericParameters)
+                {
+                    metadataContainer.Encode(param, genericParameterEncoder.AddArgument());
+                }
+            }*/
             return methodSignature;
         }
     }

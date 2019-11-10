@@ -42,6 +42,12 @@ namespace MetadataGenerator
             methodSignatureGenerator = new MethodSignatureGenerator(metadataContainer);
         }
 
+        //FIXME name? more generic? only needed for method?
+        public SRM.StandaloneSignatureHandle ResolveStandaloneSignatureFor(FunctionPointerType method)
+        {
+            var signature = methodSignatureGenerator.GenerateSignatureOf(method);
+            return metadataContainer.metadataBuilder.AddStandaloneSignature(metadataContainer.metadataBuilder.GetOrAddBlob(signature));
+        }
 
         public SRM.EntityHandle ReferenceHandleOf(IMetadataReference metadataReference)
         {

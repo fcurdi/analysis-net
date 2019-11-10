@@ -429,6 +429,11 @@ namespace Generics
             }
             return new List<Exception>();
         }
+        public void PrintGeneric<T>(T t)
+        {
+            Console.WriteLine(t.ToString());
+        }
+
         public E RecievesAndReturnsGenericType<T, E, F>(T t, E e)
         {
             return e;
@@ -509,26 +514,63 @@ namespace MethodBody
             }
         }
 
-        public void Calls(Classes.SimpleClass simpleClass)
+        // FIXME causes genericParamTableNotSorted
+        //         void Nothing<T>(T arg) { }
+
+        public void Calls(Classes.SimpleClass simpleClass, Action<int> f)
         {
             Console.WriteLine("A method call"); // static
             simpleClass.DoNothing(); // virtual
             Alloc(); // normal
 
+            // f(1);  //FIXME not working 
+
             // TODO calli (indirect)
+
+            /* not working when reading dll 
+            var g = new Generics.Generic<int, string>();
+            g.PrintGeneric("hola");
+            g.PrintGeneric(1);
+            */
+
+            // FIXME Nothing(""); generic method call (instantiated) not generated correctly (missing instantiation)
+
         }
 
-        public void Arrays()
+        public void Arrays(Structs.EmptyStruct[] structArray)
         {
-            var intArray = new int[5];
-            var ExceptionArray = new Exception[2];
-            var stringInitializedArray = new string[] { "hello", "world", "!" };
+            byte y = 1;
+            short s = 3;
+            int x = 2;
+            long l = 5;
+            float f = 6;
+            double d = 7;
+            Structs.EmptyStruct p;
+            var byteArray = new byte[2]; // newarr + stelem.ref
+            var shortArray = new short[2]; // newarr + stelem.ref
+            var intArray = new int[5]; // newarr + stelem.ref
+            var longArray = new long[2]; // newarr + stelem.ref
+            var floatArray = new float[2]; // newarr + stelem.ref
+            var doubleArray = new double[2]; // newarr + stelem.ref
+            var exceptionArray = new Exception[2]; // newarr + stelem.ref
+            var stringInitializedArray = new string[] { "hello", "world", "!" }; // newarr + stelem.ref
             unsafe
             {
-                var m = new int*[5];
-                var k = new int**[2];
+                var m = new int*[5]; // newarr + stelem.ref
+                var k = new int**[2]; // newarr + stelem.ref
             }
+
+            byteArray[1] = y; // stelem.i1
+            shortArray[1] = s; // stelem.i2
+            intArray[1] = x; // stelem.i4
+            longArray[1] = l; // stelem.i8
+            floatArray[1] = f; // stelem.r4
+            doubleArray[1] = d;  // stelem.r8
+            structArray[0] = p; // stelem
+            // TODO stelem.i
         }
+
+        public void Empty() { }
 
         public void Convert(object o)
         {

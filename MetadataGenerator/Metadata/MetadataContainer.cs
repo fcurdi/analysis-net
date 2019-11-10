@@ -31,6 +31,8 @@ namespace MetadataGenerator
             metadataResolver = new MetadataResolver(this, assembly);
         }
 
+        //FIXME name, more generic? only needed for method?
+        public SRM.StandaloneSignatureHandle ResolveStandaloneSignatureFor(FunctionPointerType method) => metadataResolver.ResolveStandaloneSignatureFor(method);
         public SRM.EntityHandle ResolveReferenceHandleFor(IMetadataReference metadataReference) => metadataResolver.ReferenceHandleOf(metadataReference);
         public void Encode(IType type, ECMA335.SignatureTypeEncoder encoder) => metadataResolver.Encode(type, encoder);
     }

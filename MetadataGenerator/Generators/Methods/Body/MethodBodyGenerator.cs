@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using MetadataGenerator.Generators.Methods.Body;
 using Model.ThreeAddressCode.Values;
 using Model.Types;
@@ -356,7 +357,17 @@ namespace MetadataGenerator.Generators.Methods
                     instructionEncoder.OpCode(storeFieldInstruction.Field.IsStatic ? SRM.ILOpCode.Stsfld : SRM.ILOpCode.Stfld);
                     instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(storeFieldInstruction.Field));
                 }
-                else if (instruction is Model.Bytecode.SwitchInstruction switchInstruction) { }
+                else if (instruction is Model.Bytecode.SwitchInstruction switchInstruction)
+                {
+                    // TODO test. This instructions that are difficuly to generate in example can be generated programatically (new SwitchInstruction...)
+                    // maybe have an example files that generates all this instructions that are missing
+                    instructionEncoder.OpCode(SRM.ILOpCode.Switch);
+                    instructionEncoder.Token(switchInstruction.Targets.Count);
+                    switchInstruction.Targets
+                        .Select(label => int.Parse(label.Substring(2), System.Globalization.NumberStyles.HexNumber))
+                        .ToList()
+                        .ForEach(instructionEncoder.Token);
+                }
                 else if (instruction is Model.Bytecode.SizeofInstruction sizeofInstruction)
                 {
                     instructionEncoder.OpCode(SRM.ILOpCode.Sizeof);
@@ -367,8 +378,20 @@ namespace MetadataGenerator.Generators.Methods
                     instructionEncoder.OpCode(SRM.ILOpCode.Ldtoken);
                     instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadTokenInstruction.Token));
                 }
-                else if (instruction is Model.Bytecode.IndirectMethodCallInstruction indirectMethodCallInstruction) { }
-                else if (instruction is Model.Bytecode.StoreArrayElementInstruction storeArrayElementInstruction) { }
+                else if (instruction is Model.Bytecode.IndirectMethodCallInstruction indirectMethodCallInstruction)
+                { // TODO test
+                    var methodSignature = metadataContainer.ResolveStandaloneSignatureFor(indirectMethodCallInstruction.Function);
+                    instructionEncoder.CallIndirect(methodSignature);
+                }
+                else if (instruction is Model.Bytecode.StoreArrayElementInstruction storeArrayElementInstruction)
+                {
+                    // FIXME 
+                    // Framework currently handles this as a BasicInstruction and this is never generated. Should use this one
+                    // example already generated
+                    // the implementation should be like load instruction
+                    // instructionEncoder.OpCode(SRM.ILOpCode.Stelem_X);
+                    // instructionEncoder.Token(value);
+                }
                 else throw new Exception("instruction type not handled");
             }
 

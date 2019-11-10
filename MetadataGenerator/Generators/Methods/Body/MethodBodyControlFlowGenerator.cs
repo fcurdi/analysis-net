@@ -6,6 +6,7 @@ using ECMA335 = System.Reflection.Metadata.Ecma335;
 // This relies on all other instructions are generated correctly. If not, labels don't match (because operations are missing)
 namespace MetadataGenerator.Generators.Methods.Body
 {
+    // FIXME name
     class MethodBodyControlFlowGenerator
     {
         private readonly IDictionary<string, ECMA335.LabelHandle> labelHandles = new Dictionary<string, ECMA335.LabelHandle>();
