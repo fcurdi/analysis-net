@@ -54,16 +54,6 @@ namespace MetadataGenerator.Generators.Methods
                             metadataContainer.Encode(type, encoder);
                         }
                     });
-
-            /* // FIXME ???? falta agregar la instanciacion en caso de llamado a un generic method???? algo asi?
-            if (method.GenericMethod != null)
-            {
-                var genericParameterEncoder = new ECMA335.BlobEncoder(methodSignature).MethodSpecificationSignature(method.GenericParameterCount);
-                foreach (var param in method.GenericMethod.ResolvedMethod.GenericParameters)
-                {
-                    metadataContainer.Encode(param, genericParameterEncoder.AddArgument());
-                }
-            }*/
             return methodSignature;
         }
     }

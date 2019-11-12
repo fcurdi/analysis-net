@@ -1,5 +1,4 @@
-﻿#region metadata
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Enums
@@ -414,7 +413,7 @@ namespace PointersAndReferences
 // FIXME generation almost correct. 
 namespace Generics
 {
-    public class Generic<C, D>
+    public class Generic<C, D> where D : Exception // FIXME generic constraint not in the model
     {
         public C genericClassTypeField;
         public Dictionary<string, Exception> genericField;
@@ -434,6 +433,10 @@ namespace Generics
             Console.WriteLine(t.ToString());
         }
 
+        public void MethodWithGenericConstraint<T>(T t) where T : Enum // FIXME generic constraint not in the model
+        {
+        }
+
         public E RecievesAndReturnsGenericType<T, E, F>(T t, E e)
         {
             return e;
@@ -446,9 +449,6 @@ namespace Generics
     }
 
 }
-#endregion
-
-#region method body
 namespace MethodBody
 {
     public abstract class ContainingClass
@@ -574,6 +574,22 @@ namespace MethodBody
 
         public void Convert(object o)
         {
+            long x1 = 1;
+            double d = 1.0;
+            sbyte x2 = (sbyte)x1; // conv.i1
+            short x3 = (short)x1; // conv.i2
+            int x4 = (int)x1; // conv.i4
+            x1 = (long)d; // conv.i8
+            float f = (float)d; // conv.r4
+            //TODO conv.r8
+            byte x5 = (byte)x1; // conv.u1
+            ushort x6 = (ushort)x1; // conv.u2
+            uint x7 = (uint)x1; // conv.u4
+            var x8 = (ulong)d; // conv.u8
+            // TODO conv.i
+            // TODO conv.u
+            // TODO conv.r.un
+
             string s = (string)(object)"asd"; // castclass $class
             var x = (int[])(object)new int[] { };
 
@@ -779,18 +795,7 @@ namespace MethodBody
         //{
         //var x = typeof(T);
         //}
-    }
-}
-#endregion
 
-
-// branch and exception handling
-#region method body (labels)
-namespace MethodBodyBranchesAndExceptionHandling
-{
-
-    public class ContainerClass
-    {
         public void Branch(int a, int b, Exception e)
         {
             // TODO
@@ -885,10 +890,5 @@ namespace MethodBodyBranchesAndExceptionHandling
                 Console.WriteLine("finally");
             }
         }
-
     }
-
 }
-
-
-#endregion

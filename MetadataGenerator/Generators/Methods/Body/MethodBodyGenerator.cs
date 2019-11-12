@@ -8,8 +8,6 @@ using SRM = System.Reflection.Metadata;
 
 namespace MetadataGenerator.Generators.Methods
 {
-    // review all instructions of the ecma pdf
-    // review overflow and other checks that instructions have
     class MethodBodyGenerator
     {
         private readonly MetadataContainer metadataContainer;
@@ -203,8 +201,48 @@ namespace MetadataGenerator.Generators.Methods
                 {
                     switch (convertInstruction.Operation)
                     {
+                        // TODO overflow variants and conv.i, conv.u, conv.r.un
                         case Model.Bytecode.ConvertOperation.Conv:
-                            // TODO
+                            if (convertInstruction.ConversionType.Equals(PlatformTypes.Int8))
+                            {
+                                instructionEncoder.OpCode(SRM.ILOpCode.Conv_i1);
+                            }
+                            else if (convertInstruction.ConversionType.Equals(PlatformTypes.UInt8))
+                            {
+                                instructionEncoder.OpCode(SRM.ILOpCode.Conv_u1);
+                            }
+                            else if (convertInstruction.ConversionType.Equals(PlatformTypes.Int16))
+                            {
+                                instructionEncoder.OpCode(SRM.ILOpCode.Conv_i2);
+                            }
+                            else if (convertInstruction.ConversionType.Equals(PlatformTypes.UInt16))
+                            {
+                                instructionEncoder.OpCode(SRM.ILOpCode.Conv_u2);
+                            }
+                            else if (convertInstruction.ConversionType.Equals(PlatformTypes.Int32))
+                            {
+                                instructionEncoder.OpCode(SRM.ILOpCode.Conv_i4);
+                            }
+                            else if (convertInstruction.ConversionType.Equals(PlatformTypes.UInt32))
+                            {
+                                instructionEncoder.OpCode(SRM.ILOpCode.Conv_u4);
+                            }
+                            else if (convertInstruction.ConversionType.Equals(PlatformTypes.Int64))
+                            {
+                                instructionEncoder.OpCode(SRM.ILOpCode.Conv_i8);
+                            }
+                            else if (convertInstruction.ConversionType.Equals(PlatformTypes.UInt64))
+                            {
+                                instructionEncoder.OpCode(SRM.ILOpCode.Conv_u8);
+                            }
+                            else if (convertInstruction.ConversionType.Equals(PlatformTypes.Float32))
+                            {
+                                instructionEncoder.OpCode(SRM.ILOpCode.Conv_r4);
+                            }
+                            else if (convertInstruction.ConversionType.Equals(PlatformTypes.Float64))
+                            {
+                                instructionEncoder.OpCode(SRM.ILOpCode.Conv_r8);
+                            }
                             break;
                         case Model.Bytecode.ConvertOperation.Cast:
                             instructionEncoder.OpCode(SRM.ILOpCode.Castclass);
