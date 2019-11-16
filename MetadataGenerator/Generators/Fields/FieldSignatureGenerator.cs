@@ -1,9 +1,11 @@
-﻿using Model.Types;
+﻿using MetadataGenerator.Metadata;
+using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
+
 namespace MetadataGenerator.Generators.Fields
 {
-    class FieldSignatureGenerator
+    internal class FieldSignatureGenerator
     {
         private readonly MetadataContainer metadataContainer;
 

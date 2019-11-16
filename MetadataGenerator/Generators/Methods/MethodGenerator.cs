@@ -1,18 +1,14 @@
-﻿using MetadataGenerator.Generators.Methods;
+﻿using MetadataGenerator.Generators.Methods.Body;
+using MetadataGenerator.Metadata;
 using Model.Types;
-using static MetadataGenerator.AttributesProvider;
+using static MetadataGenerator.Metadata.AttributesProvider;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SR = System.Reflection;
 using SRM = System.Reflection.Metadata;
 
-//FIXME namespaces, use packages? MetadataGenerator.generators.methods? MetadataGenerator.generators?
-//FIXME todas estas clases deberiuan ser internal no? los generators, salvo el entry point de todo. 
-//FIXME ver que onda la visibilidad de los metodos, el deafult es public creo quiza tienen que ser internal tambien. Que pasa si son public y la clase es internal?
-//FIXME ver todo esto para los demas generators tmb (no solo methods)
-
-namespace MetadataGenerator
+namespace MetadataGenerator.Generators.Methods
 {
-    class MethodGenerator
+    internal class MethodGenerator
     {
         private readonly MetadataContainer metadataContainer;
         private readonly MethodSignatureGenerator methodSignatureGenerator;
@@ -44,7 +40,7 @@ namespace MetadataGenerator
             }
 
             // FIXME several addMethodBody variants with different arguments. codeSize, maxStacks, etc
-            // FIXME maxStack should be computed from instructions. When a dll is read, the maxStrack will be available (Model) but if code is generated 
+            // FIXME maxStack should be computed from instructions. When a dll is read, the maxStack will be available (Model) but if code is generated 
             // programatically then the maxStack is gonna be missing
             var methodBody = method.HasBody
                 ? metadataContainer.methodBodyStream.AddMethodBody(

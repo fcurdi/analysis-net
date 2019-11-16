@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using MetadataGenerator.Metadata;
 using Model;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 
-// This relies on all other instructions are generated correctly. If not, labels don't match (because operations are missing)
 namespace MetadataGenerator.Generators.Methods.Body
 {
-    // FIXME name
-    class MethodBodyControlFlowGenerator
+    internal class MethodBodyControlFlowGenerator
     {
         private readonly IDictionary<string, ECMA335.LabelHandle> labelHandles = new Dictionary<string, ECMA335.LabelHandle>();
         private readonly ECMA335.InstructionEncoder instructionEncoder;
@@ -24,11 +23,7 @@ namespace MetadataGenerator.Generators.Methods.Body
         public ECMA335.LabelHandle LabelHandleFor(string label)
         {
             label = label.ToLower();
-            if (labelHandles.TryGetValue(label, out var labelHandle))
-            {
-                return labelHandle;
-            }
-            else
+            if (!labelHandles.TryGetValue(label, out var labelHandle))
             {
                 labelHandle = instructionEncoder.DefineLabel();
                 labelHandles.Add(label, labelHandle);
@@ -37,9 +32,8 @@ namespace MetadataGenerator.Generators.Methods.Body
                 // FIXME remove
                 unmarkedLabels.Add(labelHandle);
                 //
-
-
             }
+
             return labelHandle;
         }
 
@@ -53,11 +47,9 @@ namespace MetadataGenerator.Generators.Methods.Body
                 //FIXME remove
                 unmarkedLabels.Remove(labelHandle);
                 //
-
             }
         }
 
-        // Exception handling, relieson other instructions beign generated correctly. If not, labels don't match (because operations are missing)
         // FIXME name
         public void ProcessExceptionInformation(IList<ProtectedBlock> exceptionInformation)
         {
@@ -72,12 +64,13 @@ namespace MetadataGenerator.Generators.Methods.Body
                 switch (protectedBlock.Handler.Kind)
                 {
                     case ExceptionHandlerBlockKind.Filter:
-                        var filterStart = LabelHandleFor(((FilterExceptionHandler)protectedBlock.Handler).FilterStart);
+                        var filterStart = LabelHandleFor(((FilterExceptionHandler) protectedBlock.Handler).FilterStart);
                         controlFlowBuilder.AddFilterRegion(tryStart, tryEnd, handlerStart, handlerEnd, filterStart);
                         break;
                     case ExceptionHandlerBlockKind.Catch:
-                        var catchType = ((CatchExceptionHandler)protectedBlock.Handler).ExceptionType;
-                        controlFlowBuilder.AddCatchRegion(tryStart, tryEnd, handlerStart, handlerEnd, metadataContainer.ResolveReferenceHandleFor(catchType));
+                        var catchType = ((CatchExceptionHandler) protectedBlock.Handler).ExceptionType;
+                        controlFlowBuilder.AddCatchRegion(tryStart, tryEnd, handlerStart, handlerEnd,
+                            metadataContainer.ResolveReferenceHandleFor(catchType));
                         break;
                     case ExceptionHandlerBlockKind.Fault:
                     case ExceptionHandlerBlockKind.Finally:
@@ -89,14 +82,14 @@ namespace MetadataGenerator.Generators.Methods.Body
 
         // FIXME only to develop while all instructions are not generated correctly because if some label results unmarked then 
         // SRM throws an exception. 
-        private readonly IList<ECMA335.LabelHandle> unmarkedLabels = new List<ECMA335.LabelHandle> { };
-        [Obsolete("Use only to develop while there are still instructions not being generated correclty")]
+        private readonly IList<ECMA335.LabelHandle> unmarkedLabels = new List<ECMA335.LabelHandle>();
+
+        [Obsolete("Use only to develop while there are still instructions not being generated correctly")]
         public void MarkAllUnmarkedLabels()
         {
             foreach (var label in unmarkedLabels)
             {
                 instructionEncoder.MarkLabel(label);
-
             }
         }
     }

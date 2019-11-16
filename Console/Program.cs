@@ -7,6 +7,7 @@ using Backend.Serialization;
 using Backend.Transformations;
 using Backend.Utils;
 using MetadataGenerator;
+using MetadataGenerator.Generators;
 //using CCIProvider;
 using MetadataProvider;
 using Model;
@@ -373,15 +374,12 @@ namespace Console
             var loader = new MetadataProvider.Loader(host);
             loader.LoadAssembly(input);
 
-            var generator = new Generator();
+            var generator = new MetadataGenerator.Generator();
 
             foreach (var assembly in host.Assemblies)
             {
                 generator.Generate(assembly);
             }
-
-            System.Console.WriteLine("Done!");
-
         }
 
 
@@ -395,7 +393,6 @@ namespace Console
             //RunInterPointsToTests();
 
             System.Console.WriteLine("Done!");
-            System.Console.ReadKey();
         }
     }
 }

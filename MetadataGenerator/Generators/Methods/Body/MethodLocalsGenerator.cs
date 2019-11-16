@@ -1,10 +1,11 @@
-﻿using Model.Types;
+﻿using MetadataGenerator.Metadata;
+using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
-namespace MetadataGenerator.Generators.Methods
+
+namespace MetadataGenerator.Generators.Methods.Body
 {
-    // FIXME name
-    class MethodLocalsGenerator
+    internal class MethodLocalsGenerator
     {
         private readonly MetadataContainer metadataContainer;
 
@@ -24,12 +25,17 @@ namespace MetadataGenerator.Generators.Methods
                 {
                     metadataContainer.Encode(
                         localVariable.Type,
-                        encoder.AddVariable().Type(isByRef: false, isPinned: false) // FIXME hardcoded false
-                        );
+                        encoder.AddVariable().Type(isPinned: false));
+                    // FIXME pinned is achieved by the fixed keyword and this is not in the modeled
                 }
+
                 // FIXME this adds ad signature everytime? getOrAddBlob though. Locals are most likely different for each method though
-                localVariablesSignature = metadataContainer.metadataBuilder.AddStandaloneSignature(metadataContainer.metadataBuilder.GetOrAddBlob(signature));
+                localVariablesSignature =
+                    metadataContainer.metadataBuilder.AddStandaloneSignature(metadataContainer.metadataBuilder.GetOrAddBlob(signature));
+
+                return localVariablesSignature;
             }
+
             return localVariablesSignature;
         }
 
@@ -56,10 +62,13 @@ namespace MetadataGenerator.Generators.Methods
                         firstLocalVariableHandle = localVariableHandle;
                     }
                 }
-                var nextLocalVariableHandle = ECMA335.MetadataTokens.LocalVariableHandle(metadataContainer.metadataBuilder.NextRowFor(ECMA335.TableIndex.LocalVariable));
+
+                var nextLocalVariableHandle =
+                    ECMA335.MetadataTokens.LocalVariableHandle(metadataContainer.metadataBuilder.NextRowFor(ECMA335.TableIndex.LocalVariable));
 
                 // FIXME ??
-                var nextLocalConstantHandle = ECMA335.MetadataTokens.LocalConstantHandle(metadataContainer.metadataBuilder.NextRowFor(ECMA335.TableIndex.LocalConstant));
+                var nextLocalConstantHandle =
+                    ECMA335.MetadataTokens.LocalConstantHandle(metadataContainer.metadataBuilder.NextRowFor(ECMA335.TableIndex.LocalConstant));
 
                 metadataContainer.metadataBuilder.AddLocalScope(
                     method: containingMethodHandle,

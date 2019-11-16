@@ -5,3 +5,4 @@ obj
 .vs
 /packages
 .DS_Store
+.idea

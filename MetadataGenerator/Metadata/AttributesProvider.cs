@@ -3,7 +3,7 @@ using System.Reflection;
 using Model;
 using Model.Types;
 
-namespace MetadataGenerator
+namespace MetadataGenerator.Metadata
 {
     public static class AttributesProvider
     {
@@ -23,31 +23,31 @@ namespace MetadataGenerator
         private static TypeAttributes DelegateTypeAttributes(TypeDefinition typeDefinition)
         {
             return TypeAttributes.Class
-                | TypeAttributes.Sealed
-                | VisibilityAttributesFor(typeDefinition);
+                   | TypeAttributes.Sealed
+                   | VisibilityAttributesFor(typeDefinition);
         }
 
         private static TypeAttributes StructTypeAttributes(TypeDefinition typeDefinition)
         {
             return TypeAttributes.Class |
-                VisibilityAttributesFor(typeDefinition) |
-                TypeAttributes.SequentialLayout |
-                TypeAttributes.Sealed |
-                TypeAttributes.BeforeFieldInit;  //FIXME: when?
+                   VisibilityAttributesFor(typeDefinition) |
+                   TypeAttributes.SequentialLayout |
+                   TypeAttributes.Sealed |
+                   TypeAttributes.BeforeFieldInit; //FIXME: when?
         }
 
         private static TypeAttributes EnumTypeAttributes(TypeDefinition typeDefinition)
         {
             return TypeAttributes.Class |
-                VisibilityAttributesFor(typeDefinition) |
-                TypeAttributes.Sealed;
+                   VisibilityAttributesFor(typeDefinition) |
+                   TypeAttributes.Sealed;
         }
 
         private static TypeAttributes ClassTypeAttributes(TypeDefinition typeDefinition)
         {
             return TypeAttributes.Class |
-                  TypeAttributes.BeforeFieldInit | //FIXME: when?
-                  VisibilityAttributesFor(typeDefinition);
+                   TypeAttributes.BeforeFieldInit | //FIXME: when?
+                   VisibilityAttributesFor(typeDefinition);
         }
 
         private static TypeAttributes InterfaceTypeAttributes()
@@ -59,8 +59,13 @@ namespace MetadataGenerator
         {
             var fieldAttributes =
                 (field.IsStatic ? FieldAttributes.Static : 0) |
-                (field.ContainingType.Kind is TypeDefinitionKind.Enum && field.Type.Equals(field.ContainingType) ? FieldAttributes.Literal : 0) |
-                (field.ContainingType.Kind is TypeDefinitionKind.Enum && field.Name.Equals("value__", StringComparison.InvariantCultureIgnoreCase) ? FieldAttributes.RTSpecialName | FieldAttributes.SpecialName : 0);
+                (field.ContainingType.Kind is TypeDefinitionKind.Enum && field.Type.Equals(field.ContainingType)
+                    ? FieldAttributes.Literal
+                    : 0) |
+                (field.ContainingType.Kind is TypeDefinitionKind.Enum &&
+                 field.Name.Equals("value__", StringComparison.InvariantCultureIgnoreCase)
+                    ? FieldAttributes.RTSpecialName | FieldAttributes.SpecialName
+                    : 0);
             switch (field.Visibility)
             {
                 case VisibilityKind.Public:
@@ -78,23 +83,32 @@ namespace MetadataGenerator
                 default:
                     throw field.Visibility.ToUnknownValueException();
             }
+
             return fieldAttributes;
         }
 
         public static MethodAttributes GetMethodAttributesFor(MethodDefinition method)
         {
-            var constructor = method.IsConstructor || method.Name.Equals(".cctor"); // FIXME maybe MethodDefinition can have a isClassConstructor or isTypeInitializer
+            var constructor =
+                method.IsConstructor ||
+                method.Name.Equals(
+                    ".cctor"); // FIXME maybe MethodDefinition can have a isClassConstructor or isTypeInitializer
             bool specialName =
-                method.Name.StartsWith("get_", StringComparison.Ordinal) || method.Name.StartsWith("set_", StringComparison.Ordinal) ||
+                method.Name.StartsWith("get_", StringComparison.Ordinal) ||
+                method.Name.StartsWith("set_", StringComparison.Ordinal) ||
                 method.Name.StartsWith("op_", StringComparison.Ordinal);
             var methodAttributes =
                 MethodAttributes.HideBySig | // FIXME when?
                 (method.IsAbstract ? MethodAttributes.Abstract : 0) |
                 (method.IsStatic ? MethodAttributes.Static : 0) |
                 (method.IsVirtual ? MethodAttributes.Virtual : 0) |
-                (method.ContainingType.Kind is TypeDefinitionKind.Interface ? MethodAttributes.NewSlot : 0) |  // FIXME not entirely correct. Model is missing the new keyword
+                (method.ContainingType.Kind is TypeDefinitionKind.Interface
+                    ? MethodAttributes.NewSlot
+                    : 0) | // FIXME not entirely correct. Model is missing the new keyword
                 (constructor ? MethodAttributes.SpecialName | MethodAttributes.RTSpecialName : 0) |
-                (specialName ? MethodAttributes.SpecialName : 0);  // FIXME fails if non getter/setter method starts with get_/set_
+                (specialName
+                    ? MethodAttributes.SpecialName
+                    : 0); // FIXME fails if non getter/setter method starts with get_/set_
 
             switch (method.Visibility)
             {
@@ -113,6 +127,7 @@ namespace MetadataGenerator
                 default:
                     throw method.Visibility.ToUnknownValueException();
             }
+
             return methodAttributes;
         }
 
@@ -132,21 +147,25 @@ namespace MetadataGenerator
                     // TODO
                     break;
             }
+
             return attributes;
         }
 
-        // TODO other visibilties?
+        // TODO other visibilities?
         private static TypeAttributes VisibilityAttributesFor(TypeDefinition typeDefinition)
         {
             if (typeDefinition.ContainingType != null)
             {
-                return (VisibilityKind.Public.Equals(typeDefinition.Visibility) ? TypeAttributes.NestedPublic : TypeAttributes.NestedPrivate);
+                return VisibilityKind.Public.Equals(typeDefinition.Visibility)
+                    ? TypeAttributes.NestedPublic
+                    : TypeAttributes.NestedPrivate;
             }
             else
             {
-                return (VisibilityKind.Public.Equals(typeDefinition.Visibility) ? TypeAttributes.Public : TypeAttributes.NotPublic);
+                return VisibilityKind.Public.Equals(typeDefinition.Visibility)
+                    ? TypeAttributes.Public
+                    : TypeAttributes.NotPublic;
             }
         }
-
     }
 }

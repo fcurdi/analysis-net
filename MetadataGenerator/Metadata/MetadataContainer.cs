@@ -4,15 +4,15 @@ using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
-//FIXME name, package, visibilities, etc
-namespace MetadataGenerator
+namespace MetadataGenerator.Metadata
 {
-    class MetadataContainer
+    internal class MetadataContainer
     {
         public readonly ECMA335.MetadataBuilder metadataBuilder;
         private readonly MetadataResolver metadataResolver;
         public readonly ECMA335.MethodBodyStreamEncoder methodBodyStream;
         private SRM.MethodDefinitionHandle? mainMethodHandle;
+
         public SRM.MethodDefinitionHandle? MainMethodHandle
         {
             get => mainMethodHandle;
@@ -22,6 +22,7 @@ namespace MetadataGenerator
                 mainMethodHandle = value;
             }
         }
+
         public bool Executable => mainMethodHandle != null;
 
         public MetadataContainer(Assembly assembly)
@@ -31,9 +32,12 @@ namespace MetadataGenerator
             metadataResolver = new MetadataResolver(this, assembly);
         }
 
-        //FIXME name, more generic? only needed for method?
-        public SRM.StandaloneSignatureHandle ResolveStandaloneSignatureFor(FunctionPointerType method) => metadataResolver.ResolveStandaloneSignatureFor(method);
-        public SRM.EntityHandle ResolveReferenceHandleFor(IMetadataReference metadataReference) => metadataResolver.ReferenceHandleOf(metadataReference);
+        public SRM.StandaloneSignatureHandle ResolveStandaloneSignatureFor(FunctionPointerType method) =>
+            metadataResolver.ResolveStandaloneSignatureFor(method);
+
+        public SRM.EntityHandle ResolveReferenceHandleFor(IMetadataReference metadataReference) =>
+            metadataResolver.ReferenceHandleOf(metadataReference);
+
         public void Encode(IType type, ECMA335.SignatureTypeEncoder encoder) => metadataResolver.Encode(type, encoder);
     }
 }

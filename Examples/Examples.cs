@@ -374,7 +374,6 @@ namespace Nested
             }
         }
     }
-
 }
 
 // FIXME ref and out are beign generated like type*& instead of type&. That is because the type a & type in the model is represented as a pointer type.

@@ -1,13 +1,17 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using MetadataGenerator.Generators.Fields;
+using MetadataGenerator.Generators.Methods;
+using MetadataGenerator.Metadata;
 using Model.Types;
-using static MetadataGenerator.AttributesProvider;
+using static MetadataGenerator.Metadata.AttributesProvider;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SR = System.Reflection;
 using SRM = System.Reflection.Metadata;
 
 namespace MetadataGenerator.Generators
 {
-    class TypeGenerator
+    internal class TypeGenerator
     {
         private readonly MetadataContainer metadataContainer;
         private readonly MethodGenerator methodGenerator;
@@ -22,17 +26,12 @@ namespace MetadataGenerator.Generators
 
         public SRM.TypeDefinitionHandle Generate(TypeDefinition type)
         {
-            var fieldDefinitionHandles = new List<SRM.FieldDefinitionHandle>();
             var methodDefinitionHandles = new List<SRM.MethodDefinitionHandle>();
             var metadataBuilder = metadataContainer.metadataBuilder;
-
-            foreach (var field in type.Fields)
-            {
-                fieldDefinitionHandles.Add(fieldGenerator.Generate(field));
-            }
+            var fieldDefinitionHandles = type.Fields.Select(field => fieldGenerator.Generate(field)).ToList();
 
             /* TODO Properties: (works) but model is missing Property concept
-             * extrack to PropertiesGenerator
+             * extract to PropertiesGenerator
 
                 var propertySignatureBlogBuilder = new BlobBuilder();
                 new BlobEncoder(propertySignatureBlogBuilder)
@@ -47,7 +46,7 @@ namespace MetadataGenerator.Generators
                     name: metadata.GetOrAddString(""), //FIXME property name
                     signature: metadata.GetOrAddBlob(propertySignatureBlogBuilder));
 
-                // asociate methods (get, set) to property  
+                // associate methods (get, set) to property  
                 metadata.AddMethodSemantics(
                     propertyDefinitionHandle,
                     method.Name.StartsWith("get_") ? MethodSemanticsAttributes.Getter : MethodSemanticsAttributes.Setter, //FIXME,
@@ -77,35 +76,54 @@ namespace MetadataGenerator.Generators
 
             foreach (var interfaze in type.Interfaces)
             {
-                metadataBuilder.AddInterfaceImplementation(type: typeDefinitionHandle, implementedInterface: metadataContainer.ResolveReferenceHandleFor(interfaze));
+                metadataBuilder.AddInterfaceImplementation(
+                    type: typeDefinitionHandle,
+                    implementedInterface: metadataContainer.ResolveReferenceHandleFor(interfaze));
             }
 
             /*
-               Generic parameters table must be sorted that's why this is done at the end and not during the method generation.
-               If done that way, method generic parameters of a type are added before the type's generic parameters and table results unsorted
+             * Generic parameters table must be sorted that's why this is done at the end and not during the method generation.
+             * If done that way, method generic parameters of a type are added before the type's generic parameters and table results unsorted
              */
 
+
             // generate class generic parameters (Class<T>)
-            foreach (var genericParamter in type.GenericParameters)
+            foreach (var genericParameter in type.GenericParameters)
             {
-                metadataBuilder.AddGenericParameter(
+                var genericParameterHandle = metadataBuilder.AddGenericParameter(
                     typeDefinitionHandle,
-                    SR.GenericParameterAttributes.None,
-                    metadataBuilder.GetOrAddString(genericParamter.Name),
-                    genericParamter.Index);
+                    SR.GenericParameterAttributes.None, // FIXME
+                    metadataBuilder.GetOrAddString(genericParameter.Name),
+                    genericParameter.Index);
+
+                /* FIXME generic constraints not in the model
+                 if(genericParameter.hasConstraint()){
+                     metadataBuilder.AddGenericParameterConstraint(
+                         genericParameterHandle, 
+                         metadataContainer.ResolveReferenceHandleFor(genericParameter.contraint));
+                 }
+                 */
             }
 
             // generate method generic parameters (public T method<T>(T param))
-            for (int i = 0; i < type.Methods.Count; i++)
+            for (var i = 0; i < type.Methods.Count; i++)
             {
                 var method = type.Methods[i];
                 foreach (var genericParameter in method.GenericParameters)
                 {
-                    metadataBuilder.AddGenericParameter(
+                    var genericParameterHandle = metadataBuilder.AddGenericParameter(
                         methodDefinitionHandles[i],
-                        SR.GenericParameterAttributes.None,
+                        SR.GenericParameterAttributes.None, // FIXME
                         metadataBuilder.GetOrAddString(genericParameter.Name),
                         genericParameter.Index);
+
+                    /* FIXME generic constraints not in the model
+                      if(genericParameter.hasConstraint()){
+                        metadataBuilder.AddGenericParameterConstraint(
+                            genericParameterHandle, 
+                            metadataContainer.ResolveReferenceHandleFor(genericParameter.contraint));
+                       }
+                       */
                 }
             }
 

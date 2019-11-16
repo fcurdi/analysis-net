@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
+using MetadataGenerator.Metadata;
 using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
 namespace MetadataGenerator.Generators.Methods
 {
-    class MethodSignatureGenerator
+    internal class MethodSignatureGenerator
     {
         private readonly MetadataContainer metadataContainer;
 
@@ -14,17 +15,18 @@ namespace MetadataGenerator.Generators.Methods
             this.metadataContainer = metadataContainer;
         }
 
-        public SRM.BlobBuilder GenerateSignatureOf(IMethodReference method)
-        {
-            return GenerateMethodSignature(method.IsStatic, method.GenericParameterCount, method.Parameters, method.ReturnType);
-        }
-        public SRM.BlobBuilder GenerateSignatureOf(FunctionPointerType method)
-        {
-            // FIXME 0 because FunctionPointerType does not have that property (there's a fixme in that class)
-            return GenerateMethodSignature(method.IsStatic, 0, method.Parameters, method.ReturnType);
-        }
+        public SRM.BlobBuilder GenerateSignatureOf(IMethodReference method) =>
+            GenerateMethodSignature(method.IsStatic, method.GenericParameterCount, method.Parameters, method.ReturnType);
 
-        private SRM.BlobBuilder GenerateMethodSignature(bool isStatic, int genericParameterCount, IList<IMethodParameterReference> parameters, IType returnType)
+        public SRM.BlobBuilder GenerateSignatureOf(FunctionPointerType method) =>
+            GenerateMethodSignature(method.IsStatic, 0, method.Parameters, method.ReturnType);
+        // FIXME 0 because FunctionPointerType does not have that property (there's a fixme in that class)
+
+        private SRM.BlobBuilder GenerateMethodSignature(
+            bool isStatic,
+            int genericParameterCount,
+            IList<IMethodParameterReference> parameters,
+            IType returnType)
         {
             var methodSignature = new SRM.BlobBuilder();
             new ECMA335.BlobEncoder(methodSignature)
@@ -48,7 +50,7 @@ namespace MetadataGenerator.Generators.Methods
                     {
                         foreach (var parameter in parameters)
                         {
-                            bool isByRef = parameter.Kind.IsOneOf(MethodParameterKind.Out, MethodParameterKind.Ref);
+                            var isByRef = parameter.Kind.IsOneOf(MethodParameterKind.Out, MethodParameterKind.Ref);
                             var type = isByRef ? (parameter.Type as PointerType).TargetType : parameter.Type;
                             var encoder = parametersEncoder.AddParameter().Type(isByRef);
                             metadataContainer.Encode(type, encoder);

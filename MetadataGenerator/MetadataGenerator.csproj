@@ -26,14 +26,14 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AttributesProvider.cs" />
     <Compile Include="Extensions.cs" />
+    <Compile Include="Generator.cs" />
     <Compile Include="Generators\AssemblyGenerator.cs" />
-    <Compile Include="Generators\Generator.cs" />
     <Compile Include="Generators\Methods\MethodGenerator.cs" />
     <Compile Include="Generators\Methods\MethodSignatureGenerator.cs" />
     <Compile Include="Generators\NamespaceGenerator.cs" />
     <Compile Include="Generators\TypeGenerator.cs" />
+    <Compile Include="Metadata\AttributesProvider.cs" />
     <Compile Include="Metadata\MetadataContainer.cs" />
     <Compile Include="Metadata\MetadataResolver.cs" />
     <Compile Include="Generators\Fields\FieldGenerator.cs" />

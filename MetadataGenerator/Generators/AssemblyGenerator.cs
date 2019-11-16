@@ -1,11 +1,11 @@
 ﻿using System;
-using MetadataGenerator.Generators;
+using MetadataGenerator.Metadata;
 using Model;
 using SR = System.Reflection;
 
-namespace MetadataGenerator
+namespace MetadataGenerator.Generators
 {
-    static class AssemblyGenerator
+    internal static class AssemblyGenerator
     {
         public static MetadataContainer Generate(Assembly assembly)
         {
@@ -28,15 +28,13 @@ namespace MetadataGenerator
                 hashAlgorithm: SR.AssemblyHashAlgorithm.Sha1);
 
             metadataBuilder.AddModule(
-                    generation: 0,
-                    moduleName: metadataBuilder.GetOrAddString($"{assembly.Name}.{(metadataContainer.Executable ? "exe" : "dll")}"),
-                    mvid: metadataBuilder.GetOrAddGuid(Guid.NewGuid()),
-                    encId: metadataBuilder.GetOrAddGuid(Guid.Empty),
-                    encBaseId: metadataBuilder.GetOrAddGuid(Guid.Empty));
+                generation: 0,
+                moduleName: metadataBuilder.GetOrAddString($"{assembly.Name}.{(metadataContainer.Executable ? "exe" : "dll")}"),
+                mvid: metadataBuilder.GetOrAddGuid(Guid.NewGuid()),
+                encId: metadataBuilder.GetOrAddGuid(Guid.Empty),
+                encBaseId: metadataBuilder.GetOrAddGuid(Guid.Empty));
 
             return metadataContainer;
         }
     }
 }
-
-

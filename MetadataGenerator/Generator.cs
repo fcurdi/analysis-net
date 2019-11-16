@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using MetadataGenerator.Generators;
 using Model;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
@@ -11,12 +12,14 @@ namespace MetadataGenerator
         public void Generate(Assembly assembly)
         {
             using (var peStream = File.OpenWrite($"./{assembly.Name}.dll"))
-            // using (var peStream = File.OpenWrite($"./{assembly.Name}.exe"))
+                // using (var peStream = File.OpenWrite($"./{assembly.Name}.exe"))
             {
                 var metadataContainer = AssemblyGenerator.Generate(assembly);
                 var peHeaderBuilder = new SRPE.PEHeaderBuilder(
-                    imageCharacteristics: metadataContainer.Executable ? SRPE.Characteristics.ExecutableImage : SRPE.Characteristics.Dll
-                    );
+                    imageCharacteristics: metadataContainer.Executable
+                        ? SRPE.Characteristics.ExecutableImage
+                        : SRPE.Characteristics.Dll
+                );
                 var peBlob = new SRM.BlobBuilder();
                 new SRPE.ManagedPEBuilder(
                     header: peHeaderBuilder,
