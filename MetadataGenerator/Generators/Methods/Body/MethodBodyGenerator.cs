@@ -319,15 +319,12 @@ namespace MetadataGenerator.Generators.Methods.Body
                                     instructionEncoder.LoadString(metadataContainer.metadataBuilder.GetOrAddUserString(value));
                                 }
 
-                                // TODO see ECMA ldc instruction. It says some cases should be follow by conv.i8 operations but the bytecode (original) does not have that
                                 else if (loadInstruction.Operand.Type.Equals(PlatformTypes.Int8) ||
                                          loadInstruction.Operand.Type.Equals(PlatformTypes.UInt8))
                                 {
                                     var value = (int) (loadInstruction.Operand as Constant).Value;
                                     instructionEncoder.OpCode(SRM.ILOpCode.Ldc_i4_s);
                                     instructionEncoder.Token(value);
-                                    // FIXME: do only if value variable storing the 8 bit number is 8 byte integer.
-                                    // instructionEncoder.OpCode(SRM.ILOpCode.Conv_i8);
                                 }
                                 else if (
                                     loadInstruction.Operand.Type.Equals(PlatformTypes.Int16) ||
@@ -337,8 +334,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 {
                                     var value = (int) (loadInstruction.Operand as Constant).Value;
                                     instructionEncoder.LoadConstantI4(value);
-                                    // FIXME: do only if value variable storing the 16/32 bit number is 8 byte integer.
-                                    //    instructionEncoder.OpCode(SRM.ILOpCode.Conv_i8);
                                 }
                                 else if (loadInstruction.Operand.Type.Equals(PlatformTypes.Int64) ||
                                          loadInstruction.Operand.Type.Equals(PlatformTypes.UInt64))
@@ -363,11 +358,11 @@ namespace MetadataGenerator.Generators.Methods.Body
                         break;
                     case LoadFieldInstruction loadFieldInstruction:
                         // TODO handle ldflda. Example present but not supported in model
-
                         instructionEncoder.OpCode(SRM.ILOpCode.Ldfld);
                         instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadFieldInstruction.Field));
                         break;
                     case LoadArrayElementInstruction loadArrayElementInstruction:
+                        // TODO this is currently modeled as a basic instruction and this is not used
                         break;
                     case LoadMethodAddressInstruction loadMethodAddressInstruction:
                         instructionEncoder.OpCode(SRM.ILOpCode.Ldftn);
@@ -386,12 +381,10 @@ namespace MetadataGenerator.Generators.Methods.Body
 
                         break;
                     case CreateObjectInstruction createObjectInstruction:
-                    {
                         var method = metadataContainer.ResolveReferenceHandleFor(createObjectInstruction.Constructor);
                         instructionEncoder.OpCode(SRM.ILOpCode.Newobj);
                         instructionEncoder.Token(method);
                         break;
-                    }
                     case StoreInstruction storeInstruction:
                         if (storeInstruction.Target.IsParameter)
                         {
@@ -426,12 +419,10 @@ namespace MetadataGenerator.Generators.Methods.Body
                         instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadTokenInstruction.Token));
                         break;
                     case IndirectMethodCallInstruction indirectMethodCallInstruction:
-                    {
                         // TODO test
                         var methodSignature = metadataContainer.ResolveStandaloneSignatureFor(indirectMethodCallInstruction.Function);
                         instructionEncoder.CallIndirect(methodSignature);
                         break;
-                    }
                     case StoreArrayElementInstruction storeArrayElementInstruction:
                         // FIXME 
                         // Framework currently handles this as a BasicInstruction and this is never generated. Should use this one

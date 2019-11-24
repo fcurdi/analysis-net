@@ -81,28 +81,10 @@ namespace MetadataGenerator.Generators
                     implementedInterface: metadataContainer.ResolveReferenceHandleFor(interfaze));
             }
 
-            /*
-             * Generic parameters table must be sorted that's why this is done at the end and not during the method generation.
-             * If done that way, method generic parameters of a type are added before the type's generic parameters and table results unsorted
-             */
-
-
             // generate class generic parameters (Class<T>)
             foreach (var genericParameter in type.GenericParameters)
             {
-                var genericParameterHandle = metadataBuilder.AddGenericParameter(
-                    typeDefinitionHandle,
-                    SR.GenericParameterAttributes.None, // FIXME
-                    metadataBuilder.GetOrAddString(genericParameter.Name),
-                    genericParameter.Index);
-
-                /* FIXME generic constraints not in the model
-                 if(genericParameter.hasConstraint()){
-                     metadataBuilder.AddGenericParameterConstraint(
-                         genericParameterHandle, 
-                         metadataContainer.ResolveReferenceHandleFor(genericParameter.contraint));
-                 }
-                 */
+                metadataContainer.RegisterGenericParameter(typeDefinitionHandle, genericParameter);
             }
 
             // generate method generic parameters (public T method<T>(T param))
@@ -111,19 +93,7 @@ namespace MetadataGenerator.Generators
                 var method = type.Methods[i];
                 foreach (var genericParameter in method.GenericParameters)
                 {
-                    var genericParameterHandle = metadataBuilder.AddGenericParameter(
-                        methodDefinitionHandles[i],
-                        SR.GenericParameterAttributes.None, // FIXME
-                        metadataBuilder.GetOrAddString(genericParameter.Name),
-                        genericParameter.Index);
-
-                    /* FIXME generic constraints not in the model
-                      if(genericParameter.hasConstraint()){
-                        metadataBuilder.AddGenericParameterConstraint(
-                            genericParameterHandle, 
-                            metadataContainer.ResolveReferenceHandleFor(genericParameter.contraint));
-                       }
-                       */
+                    metadataContainer.RegisterGenericParameter(methodDefinitionHandles[i], genericParameter);
                 }
             }
 

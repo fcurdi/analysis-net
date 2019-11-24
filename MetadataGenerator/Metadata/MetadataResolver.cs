@@ -240,7 +240,7 @@ namespace MetadataGenerator.Metadata
 
                         break;
                     }
-                    case GenericParameter genericParameter:
+                    case IGenericParameterReference genericParameter:
                         switch (genericParameter.Kind)
                         {
                             case GenericParameterKind.Type:

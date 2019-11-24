@@ -11,8 +11,8 @@ namespace MetadataGenerator
     {
         public void Generate(Assembly assembly)
         {
-            using (var peStream = File.OpenWrite($"./{assembly.Name}.dll"))
-                // using (var peStream = File.OpenWrite($"./{assembly.Name}.exe"))
+             using (var peStream = File.OpenWrite($"./{assembly.Name}.dll"))
+            //    using (var peStream = File.OpenWrite($"./{assembly.Name}.exe"))
             {
                 var metadataContainer = AssemblyGenerator.Generate(assembly);
                 var peHeaderBuilder = new SRPE.PEHeaderBuilder(

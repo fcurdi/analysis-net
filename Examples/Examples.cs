@@ -1,5 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection.Metadata;
+using Accessibility;
+using Classes;
+using Hierarchy;
+using Nested.NestedNamespace.NestedNestedNamesace;
+using Structs;
 
 namespace Enums
 {
@@ -19,7 +25,6 @@ namespace Enums
     {
         Byte10 = 10,
         Byte20 = 20
-
     }
 
     public enum EnumOfUShorts : ushort
@@ -29,30 +34,42 @@ namespace Enums
     }
 }
 
-// TODO no yet supported in the framework model
+// TODO not yet supported in the framework model
 // TODO interface with properties
 // TODO struct with properties
 namespace PropertiesGettersAndSetters
 {
-
     public class ClassWithProperties
     {
         public double AutoImplementedProperty { get; set; }
         public char AnotherAutoImplementedProperty { get; }
 
-        public int PropertyWithBackingField { get => backingField; set => backingField = value; }
+        public int PropertyWithBackingField
+        {
+            get => backingField;
+            set => backingField = value;
+        }
+
         private int backingField;
 
-        public string AnotherPropertyWithBackingField { get => otherBackingField; }
+        public string AnotherPropertyWithBackingField
+        {
+            get => otherBackingField;
+        }
+
         private string otherBackingField;
 
-        public void get_ShouldNotHaveSpecialname() { }
+        public void get_ShouldNotHaveSpecialname()
+        {
+        }
     }
 }
 
 namespace Classes
 {
-    public class EmptyClass { }
+    public class EmptyClass
+    {
+    }
 
     public static class StaticClass
     {
@@ -65,7 +82,9 @@ namespace Classes
             StaticDouble = 0.5;
         }
 
-        public static void DoNothing(int x) { }
+        public static void DoNothing(int x)
+        {
+        }
     }
 
 
@@ -79,11 +98,12 @@ namespace Classes
         {
         }
 
-        public void DoNothing() { }
+        public void DoNothing()
+        {
+        }
 
         private int Sum(int arg1, int arg2)
         {
-
             return arg1 + arg2;
         }
 
@@ -102,33 +122,35 @@ namespace Classes
             return arg;
         }
 
-        static void StaticMethod() { }
-
+        static void StaticMethod()
+        {
+        }
     }
 
     public abstract class AbstractClass
     {
-
-        public virtual void VirtualMethod() { }
+        public virtual void VirtualMethod()
+        {
+        }
 
         public abstract void AbstractMethod();
     }
 
     // TODO var arggs, optional parameters, named arguments, 
-    public class ClassWithMoreComplexFieldsAndParamtersOrReturnTypes
+    public class ClassWithMoreComplexFieldsAndParametersOrReturnTypes
     {
-
         public string[] stringArrayField;
         public string[][] stringArrayArrayField;
         public string[,,] stringJaggedArrayField;
         public Exception[] exceptionArrayField;
-        public Nested.NestedNamespace.NestedNestedNamesace.B b;
+        public B b;
 
         public void MethodWithOptionalParameters(
             string someParam,
             int optionalInt = 0,
-            Structs.EmptyStruct optionalStruct = new Structs.EmptyStruct())
-        { }
+            EmptyStruct optionalStruct = new EmptyStruct())
+        {
+        }
 
         public void MethodWithIntVarArgs(params int[] args)
         {
@@ -138,7 +160,7 @@ namespace Classes
         {
         }
 
-        public Hierarchy.DerivedClass DoSomethingWith(Hierarchy.DerivedClass d)
+        public DerivedClass DoSomethingWith(DerivedClass d)
         {
             return d;
         }
@@ -150,7 +172,7 @@ namespace Classes
 
         public string[] GetStringArray()
         {
-            return new string[] { "hello", "world" };
+            return new string[] {"hello", "world"};
         }
 
         public Exception[] GetExceptionArray()
@@ -162,15 +184,18 @@ namespace Classes
 
 namespace Structs
 {
-    public struct EmptyStruct { }
+    public struct EmptyStruct
+    {
+    }
 
     public struct NonEmptyStruct
     {
-
         private const string helloMessage = "hello";
         private int number;
 
-        public void DoNothing() { }
+        public void DoNothing()
+        {
+        }
 
         private string Greet()
         {
@@ -256,7 +281,6 @@ namespace Interfaces
             return 0;
         }
     }
-
 }
 
 // FIXME is generating [Examples.dll]Delegates.ClassThatUsesDelegate/Del ReturnsADelegate  instead of Delegates.ClassThatUsesDelegate/Del ReturnsADelegate 
@@ -280,7 +304,6 @@ namespace Delegates
 
 namespace Hierarchy
 {
-
     public abstract class AbstractBaseClass
     {
         public abstract void MustImplement();
@@ -288,14 +311,13 @@ namespace Hierarchy
         public virtual void CanImplement()
         {
         }
-
     }
 
     public class BaseClass : AbstractBaseClass
     {
         public override void MustImplement()
         {
-            throw new NotImplementedException();
+            throw new Exception("Not implemented");
         }
 
         protected void NotVisibileToDerivedClass()
@@ -305,31 +327,35 @@ namespace Hierarchy
 
     public class DerivedClass : BaseClass
     {
-        public override void CanImplement() { }
-
+        public override void CanImplement()
+        {
+        }
     }
 
     public class ClassDerivedFromSystemClass : Exception
     {
     }
 
-    public class ClassDerivedFromAccessibilityClass : Accessibility.CAccPropServicesClass
+    public class ClassDerivedFromAccessibilityClass : CAccPropServicesClass
     {
     }
 }
 
 namespace Nested
 {
-
     public class ClassContainingNestedTypes
     {
         public NestedClass ReturnsNestedClass() => new NestedClass();
         public NestedClass.NestedNestedClass ReturnsNestedNestedClass() => new NestedClass.NestedNestedClass();
-        public System.Reflection.Metadata.BlobBuilder.Blobs ReturnsNestedClassFromOtherAssembly() => new System.Reflection.Metadata.BlobBuilder.Blobs();
+
+        public BlobBuilder.Blobs ReturnsNestedClassFromOtherAssembly() =>
+            new BlobBuilder.Blobs();
 
         public class NestedClass
         {
-            public class NestedNestedClass { }
+            public class NestedNestedClass
+            {
+            }
         }
 
         public enum NestedEnum
@@ -344,8 +370,9 @@ namespace Nested
 
     public struct StructContainingNestedTypes
     {
-
-        public struct NestedStruct { }
+        public struct NestedStruct
+        {
+        }
 
         public enum NestedEnum
         {
@@ -359,8 +386,9 @@ namespace Nested
 
     namespace NestedNamespace
     {
-
-        public class A { }
+        public class A
+        {
+        }
 
         namespace NestedNestedNamesace
         {
@@ -368,8 +396,9 @@ namespace Nested
             {
                 public class NestedB
                 {
-
-                    public class NestedNestedB { }
+                    public class NestedNestedB
+                    {
+                    }
                 }
             }
         }
@@ -384,10 +413,10 @@ namespace PointersAndReferences
         private int number = 1;
         private Exception exception = new Exception();
 
-        public void MethodWithRefAndOutParameters(ref string refString, ref Exception refException, out int outInt, out Classes.SimpleClass outClass)
+        public void MethodWithRefAndOutParameters(ref string refString, ref Exception refException, out int outInt, out SimpleClass outClass)
         {
             outInt = 2;
-            outClass = new Classes.SimpleClass(1, "");
+            outClass = new SimpleClass(1, "");
         }
 
         // FIXME not in the model
@@ -402,7 +431,7 @@ namespace PointersAndReferences
             return ref exception;
         }
 
-        public unsafe void* UnsafeMethod(int* intPointer, Structs.EmptyStruct* structPointer, uint* uintPointer)
+        public unsafe void* UnsafeMethod(int* intPointer, EmptyStruct* structPointer, uint* uintPointer)
         {
             return null;
         }
@@ -416,17 +445,20 @@ namespace Generics
     {
         public C genericClassTypeField;
         public Dictionary<string, Exception> genericField;
+
         public IList<IList<Exception>> listOfListField;
+        public readonly List<string> l = new List<string> {"holas"};
 
         public IList<Exception> GetExceptionsList(List<string> _)
         {
             var a = 1 + 2;
             if (a == 3)
             {
-
             }
+
             return new List<Exception>();
         }
+
         public void PrintGeneric<T>(T t)
         {
             Console.WriteLine(t.ToString());
@@ -446,8 +478,8 @@ namespace Generics
             return listT;
         }
     }
-
 }
+
 namespace MethodBody
 {
     public abstract class ContainingClass
@@ -513,30 +545,33 @@ namespace MethodBody
             }
         }
 
-        // FIXME causes genericParamTableNotSorted
-        //         void Nothing<T>(T arg) { }
+        public void Nothing<T>(T arg)
+        {
+        }
 
-        public void Calls(Classes.SimpleClass simpleClass, Action<int> f)
+        public void
+            Calls(SimpleClass simpleClass, Action<int> f) // FIXME ilspy method row without name. Probably because of the missing parameter count
         {
             Console.WriteLine("A method call"); // static
             simpleClass.DoNothing(); // virtual
             Alloc(); // normal
 
-            // f(1);  //FIXME not working 
+            var l = new List<string> {"holas"};
+
+            f(1); //FIXME callvirt instance void class. The "class" is not being generated. It seems to be only for generic method refs. Same problem that generic not being correctly?
 
             // TODO calli (indirect)
 
             /* not working when reading dll 
-            var g = new Generics.Generic<int, string>();
+            var g = new Generics.Generic<int, Exception>();
             g.PrintGeneric("hola");
             g.PrintGeneric(1);
             */
 
-            // FIXME Nothing(""); generic method call (instantiated) not generated correctly (missing instantiation)
-
+            Nothing(""); // FIXME generic method call (instantiated) not generated correctly (missing instantiation)
         }
 
-        public void Arrays(Structs.EmptyStruct[] structArray)
+        public void Arrays(EmptyStruct[] structArray)
         {
             byte y = 1;
             short s = 3;
@@ -544,7 +579,7 @@ namespace MethodBody
             long l = 5;
             float f = 6;
             double d = 7;
-            Structs.EmptyStruct p;
+            EmptyStruct p;
             var byteArray = new byte[2]; // newarr + stelem.ref
             var shortArray = new short[2]; // newarr + stelem.ref
             var intArray = new int[5]; // newarr + stelem.ref
@@ -552,7 +587,7 @@ namespace MethodBody
             var floatArray = new float[2]; // newarr + stelem.ref
             var doubleArray = new double[2]; // newarr + stelem.ref
             var exceptionArray = new Exception[2]; // newarr + stelem.ref
-            var stringInitializedArray = new string[] { "hello", "world", "!" }; // newarr + stelem.ref
+            var stringInitializedArray = new string[] {"hello", "world", "!"}; // newarr + stelem.ref
             unsafe
             {
                 var m = new int*[5]; // newarr + stelem.ref
@@ -564,40 +599,42 @@ namespace MethodBody
             intArray[1] = x; // stelem.i4
             longArray[1] = l; // stelem.i8
             floatArray[1] = f; // stelem.r4
-            doubleArray[1] = d;  // stelem.r8
+            doubleArray[1] = d; // stelem.r8
             structArray[0] = p; // stelem
             // TODO stelem.i
         }
 
-        public void Empty() { }
+        public void Empty()
+        {
+        }
 
         public void Convert(object o)
         {
             long x1 = 1;
             double d = 1.0;
-            sbyte x2 = (sbyte)x1; // conv.i1
-            short x3 = (short)x1; // conv.i2
-            int x4 = (int)x1; // conv.i4
-            x1 = (long)d; // conv.i8
-            float f = (float)d; // conv.r4
+            sbyte x2 = (sbyte) x1; // conv.i1
+            short x3 = (short) x1; // conv.i2
+            int x4 = (int) x1; // conv.i4
+            x1 = (long) d; // conv.i8
+            float f = (float) d; // conv.r4
             //TODO conv.r8
-            byte x5 = (byte)x1; // conv.u1
-            ushort x6 = (ushort)x1; // conv.u2
-            uint x7 = (uint)x1; // conv.u4
-            var x8 = (ulong)d; // conv.u8
+            byte x5 = (byte) x1; // conv.u1
+            ushort x6 = (ushort) x1; // conv.u2
+            uint x7 = (uint) x1; // conv.u4
+            var x8 = (ulong) d; // conv.u8
             // TODO conv.i
             // TODO conv.u
             // TODO conv.r.un
 
-            string s = (string)(object)"asd"; // castclass $class
-            var x = (int[])(object)new int[] { };
+            string s = (string) (object) "asd"; // castclass $class
+            var x = (int[]) (object) new int[] { };
 
 
             // FIXME framework read not working.
             //   var b = o is Classes.SimpleClass; // isinst $class
 
             object l = 1; // box int
-            int i = (int)l; // unbox.any int
+            int i = (int) l; // unbox.any int
 
             // TODO unbox (unbox ptr)
         }
@@ -616,12 +653,12 @@ namespace MethodBody
             int eight = 8; // ldc.i4.8
             int minusOne = -1; // ldc.i4.m1
             int i = 20; // ldc.i4.s 20
-            long c = (char)9; // ldc.i4.s 9 + conv.i8
+            long c = (char) 9; // ldc.i4.s 9 + conv.i8
             int k = int.MaxValue; // ldc.i4
             long q = int.MaxValue; // ldc.i4 + conv.i8
-            long l = long.MinValue;  // ldc.i8
-            float f = float.MinValue;  // ldc.r4
-            double d = double.MinValue;  // ldc.r8
+            long l = long.MinValue; // ldc.i8
+            float f = float.MinValue; // ldc.r4
+            double d = double.MinValue; // ldc.r8
         }
 
         public void LoadArgument(int arg1, string arg2, bool arg3, int arg4)
@@ -705,15 +742,16 @@ namespace MethodBody
 
         public void Create()
         {
-            new Classes.SimpleClass(1, "a"); // newobj $methodCall
-            var a = new int[] { 1, 2, 3 }; // newarr int
+            new SimpleClass(1, "a"); // newobj $methodCall
+            var a = new int[] {1, 2, 3}; // newarr int
             var b = new Exception[] { }; // newarr Clases.SimpleClass
             unsafe
             {
-                var c = new int*[] { };  // newarr int*
+                var c = new int*[] { }; // newarr int*
                 var d = new int**[] { }; // newarr int**
             }
         }
+
         public void LoadArray(Exception[] x, int[] q)
         {
             var a = x[1]; // ldelem.ref
@@ -722,10 +760,10 @@ namespace MethodBody
             var d = (new short[] { })[0]; // ldelem.i2
             var e = (new ushort[] { })[0]; // ldelem.u2
             var f = (new int[] { })[0]; // ldelem.i4
-            var g = (new uint[] { })[0];// ldelem.u4
+            var g = (new uint[] { })[0]; // ldelem.u4
             var h = (new long[] { })[0]; // ldelem.i8 -- ldelem.u8 (alias)
-            var j = (new float[] { })[0];// ldelem.r4
-            var k = (new double[] { })[0];// ldelem.r8
+            var j = (new float[] { })[0]; // ldelem.r4
+            var k = (new double[] { })[0]; // ldelem.r8
 
             // TODO ldelem.i ???
             // TODO ldelem typeTok ???
@@ -739,14 +777,14 @@ namespace MethodBody
             //            }
 
 
-            var l = (new int[] { 1, 2, 3 }).Length; // ldlen
+            var l = (new int[] {1, 2, 3}).Length; // ldlen
         }
 
         public void LoadField()
         {
-            var a = new Classes.SimpleClass(1, "b").unassignedString; // ldfld string $field
-            var b = new Classes.SimpleClass(1, "b").readOnlyIntField; // ldfld int $field
-            var c = new Classes.ClassWithMoreComplexFieldsAndParamtersOrReturnTypes().b; // ldfld class $field
+            var a = new SimpleClass(1, "b").unassignedString; // ldfld string $field
+            var b = new SimpleClass(1, "b").readOnlyIntField; // ldfld int $field
+            var c = new ClassWithMoreComplexFieldsAndParametersOrReturnTypes().b; // ldfld class $field
 
             //FIXME framework read not working. Something not implemented? Maybe avoid fixed keyword?
             //        unsafe
@@ -758,9 +796,9 @@ namespace MethodBody
 
         public void StoreField()
         {
-            new Classes.SimpleClass(1, "b").unassignedString = ""; // stfld string $field
-            Classes.StaticClass.i = 1; // stsfld int $field
-            Classes.StaticClass.e = new Exception(); // stsfld Exception $field
+            new SimpleClass(1, "b").unassignedString = ""; // stfld string $field
+            StaticClass.i = 1; // stsfld int $field
+            StaticClass.e = new Exception(); // stsfld Exception $field
         }
 
         public void StoreValue(int arg)
@@ -783,7 +821,7 @@ namespace MethodBody
             {
                 // FIXME framework read not working
                 // var x = sizeof(Structs.NonEmptyStruct); // sizeof $type
-                var z = sizeof(Structs.NonEmptyStruct***); // sizeof $type***
+                var z = sizeof(NonEmptyStruct***); // sizeof $type***
                 var y = sizeof(int*); // sizeof int*
             }
         }
@@ -820,7 +858,7 @@ namespace MethodBody
             // brinst (not short form)
 
             goto Label; // br.s 
-        Label:
+            Label:
             int x;
 
             if (a > 2) // brfalse.s
@@ -832,8 +870,9 @@ namespace MethodBody
                 case 2: break; // beq.s
             }
 
-            if (e?.Message != null) { } // brtrue.s
-
+            if (e?.Message != null)
+            {
+            } // brtrue.s
         }
 
         public void ExceptionHandlingTryCatch(int x)
@@ -844,7 +883,6 @@ namespace MethodBody
             }
             catch
             {
-
             }
         }
 
@@ -857,7 +895,6 @@ namespace MethodBody
             }
             catch (Exception ex)
             {
-
             }
         }
 
@@ -870,7 +907,6 @@ namespace MethodBody
             }
             catch (Exception ex) when (ex.Message.Contains("by zero"))
             {
-
             }
         }
 

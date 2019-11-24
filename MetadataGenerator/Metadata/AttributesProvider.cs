@@ -144,7 +144,7 @@ namespace MetadataGenerator.Metadata
                     attributes |= ParameterAttributes.Out;
                     break;
                 case MethodParameterKind.Ref:
-                    // TODO
+                    // TODO  
                     break;
             }
 

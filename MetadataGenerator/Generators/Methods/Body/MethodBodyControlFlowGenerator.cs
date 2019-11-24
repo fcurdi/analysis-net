@@ -18,8 +18,6 @@ namespace MetadataGenerator.Generators.Methods.Body
             this.metadataContainer = metadataContainer;
         }
 
-        // FIXME hacia afuera quiza no deberia estar esto y en cambio hablar de procesar los branchInstruction o algo asi
-        // FIXME hay que pensar toda esta clase
         public ECMA335.LabelHandle LabelHandleFor(string label)
         {
             label = label.ToLower();
