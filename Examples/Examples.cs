@@ -549,6 +549,10 @@ namespace MethodBody
         {
         }
 
+        public void Nothing2<T>()
+        {
+        }
+
         public void
             Calls(SimpleClass simpleClass, Action<int> f) // FIXME ilspy method row without name. Probably because of the missing parameter count
         {
@@ -562,13 +566,14 @@ namespace MethodBody
 
             // TODO calli (indirect)
 
-            /* not working when reading dll 
+            /* not working when reading dll
             var g = new Generics.Generic<int, Exception>();
             g.PrintGeneric("hola");
             g.PrintGeneric(1);
             */
 
             Nothing(""); // FIXME generic method call (instantiated) not generated correctly (missing instantiation)
+            Nothing2<int>();
         }
 
         public void Arrays(EmptyStruct[] structArray)

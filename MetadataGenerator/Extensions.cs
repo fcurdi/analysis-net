@@ -27,5 +27,8 @@ namespace MetadataGenerator
         public static int NextRowFor(this ECMA335.MetadataBuilder metadata, ECMA335.TableIndex tableIndex) => metadata.GetRowCount(tableIndex) + 1;
 
         public static string CurrentLabelString(this ECMA335.InstructionEncoder instructionEncoder) => $"L_{instructionEncoder.Offset:x4}".ToLower();
+
+        // FIXME maybe include in model instead of extension?
+        public static bool IsGenericInstantiation(this IMethodReference method) => method.GenericMethod != null;
     }
 }

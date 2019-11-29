@@ -133,22 +133,33 @@ namespace MetadataGenerator.Metadata
             return typeReference;
         }
 
-        private SRM.MemberReferenceHandle ReferenceHandleOf(IMethodReference method, SRM.BlobBuilder signature)
+        private SRM.EntityHandle ReferenceHandleOf(IMethodReference method, SRM.BlobBuilder signature)
         {
-            var key =
-                $"{method.ContainingType.ContainingAssembly.Name}.{method.ContainingType.ContainingNamespace}.{method.ContainingType.Name}.{method.Name}";
-            if (!memberReferences.TryGetValue(key, out var memberReferenceHandle))
+            if (method.IsGenericInstantiation())
             {
-                memberReferenceHandle = metadataContainer.metadataBuilder.AddMemberReference(
-                    parent: ReferenceHandleOf(method.ContainingType),
-                    name: metadataContainer.metadataBuilder.GetOrAddString(method.Name),
-                    signature: metadataContainer.metadataBuilder.GetOrAddBlob(signature));
-                memberReferences.Add(key, memberReferenceHandle);
-
-                return memberReferenceHandle;
+                // FIXME should be store and not add a new one each time (like the else branch).
+                // To do this, the key should have info related to the instantiation that unequivocally identifies that particular instantiation
+                var methodSpecificationHandle = metadataContainer.metadataBuilder.AddMethodSpecification(
+                    ReferenceHandleOf(method.GenericMethod, methodSignatureGenerator.GenerateSignatureOf(method.GenericMethod)),
+                    metadataContainer.metadataBuilder.GetOrAddBlob(signature)
+                );
+                return methodSpecificationHandle;
             }
+            else
+            {
+                var key =
+                    $"{method.ContainingType.ContainingAssembly.Name}.{method.ContainingType.ContainingNamespace}.{method.ContainingType.Name}.{method.Name}";
+                if (!memberReferences.TryGetValue(key, out var methodReferenceHandle))
+                {
+                    methodReferenceHandle = metadataContainer.metadataBuilder.AddMemberReference(
+                        parent: ReferenceHandleOf(method.ContainingType),
+                        name: metadataContainer.metadataBuilder.GetOrAddString(method.Name),
+                        signature: metadataContainer.metadataBuilder.GetOrAddBlob(signature));
+                    memberReferences.Add(key, methodReferenceHandle);
+                }
 
-            return memberReferenceHandle;
+                return methodReferenceHandle;
+            }
         }
 
         // FIXME extract method for both method and field? identical

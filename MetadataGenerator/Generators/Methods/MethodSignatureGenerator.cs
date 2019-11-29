@@ -15,8 +15,24 @@ namespace MetadataGenerator.Generators.Methods
             this.metadataContainer = metadataContainer;
         }
 
-        public SRM.BlobBuilder GenerateSignatureOf(IMethodReference method) =>
-            GenerateMethodSignature(method.IsStatic, method.GenericParameterCount, method.Parameters, method.ReturnType);
+        public SRM.BlobBuilder GenerateSignatureOf(IMethodReference method)
+        {
+            if (method.IsGenericInstantiation())
+            {
+                var signature = new SRM.BlobBuilder();
+                var encoder = new ECMA335.BlobEncoder(signature).MethodSpecificationSignature(method.GenericArguments.Count);
+                foreach (var genericArg in method.GenericArguments)
+                {
+                    metadataContainer.Encode(genericArg, encoder.AddArgument());
+                }
+
+                return signature;
+            }
+            else
+            {
+                return GenerateMethodSignature(method.IsStatic, method.GenericParameterCount, method.Parameters, method.ReturnType);
+            }
+        }
 
         public SRM.BlobBuilder GenerateSignatureOf(FunctionPointerType method) =>
             GenerateMethodSignature(method.IsStatic, 0, method.Parameters, method.ReturnType);
