@@ -17,7 +17,7 @@ namespace MetadataGenerator.Generators.Methods
 
         public SRM.BlobBuilder GenerateSignatureOf(IMethodReference method)
         {
-            if (method.IsGenericInstantiation())
+            if (method.GenericMethod != null)
             {
                 var signature = new SRM.BlobBuilder();
                 var encoder = new ECMA335.BlobEncoder(signature).MethodSpecificationSignature(method.GenericArguments.Count);

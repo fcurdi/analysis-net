@@ -447,7 +447,7 @@ namespace Generics
         public Dictionary<string, Exception> genericField;
 
         public IList<IList<Exception>> listOfListField;
-        public readonly List<string> l = new List<string> {"holas"};
+        public readonly List<string> stringList = new List<string> {"holas"};
 
         public IList<Exception> GetExceptionsList(List<string> _)
         {
@@ -476,6 +476,27 @@ namespace Generics
         public IList<T> RecievesAndReturnsGenericTypeList<T>(IList<T> listT)
         {
             return listT;
+        }
+    }
+
+    public class GenericClassContainingOtherClasses<T>
+    {
+        public class NestedClassThatDoesNotAddNewGenericParameters
+        {
+        }
+
+        public class NestedClassThatAddsNewGenericParameters<U, V>
+        {
+            public class NestedNestedClassThatAddsNewGenericParameters<W>
+            {
+            }
+        }
+    }
+
+    public class ClassThatContainsNestedGenericClass
+    {
+        public class NestedGenericClass<T>
+        {
         }
     }
 }
@@ -553,8 +574,8 @@ namespace MethodBody
         {
         }
 
-        public void
-            Calls(SimpleClass simpleClass, Action<int> f) // FIXME ilspy method row without name. Probably because of the missing parameter count
+        // TODO more generic method calls examples
+        public void Calls(SimpleClass simpleClass, Action<int> f)
         {
             Console.WriteLine("A method call"); // static
             simpleClass.DoNothing(); // virtual
@@ -572,7 +593,7 @@ namespace MethodBody
             g.PrintGeneric(1);
             */
 
-            Nothing(""); // FIXME generic method call (instantiated) not generated correctly (missing instantiation)
+            Nothing("");
             Nothing2<int>();
         }
 

@@ -39,6 +39,9 @@ namespace MetadataGenerator.Generators
             */
             metadataContainer.GenerateGenericParameters();
 
+            // nested types table also needs to be sorted
+            metadataContainer.GenerateNestedTypes();
+
             return metadataContainer;
         }
     }

@@ -76,35 +76,41 @@ namespace MetadataGenerator.Metadata
         {
             switch (type)
             {
-                case IBasicType basicType: return ReferenceHandleOf(basicType, basicType.Name);
-                case IGenericParameterReference genericParameterReference:
-                    return ReferenceHandleOf(genericParameterReference.GenericContainer.ContainingType, genericParameterReference.Name);
-                case ArrayType arrayType:
+                case IBasicType basicType: return ReferenceHandleOf(basicType);
+                case IType arrayOrPointerType when arrayOrPointerType is ArrayType || arrayOrPointerType is PointerType:
                 {
                     var signature = new SRM.BlobBuilder();
                     var encoder = new ECMA335.BlobEncoder(signature).TypeSpecificationSignature();
-                    Encode(arrayType, encoder);
-                    return metadataContainer.metadataBuilder.AddTypeSpecification(metadataContainer.metadataBuilder.GetOrAddBlob(signature));
-                }
-                case PointerType pointerType:
-                {
-                    var signature = new SRM.BlobBuilder();
-                    var encoder = new ECMA335.BlobEncoder(signature).TypeSpecificationSignature();
-                    Encode(pointerType, encoder);
+                    Encode(arrayOrPointerType, encoder);
                     return metadataContainer.metadataBuilder.AddTypeSpecification(metadataContainer.metadataBuilder.GetOrAddBlob(signature));
                 }
                 default:
-                    throw new Exception("not yet supported");
+                    throw new Exception($"type ${type} not yet supported");
             }
         }
 
         /*
          * Returns a TypeReference for type. It stores references because metadata does not have a getOrAddTypeReference.
          */
-        private SRM.TypeReferenceHandle ReferenceHandleOf(IBasicType type, string typeName)
+        private SRM.EntityHandle ReferenceHandleOf(IBasicType type)
         {
+            var typeName = type.Name;
+
+            /**
+             * CLS-compliant generic type names are encoded using the format “name[`arity]”, where […] indicates that the grave accent character “`” and
+             * arity together are optional. The encoded name shall follow these rules:
+             *     - name shall be an ID that does not contain the “`” character.
+             *     - arity is specified as an unsigned decimal number without leading zeros or spaces.
+             *     - For a normal generic type, arity is the number of type parameters declared on the type.
+             *     - For a nested generic type, arity is the number of newly introduced type parameters.
+             */
+            if (type.GenericParameterCount > 0)
+            {
+                typeName = $"{type.Name}`{type.GenericParameterCount}";
+            }
+
             var typeReferenceKey =
-                $"{type.ContainingAssembly.Name}.{type.ContainingNamespace}.{(type.ContainingType != null ? (type.ContainingType.Name + ".") : "")}{type.Name}";
+                $"{type.ContainingAssembly.Name}.{type.ContainingNamespace}.{(type.ContainingType != null ? (type.ContainingType.Name + ".") : "")}{typeName}";
             if (!typeReferences.TryGetValue(typeReferenceKey, out var typeReference))
             {
                 SRM.EntityHandle resolutionScope;
@@ -135,7 +141,7 @@ namespace MetadataGenerator.Metadata
 
         private SRM.EntityHandle ReferenceHandleOf(IMethodReference method, SRM.BlobBuilder signature)
         {
-            if (method.IsGenericInstantiation())
+            if (method.GenericMethod != null)
             {
                 // FIXME should be store and not add a new one each time (like the else branch).
                 // To do this, the key should have info related to the instantiation that unequivocally identifies that particular instantiation
@@ -205,10 +211,10 @@ namespace MetadataGenerator.Metadata
                 {
                     case IBasicType basicType:
                     {
-                        if (basicType.GenericType != null)
+                        if (basicType.GenericParameterCount > 0)
                         {
                             var genericInstantiation = encoder.GenericInstantiation(
-                                ReferenceHandleOf(basicType),
+                                ReferenceHandleOf(basicType.GenericType),
                                 basicType.GenericParameterCount,
                                 type.TypeKind == TypeKind.ValueType);
                             foreach (var genericArg in basicType.GenericArguments)

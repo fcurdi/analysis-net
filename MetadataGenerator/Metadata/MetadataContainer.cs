@@ -16,6 +16,7 @@ namespace MetadataGenerator.Metadata
         public readonly ECMA335.MethodBodyStreamEncoder methodBodyStream;
         private SRM.MethodDefinitionHandle? mainMethodHandle;
         private readonly IDictionary<int, IList<Action>> genericParameters = new Dictionary<int, IList<Action>>();
+        private readonly IDictionary<int, Action> nestedTypes = new Dictionary<int, Action>();
 
         public SRM.MethodDefinitionHandle? MainMethodHandle
         {
@@ -86,6 +87,22 @@ namespace MetadataGenerator.Metadata
                 {
                     generateGenericParameter();
                 }
+            }
+        }
+
+        public void RegisterNestedType(SRM.TypeDefinitionHandle nestedType, SRM.TypeDefinitionHandle enclosingType)
+        {
+            var key = ECMA335.CodedIndex.TypeOrMethodDef(nestedType);
+            nestedTypes.Add(key, () => metadataBuilder.AddNestedType(nestedType, enclosingType));
+        }
+
+        public void GenerateNestedTypes()
+        {
+            var sortedOwners = nestedTypes.Keys.ToImmutableSortedSet();
+            foreach (var owner in sortedOwners)
+            {
+                nestedTypes.TryGetValue(owner, out var addNestedType);
+                addNestedType();
             }
         }
     }
