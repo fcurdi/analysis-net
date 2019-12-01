@@ -69,7 +69,7 @@ namespace MetadataGenerator.Generators
             var typeDefinitionHandle = metadataBuilder.AddTypeDefinition(
                 attributes: GetTypeAttributesFor(type),
                 @namespace: metadataBuilder.GetOrAddString(type.ContainingNamespace.FullName),
-                name: metadataBuilder.GetOrAddString(type.Name),
+                name: metadataBuilder.GetOrAddString(TypeNameOf(type)),
                 baseType: type.Base != null ? metadataContainer.ResolveReferenceHandleFor(type.Base) : default,
                 fieldList: fieldDefinitionHandles.FirstOr(nextFieldDefinitionHandle),
                 methodList: methodDefinitionHandles.FirstOr(nextMethodDefinitionHandle));
@@ -98,6 +98,37 @@ namespace MetadataGenerator.Generators
             }
 
             return typeDefinitionHandle;
+        }
+
+        /**
+         * CLS-compliant generic type names are encoded using the format “name[`arity]”, where […] indicates that the grave accent character “`” and
+         * arity together are optional. The encoded name shall follow these rules:
+         *     - name shall be an ID that does not contain the “`” character.
+         *     - arity is specified as an unsigned decimal number without leading zeros or spaces.
+         *     - For a normal generic type, arity is the number of type parameters declared on the type.
+         *     - For a nested generic type, arity is the number of newly introduced type parameters.
+         */
+        private static string TypeNameOf(TypeDefinition type)
+        {
+            var typeName = type.Name;
+            if (type.GenericParameters.Count > 0)
+            {
+                if (type.ContainingType != null)
+                {
+                    var containingTypeGenericParameters = type.ContainingType.GenericParameters.Select(p => p.Name).ToList();
+                    var parameterCount = type.GenericParameters.Count(parameter => !containingTypeGenericParameters.Contains(parameter.Name));
+                    if (parameterCount > 0)
+                    {
+                        typeName = $"{typeName}`{parameterCount}";
+                    }
+                }
+                else
+                {
+                    typeName = $"{typeName}`{type.GenericParameters.Count}";
+                }
+            }
+
+            return typeName;
         }
     }
 }

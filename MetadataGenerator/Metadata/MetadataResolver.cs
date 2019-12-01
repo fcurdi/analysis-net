@@ -104,6 +104,7 @@ namespace MetadataGenerator.Metadata
              *     - For a normal generic type, arity is the number of type parameters declared on the type.
              *     - For a nested generic type, arity is the number of newly introduced type parameters.
              */
+            // FIXME partial logic. See TypeGenerator.TypeNameOf. Needs to be unified with that
             if (type.GenericParameterCount > 0)
             {
                 typeName = $"{type.Name}`{type.GenericParameterCount}";

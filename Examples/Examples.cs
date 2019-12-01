@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection.Metadata;
 using Accessibility;
 using Classes;
+using Generics;
 using Hierarchy;
 using Nested.NestedNamespace.NestedNestedNamesace;
 using Structs;
@@ -490,6 +491,10 @@ namespace Generics
             public class NestedNestedClassThatAddsNewGenericParameters<W>
             {
             }
+
+            public class NestedNestedClassThatDoesNotAddNewGenericParameters
+            {
+            }
         }
     }
 
@@ -581,13 +586,16 @@ namespace MethodBody
             simpleClass.DoNothing(); // virtual
             Alloc(); // normal
 
-            var l = new List<string> {"holas"};
+            var l = new List<string> {"holas"}; // FIXME missing <string> in bytecode
 
-            f(1); //FIXME callvirt instance void class. The "class" is not being generated. It seems to be only for generic method refs. Same problem that generic not being correctly?
+            //FIXME callvirt instance void class. The "class" is not being generated. It seems to be only for generic method refs. 
+            // FIXME missing <int> in bytecode
+            f(1); 
 
             // TODO calli (indirect)
 
-            /* not working when reading dll
+            /* FIXME
+             not working when reading dll
             var g = new Generics.Generic<int, Exception>();
             g.PrintGeneric("hola");
             g.PrintGeneric(1);
@@ -595,6 +603,11 @@ namespace MethodBody
 
             Nothing("");
             Nothing2<int>();
+            /* FIXME
+            not working when reading dll
+            Nothing2<ClassThatContainsNestedGenericClass.NestedGenericClass<int>>();
+            Nothing2<GenericClassContainingOtherClasses<string>.NestedClassThatAddsNewGenericParameters<int, long>.NestedNestedClassThatDoesNotAddNewGenericParameters>();
+            */
         }
 
         public void Arrays(EmptyStruct[] structArray)
