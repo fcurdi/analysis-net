@@ -439,7 +439,6 @@ namespace PointersAndReferences
     }
 }
 
-// FIXME generation almost correct. 
 namespace Generics
 {
     public class Generic<C, D> where D : Exception // FIXME generic constraint not in the model
@@ -448,6 +447,9 @@ namespace Generics
         public Dictionary<string, Exception> genericField;
 
         public IList<IList<Exception>> listOfListField;
+
+        // FIXME the assigment is done in the .ctor with a stfld instruction but i'm generating a stsfld instruction. That's because somehow the field that i recieve is static
+        // FIXME when in reality it is not. Maybe a fault in the model?
         public readonly List<string> stringList = new List<string> {"holas"};
 
         public IList<Exception> GetExceptionsList(List<string> _)
@@ -460,6 +462,7 @@ namespace Generics
             return new List<Exception>();
         }
 
+        // TODO this generated a "constrained." instruction. But is not supported in the model (it puts a Nop instruction in its place)
         public void PrintGeneric<T>(T t)
         {
             Console.WriteLine(t.ToString());
@@ -590,7 +593,7 @@ namespace MethodBody
 
             //FIXME callvirt instance void class. The "class" is not being generated. It seems to be only for generic method refs. 
             // FIXME missing <int> in bytecode
-            f(1); 
+            f(1);
 
             // TODO calli (indirect)
 

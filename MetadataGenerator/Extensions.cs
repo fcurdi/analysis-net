@@ -27,5 +27,11 @@ namespace MetadataGenerator
         public static int NextRowFor(this ECMA335.MetadataBuilder metadata, ECMA335.TableIndex tableIndex) => metadata.GetRowCount(tableIndex) + 1;
 
         public static string CurrentLabelString(this ECMA335.InstructionEncoder instructionEncoder) => $"L_{instructionEncoder.Offset:x4}".ToLower();
+
+        public static bool IsGenericInstantiation(this IBasicType type) => type.GenericType != null;
+
+        public static bool IsGenericInstantiation(this IMethodReference method) => method.GenericMethod != null;
+
+        public static bool IsGenericType(this IBasicType type) => type.GenericType == null && type.GenericParameterCount > 0;
     }
 }

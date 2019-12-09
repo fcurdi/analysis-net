@@ -82,6 +82,7 @@ namespace MetadataGenerator.Metadata
                     var signature = new SRM.BlobBuilder();
                     var encoder = new ECMA335.BlobEncoder(signature).TypeSpecificationSignature();
                     Encode(arrayOrPointerType, encoder);
+                    // FIXME should be stored? or added every time?
                     return metadataContainer.metadataBuilder.AddTypeSpecification(metadataContainer.metadataBuilder.GetOrAddBlob(signature));
                 }
                 default:
@@ -94,6 +95,16 @@ namespace MetadataGenerator.Metadata
          */
         private SRM.EntityHandle ReferenceHandleOf(IBasicType type)
         {
+            // TODO rewrite this method better
+            // FIXME should be stored? or added every time?
+            if (type.IsGenericInstantiation())
+            {
+                var signature = new SRM.BlobBuilder();
+                var encoder = new ECMA335.BlobEncoder(signature).TypeSpecificationSignature();
+                Encode(type, encoder);
+                return metadataContainer.metadataBuilder.AddTypeSpecification(metadataContainer.metadataBuilder.GetOrAddBlob(signature));
+            }
+
             var typeName = type.Name;
 
             /**
@@ -104,15 +115,16 @@ namespace MetadataGenerator.Metadata
              *     - For a normal generic type, arity is the number of type parameters declared on the type.
              *     - For a nested generic type, arity is the number of newly introduced type parameters.
              */
+
             // FIXME partial logic. See TypeGenerator.TypeNameOf. Needs to be unified with that
-            if (type.GenericParameterCount > 0)
+            if (type.IsGenericType())
             {
                 typeName = $"{type.Name}`{type.GenericParameterCount}";
             }
 
-            var typeReferenceKey =
+            var key =
                 $"{type.ContainingAssembly.Name}.{type.ContainingNamespace}.{(type.ContainingType != null ? (type.ContainingType.Name + ".") : "")}{typeName}";
-            if (!typeReferences.TryGetValue(typeReferenceKey, out var typeReference))
+            if (!typeReferences.TryGetValue(key, out var typeReference))
             {
                 SRM.EntityHandle resolutionScope;
                 if (type.ContainingType == null) // if defined in the namespace then search there
@@ -131,7 +143,7 @@ namespace MetadataGenerator.Metadata
                     resolutionScope: resolutionScope,
                     @namespace: metadataContainer.metadataBuilder.GetOrAddString(type.ContainingNamespace),
                     name: metadataContainer.metadataBuilder.GetOrAddString(typeName));
-                typeReferences.Add(typeReferenceKey, typeReference);
+                typeReferences.Add(key, typeReference);
 
                 return typeReference;
             }
@@ -142,10 +154,10 @@ namespace MetadataGenerator.Metadata
 
         private SRM.EntityHandle ReferenceHandleOf(IMethodReference method, SRM.BlobBuilder signature)
         {
-            if (method.GenericMethod != null)
+            if (method.IsGenericInstantiation())
             {
-                // FIXME should be store and not add a new one each time (like the else branch).
-                // To do this, the key should have info related to the instantiation that unequivocally identifies that particular instantiation
+                // FIXME should be stored and not add a new one each time (like the else branch).
+                // FIXME To do this, the key should have info related to the instantiation that unequivocally identifies that particular instantiation
                 var methodSpecificationHandle = metadataContainer.metadataBuilder.AddMethodSpecification(
                     ReferenceHandleOf(method.GenericMethod, methodSignatureGenerator.GenerateSignatureOf(method.GenericMethod)),
                     metadataContainer.metadataBuilder.GetOrAddBlob(signature)
@@ -155,7 +167,7 @@ namespace MetadataGenerator.Metadata
             else
             {
                 var key =
-                    $"{method.ContainingType.ContainingAssembly.Name}.{method.ContainingType.ContainingNamespace}.{method.ContainingType.Name}.{method.Name}";
+                    $"{method.ContainingType.ContainingAssembly.Name}.{method.ContainingType.ContainingNamespace}.{method.ContainingType}.{method.Name}";
                 if (!memberReferences.TryGetValue(key, out var methodReferenceHandle))
                 {
                     methodReferenceHandle = metadataContainer.metadataBuilder.AddMemberReference(
@@ -169,7 +181,6 @@ namespace MetadataGenerator.Metadata
             }
         }
 
-        // FIXME extract method for both method and field? identical
         private SRM.MemberReferenceHandle ReferenceHandleOf(IFieldReference field, SRM.BlobBuilder signature)
         {
             var key =
@@ -212,7 +223,7 @@ namespace MetadataGenerator.Metadata
                 {
                     case IBasicType basicType:
                     {
-                        if (basicType.GenericParameterCount > 0)
+                        if (basicType.IsGenericInstantiation())
                         {
                             var genericInstantiation = encoder.GenericInstantiation(
                                 ReferenceHandleOf(basicType.GenericType),

@@ -111,15 +111,16 @@ namespace MetadataGenerator.Generators
         private static string TypeNameOf(TypeDefinition type)
         {
             var typeName = type.Name;
-            if (type.GenericParameters.Count > 0)
+            if (type.IsGenericType())
             {
                 if (type.ContainingType != null)
                 {
                     var containingTypeGenericParameters = type.ContainingType.GenericParameters.Select(p => p.Name).ToList();
-                    var parameterCount = type.GenericParameters.Count(parameter => !containingTypeGenericParameters.Contains(parameter.Name));
-                    if (parameterCount > 0)
+                    var newlyIntroducedGenericParametersCount =
+                        type.GenericParameters.Count(parameter => !containingTypeGenericParameters.Contains(parameter.Name));
+                    if (newlyIntroducedGenericParametersCount > 0)
                     {
-                        typeName = $"{typeName}`{parameterCount}";
+                        typeName = $"{typeName}`{newlyIntroducedGenericParametersCount}";
                     }
                 }
                 else
