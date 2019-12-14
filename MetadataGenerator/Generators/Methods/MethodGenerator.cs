@@ -39,7 +39,6 @@ namespace MetadataGenerator.Generators.Methods
                 }
             }
 
-            // FIXME several addMethodBody variants with different arguments. codeSize, maxStacks, etc
             // FIXME maxStack should be computed from instructions. When a dll is read, the maxStack will be available (Model) but if code is generated 
             // programatically then the maxStack is gonna be missing
             var methodBody = method.HasBody

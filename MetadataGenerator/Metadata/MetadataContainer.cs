@@ -37,9 +37,6 @@ namespace MetadataGenerator.Metadata
             metadataResolver = new MetadataResolver(this, assembly);
         }
 
-        public SRM.StandaloneSignatureHandle ResolveStandaloneSignatureFor(FunctionPointerType method) =>
-            metadataResolver.ResolveStandaloneSignatureFor(method);
-
         public SRM.EntityHandle ResolveReferenceHandleFor(IMetadataReference metadataReference) =>
             metadataResolver.ReferenceHandleOf(metadataReference);
 
@@ -51,12 +48,11 @@ namespace MetadataGenerator.Metadata
         public void RegisterGenericParameter(SRM.MethodDefinitionHandle owner, GenericParameter genericParameter) =>
             DoRegisterGenericParameter(owner, genericParameter);
 
-        // FIXME name
         private void DoRegisterGenericParameter(SRM.EntityHandle owner, GenericParameter genericParameter)
         {
             void GenerateGenericParameter() => metadataBuilder.AddGenericParameter(
                 owner,
-                GenericParameterAttributes.None, // FIXME ?
+                GenericParameterAttributes.None,
                 metadataBuilder.GetOrAddString(genericParameter.Name), genericParameter.Index);
 
             /* FIXME generic constraints not in the model

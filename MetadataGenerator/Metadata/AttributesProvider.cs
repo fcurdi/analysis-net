@@ -89,11 +89,8 @@ namespace MetadataGenerator.Metadata
 
         public static MethodAttributes GetMethodAttributesFor(MethodDefinition method)
         {
-            var constructor =
-                method.IsConstructor ||
-                method.Name.Equals(
-                    ".cctor"); // FIXME maybe MethodDefinition can have a isClassConstructor or isTypeInitializer
-            bool specialName =
+            var constructor = method.IsConstructor || method.Name.Equals(".cctor");
+            var specialName =
                 method.Name.StartsWith("get_", StringComparison.Ordinal) ||
                 method.Name.StartsWith("set_", StringComparison.Ordinal) ||
                 method.Name.StartsWith("op_", StringComparison.Ordinal);
@@ -106,10 +103,7 @@ namespace MetadataGenerator.Metadata
                     ? MethodAttributes.NewSlot
                     : 0) | // FIXME not entirely correct. Model is missing the new keyword
                 (constructor ? MethodAttributes.SpecialName | MethodAttributes.RTSpecialName : 0) |
-                (specialName
-                    ? MethodAttributes.SpecialName
-                    : 0); // FIXME fails if non getter/setter method starts with get_/set_
-
+                (specialName ? MethodAttributes.SpecialName : 0);
             switch (method.Visibility)
             {
                 case VisibilityKind.Public:

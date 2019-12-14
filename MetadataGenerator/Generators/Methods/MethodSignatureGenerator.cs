@@ -34,9 +34,9 @@ namespace MetadataGenerator.Generators.Methods
             }
         }
 
+        // FIXME 0 because FunctionPointerType does not have that property (there's a fixme in that class)
         public SRM.BlobBuilder GenerateSignatureOf(FunctionPointerType method) =>
             GenerateMethodSignature(method.IsStatic, 0, method.Parameters, method.ReturnType);
-        // FIXME 0 because FunctionPointerType does not have that property (there's a fixme in that class)
 
         private SRM.BlobBuilder GenerateMethodSignature(
             bool isStatic,

@@ -48,7 +48,6 @@ namespace MetadataGenerator.Generators.Methods.Body
             }
         }
 
-        // FIXME name
         public void ProcessExceptionInformation(IList<ProtectedBlock> exceptionInformation)
         {
             var controlFlowBuilder = instructionEncoder.ControlFlowBuilder;

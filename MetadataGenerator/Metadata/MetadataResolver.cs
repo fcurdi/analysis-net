@@ -25,7 +25,6 @@ namespace MetadataGenerator.Metadata
             this.metadataContainer = metadataContainer;
             this.assembly = assembly;
 
-            // FIXME: assemblyName => assemblyRef could result in false positive?
             foreach (var assemblyReference in assembly.References)
             {
                 // FIXME parameters
@@ -44,13 +43,6 @@ namespace MetadataGenerator.Metadata
             methodSignatureGenerator = new MethodSignatureGenerator(metadataContainer);
         }
 
-        //FIXME name? more generic? only needed for method?
-        public SRM.StandaloneSignatureHandle ResolveStandaloneSignatureFor(FunctionPointerType method)
-        {
-            var signature = methodSignatureGenerator.GenerateSignatureOf(method);
-            return metadataContainer.metadataBuilder.AddStandaloneSignature(metadataContainer.metadataBuilder.GetOrAddBlob(signature));
-        }
-
         public SRM.EntityHandle ReferenceHandleOf(IMetadataReference metadataReference)
         {
             switch (metadataReference)
@@ -65,10 +57,15 @@ namespace MetadataGenerator.Metadata
                     var signature = methodSignatureGenerator.GenerateSignatureOf(method);
                     return ReferenceHandleOf(method, signature);
                 }
+                case FunctionPointerType functionPointer:
+                {
+                    var signature = methodSignatureGenerator.GenerateSignatureOf(functionPointer);
+                    return metadataContainer.metadataBuilder.AddStandaloneSignature(metadataContainer.metadataBuilder.GetOrAddBlob(signature));
+                }
                 case IType type:
                     return ReferenceHandleOf(type);
                 default:
-                    throw new Exception(); // FIXME
+                    throw new Exception($"Metadata reference not supported");
             }
         }
 

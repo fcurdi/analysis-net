@@ -401,8 +401,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                         instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(storeFieldInstruction.Field));
                         break;
                     case SwitchInstruction switchInstruction:
-                        // TODO test. This instructions that are difficult to generate in example can be generated programatically (new SwitchInstruction...)
-                        // maybe have an example files that generates all this instructions that are missing
                         instructionEncoder.OpCode(SRM.ILOpCode.Switch);
                         instructionEncoder.Token(switchInstruction.Targets.Count);
                         switchInstruction.Targets
@@ -420,8 +418,8 @@ namespace MetadataGenerator.Generators.Methods.Body
                         break;
                     case IndirectMethodCallInstruction indirectMethodCallInstruction:
                         // TODO test
-                        var methodSignature = metadataContainer.ResolveStandaloneSignatureFor(indirectMethodCallInstruction.Function);
-                        instructionEncoder.CallIndirect(methodSignature);
+                        var methodSignature = metadataContainer.ResolveReferenceHandleFor(indirectMethodCallInstruction.Function);
+                        instructionEncoder.CallIndirect((SRM.StandaloneSignatureHandle) methodSignature);
                         break;
                     case StoreArrayElementInstruction storeArrayElementInstruction:
                         // FIXME 
@@ -436,7 +434,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                 }
             }
 
-            controlFlowGenerator.MarkAllUnmarkedLabels(); // FIXME 
+            controlFlowGenerator.MarkAllUnmarkedLabels(); // FIXME  remove
 
             return instructionEncoder;
         }

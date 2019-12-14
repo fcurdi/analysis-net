@@ -35,21 +35,21 @@ namespace MetadataGenerator.Generators
 
                 var propertySignatureBlogBuilder = new BlobBuilder();
                 new BlobEncoder(propertySignatureBlogBuilder)
-                    .PropertySignature(isInstanceProperty: true) //FIXME when false
+                    .PropertySignature(isInstanceProperty: true?) 
                     .Parameters(
                     0,
-                    returnType => returnType.Type().Int32(), //FIXME backingField type
+                    returnType => returnType.Type().Int32() (algun type), 
                     parameters => { });
 
                 var propertyDefinitionHandle = metadata.AddProperty(
-                    attributes: PropertyAttributes.None, //FIXME
-                    name: metadata.GetOrAddString(""), //FIXME property name
+                    attributes: PropertyAttributes.None, 
+                    name: metadata.GetOrAddString(""), 
                     signature: metadata.GetOrAddBlob(propertySignatureBlogBuilder));
 
                 // associate methods (get, set) to property  
                 metadata.AddMethodSemantics(
                     propertyDefinitionHandle,
-                    method.Name.StartsWith("get_") ? MethodSemanticsAttributes.Getter : MethodSemanticsAttributes.Setter, //FIXME,
+                    method.Name.StartsWith("get_") ? MethodSemanticsAttributes.Getter : MethodSemanticsAttributes.Setter,
                     methodHandle); //getter/setter
                 metadata.AddPropertyMap(typeDefinitionHandle, propertyDefinitionHandle);
             */
