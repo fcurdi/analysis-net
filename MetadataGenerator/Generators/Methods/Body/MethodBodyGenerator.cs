@@ -130,17 +130,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 // TODO depending on type of operand instructionEncoder.OpCode(SRM.ILOpCode.Ldind_X);
                                 // example is already generated for all variants
                                 break;
-                            case BasicOperation.LoadArrayElement:
-                                // FIXME LoadArrayElement needs an operand (should not be BasicInstruction)
-                                // TODO depending on type of operand instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_X);
-                                // example is already generated
-                                break;
-                            case BasicOperation.LoadArrayElementAddress:
-                                // FIXME LoadArrayElementAddress needs an operand (should not be BasicInstruction)
-                                // instructionEncoder.OpCode(SRM.ILOpCode.Ldelema);
-                                // instructionEncoder.token(type);
-                                // example is already generated
-                                break;
                             case BasicOperation.IndirectStore:
                                 // FIXME IndirectStore needs an operand (should not be BasicInstruction)
                                 // instructionEncoder.OpCode(SRM.ILOpCode.Stobj);
@@ -362,7 +351,65 @@ namespace MetadataGenerator.Generators.Methods.Body
                         instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadFieldInstruction.Field));
                         break;
                     case LoadArrayElementInstruction loadArrayElementInstruction:
-                        // TODO this is currently modeled as a basic instruction and this is not used
+                        switch (loadArrayElementInstruction.Operation)
+                        {
+                            // TODO not doing anything until LoadArrayElementInstruction PR is merged (because right now is treated as BasicOperation)
+                            case LoadArrayElementOperation.Content:
+                                // TODO there are multiple operations with this ifs. Maybe extract method?
+                                if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int8))
+                                {
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i1);
+                                }
+                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.UInt8))
+                                {
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_u1);
+                                }
+                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int16))
+                                {
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i2);
+                                }
+                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.UInt16))
+                                {
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_u2);
+                                }
+                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int32))
+                                {
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i4);
+                                }
+                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.UInt32))
+                                {
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_u4);
+                                }
+                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int64) ||
+                                         loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.UInt64))
+                                {
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i8);
+                                }
+                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Float32))
+                                {
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_r4);
+                                }
+                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Float64))
+                                {
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_r8);
+                                }
+                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Object))
+                                {
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_ref);
+                                }
+                                else
+                                {
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem);
+                                }
+
+                                break;
+                            case LoadArrayElementOperation.Address:
+                                instructionEncoder.OpCode(SRM.ILOpCode.Ldelema);
+                                break;
+                        }
+
+                        var typeTok = metadataContainer.ResolveReferenceHandleFor(loadArrayElementInstruction.Array.ElementsType);
+                        instructionEncoder.Token(typeTok);
                         break;
                     case LoadMethodAddressInstruction loadMethodAddressInstruction:
                         instructionEncoder.OpCode(SRM.ILOpCode.Ldftn);

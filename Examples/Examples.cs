@@ -806,9 +806,10 @@ namespace MethodBody
             var h = (new long[] { })[0]; // ldelem.i8 -- ldelem.u8 (alias)
             var j = (new float[] { })[0]; // ldelem.r4
             var k = (new double[] { })[0]; // ldelem.r8
-
+            // TODO unccoment when LoadArrayElementInstruction PR is merged
+    //        var l = new EmptyStruct[] {new EmptyStruct() }[0]; // ldelem typeTok
+            
             // TODO ldelem.i ???
-            // TODO ldelem typeTok ???
             // 
             // FIXME framework read not working. Something not implemented? Maybe avoid fixed keyword?
             //            unsafe
@@ -819,7 +820,7 @@ namespace MethodBody
             //            }
 
 
-            var l = (new int[] {1, 2, 3}).Length; // ldlen
+            var m = (new int[] {1, 2, 3}).Length; // ldlen
         }
 
         public void LoadField()
