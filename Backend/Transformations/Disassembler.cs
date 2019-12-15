@@ -191,15 +191,7 @@ namespace Backend.Transformations
 					case Bytecode.BasicOperation.IndirectLoad:
 						ProcessIndirectLoad(op);
 						break;
-
-					case Bytecode.BasicOperation.LoadArrayElement:
-						ProcessLoadArrayElement(op);
-						break;
-
-					case Bytecode.BasicOperation.LoadArrayElementAddress:
-						ProcessLoadArrayElementAddress(op);
-						break;
-
+					
 					case Bytecode.BasicOperation.IndirectStore:
 						ProcessIndirectStore(op);
 						break;

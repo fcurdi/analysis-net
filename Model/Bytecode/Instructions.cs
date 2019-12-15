@@ -41,8 +41,6 @@ namespace Model.Bytecode
 		CopyBlock,
 		LoadArrayLength,
 		IndirectLoad,
-		LoadArrayElement,
-		LoadArrayElementAddress,
 		IndirectStore,
 		StoreArrayElement,
 		Breakpoint,
@@ -262,7 +260,6 @@ namespace Model.Bytecode
 			return this.ToString("new {0}", this.Type);
 		}
 	}
-
 	public class LoadArrayElementInstruction : Instruction
     {
 		public LoadArrayElementOperation Operation { get; set; }
