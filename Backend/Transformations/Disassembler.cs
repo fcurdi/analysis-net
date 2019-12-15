@@ -364,27 +364,6 @@ namespace Backend.Transformations
 				body.Instructions.Add(instruction);
 			}
 
-			private void ProcessLoadArrayElement(Bytecode.BasicInstruction op)
-			{
-				var index = stack.Pop();
-				var array = stack.Pop();
-				var dest = stack.Push();
-				var source = new ArrayElementAccess(array, index);
-				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
-				body.Instructions.Add(instruction);
-			}
-
-			private void ProcessLoadArrayElementAddress(Bytecode.BasicInstruction op)
-			{
-				var index = stack.Pop();
-				var array = stack.Pop();
-				var dest = stack.Push();
-				var access = new ArrayElementAccess(array, index);
-				var source = new Reference(access);
-				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
-				body.Instructions.Add(instruction);
-			}
-
 			private void ProcessIndirectStore(Bytecode.BasicInstruction op)
 			{
 				var source = stack.Pop();
