@@ -1070,15 +1070,31 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Stelem:
+					instruction = ProcessStoreArrayElement(operation, new ArrayType(GetOperand<IType>(operation)));
+					break;
 				case SRM.ILOpCode.Stelem_i:
+					instruction = ProcessStoreArrayElement(operation, new ArrayType(PlatformTypes.IntPtr));
+					break;
 				case SRM.ILOpCode.Stelem_i1:
+					instruction = ProcessStoreArrayElement(operation, new ArrayType(PlatformTypes.Int8));
+					break;
 				case SRM.ILOpCode.Stelem_i2:
+					instruction = ProcessStoreArrayElement(operation, new ArrayType(PlatformTypes.Int16));
+					break;
 				case SRM.ILOpCode.Stelem_i4:
+					instruction = ProcessStoreArrayElement(operation, new ArrayType(PlatformTypes.Int32));
+					break;
 				case SRM.ILOpCode.Stelem_i8:
+					instruction = ProcessStoreArrayElement(operation, new ArrayType(PlatformTypes.Int64));
+					break;
 				case SRM.ILOpCode.Stelem_r4:
+					instruction = ProcessStoreArrayElement(operation, new ArrayType(PlatformTypes.Float32));
+					break;
 				case SRM.ILOpCode.Stelem_r8:
+					instruction = ProcessStoreArrayElement(operation, new ArrayType(PlatformTypes.Float64));
+					break;
 				case SRM.ILOpCode.Stelem_ref:
-					instruction = ProcessBasic(operation);
+					instruction = ProcessStoreArrayElement(operation, new ArrayType(PlatformTypes.Object));
 					break;
 
 				case SRM.ILOpCode.Stfld:
@@ -1211,6 +1227,13 @@ namespace MetadataProvider
 						result = (T)GetMethodReference(handle);
 						break;
 					}
+				
+				case OperandType.TypeDefinition:
+				{
+					var handle = (SRM.TypeDefinitionHandle)op.Operand;
+					result = (T)(object)GetDefinedType(handle);
+					break;					
+				}
 
 				default:
 					throw op.OperandType.ToUnknownValueException();

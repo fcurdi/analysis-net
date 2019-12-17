@@ -461,9 +461,6 @@ namespace CCIProvider
 					break;
 
 				case Cci.OperationCode.Array_Set:
-					instruction = ProcessStoreArrayElement(operation);
-					break;
-
 				case Cci.OperationCode.Stelem:
 				case Cci.OperationCode.Stelem_I:
 				case Cci.OperationCode.Stelem_I1:
@@ -473,7 +470,7 @@ namespace CCIProvider
 				case Cci.OperationCode.Stelem_R4:
 				case Cci.OperationCode.Stelem_R8:
 				case Cci.OperationCode.Stelem_Ref:
-					instruction = ProcessBasic(operation);
+					instruction = ProcessStoreArrayElement(operation);
 					break;
 
 				case Cci.OperationCode.Stfld:

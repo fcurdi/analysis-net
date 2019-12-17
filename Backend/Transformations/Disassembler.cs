@@ -204,10 +204,6 @@ namespace Backend.Transformations
 						ProcessIndirectStore(op);
 						break;
 
-					case Bytecode.BasicOperation.StoreArrayElement:
-						ProcessStoreArrayElement(op);
-						break;
-
 					case Bytecode.BasicOperation.Breakpoint:
 						ProcessBreakpointOperation(op);
 						break;
@@ -401,17 +397,7 @@ namespace Backend.Transformations
 				var instruction = new Tac.StoreInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
-
-			private void ProcessStoreArrayElement(Bytecode.BasicInstruction op)
-			{
-				var source = stack.Pop();
-				var index = stack.Pop();
-				var array = stack.Pop();
-				var dest = new ArrayElementAccess(array, index);
-				var instruction = new Tac.StoreInstruction(op.Offset, dest, source);
-				body.Instructions.Add(instruction);
-			}
-
+			
 			private void ProcessBreakpointOperation(Bytecode.BasicInstruction op)
 			{
 				var instruction = new Tac.BreakpointInstruction(op.Offset);
