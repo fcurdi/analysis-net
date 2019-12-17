@@ -780,9 +780,12 @@ namespace MetadataProvider
 				case SRM.ILOpCode.Newarr:
 					instruction = ProcessCreateArray(operation);
 					break;
-
+				
 				case SRM.ILOpCode.Ldelem:
 					instruction = ProcessLoadArrayElement(operation,  new ArrayType(GetOperand<IType>(operation)), LoadArrayElementOperation.Content);
+					break;
+				case SRM.ILOpCode.Ldelem_i:
+					instruction = ProcessLoadArrayElement(operation,  new ArrayType(PlatformTypes.IntPtr), LoadArrayElementOperation.Content);
 					break;
 				case SRM.ILOpCode.Ldelem_i1:
 					instruction = ProcessLoadArrayElement(operation, new ArrayType(PlatformTypes.Int8), LoadArrayElementOperation.Content);
