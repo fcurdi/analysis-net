@@ -135,13 +135,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 // instructionEncoder.OpCode(SRM.ILOpCode.Stobj);
                                 // instructionEncoder.token();
                                 break;
-                            case BasicOperation.StoreArrayElement:
-                                // FIXME StoreArrayElement needs an operand (should not be BasicInstruction)
-                                // instructionEncoder.OpCode(SRM.ILOpCode.Stelem_X);
-
-                                // instructionEncoder.OpCode(SRM.ILOpCode.Stelem);
-                                // instructionEncoder.token();
-                                break;
                             case BasicOperation.Breakpoint:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Break);
                                 break;
@@ -355,8 +348,12 @@ namespace MetadataGenerator.Generators.Methods.Body
                         {
                             // TODO not doing anything until LoadArrayElementInstruction PR is merged (because right now is treated as BasicOperation)
                             case LoadArrayElementOperation.Content:
-                                // TODO there are multiple operations with this ifs. Maybe extract method?
-                                if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int8))
+                                // TODO there are multiple instructions with this kind of ifs. Maybe extract method?
+                                if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.IntPtr))
+                                {
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i);
+                                }
+                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int8))
                                 {
                                     instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i1);
                                 }
@@ -408,8 +405,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 break;
                         }
 
-                        var typeTok = metadataContainer.ResolveReferenceHandleFor(loadArrayElementInstruction.Array.ElementsType);
-                        instructionEncoder.Token(typeTok);
+                        instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadArrayElementInstruction.Array.ElementsType));
                         break;
                     case LoadMethodAddressInstruction loadMethodAddressInstruction:
                         instructionEncoder.OpCode(SRM.ILOpCode.Ldftn);
@@ -469,12 +465,44 @@ namespace MetadataGenerator.Generators.Methods.Body
                         instructionEncoder.CallIndirect((SRM.StandaloneSignatureHandle) methodSignature);
                         break;
                     case StoreArrayElementInstruction storeArrayElementInstruction:
-                        // FIXME 
-                        // Framework currently handles this as a BasicInstruction and this is never generated. Should use this one
-                        // example already generated
-                        // the implementation should be like load instruction
-                        // instructionEncoder.OpCode(SRM.ILOpCode.Stelem_X);
-                        // instructionEncoder.Token(value);
+                        if (storeArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int8))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stelem_i1);
+                        }
+                        else if (storeArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int16))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stelem_i2);
+                        }
+                        else if (storeArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int32))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stelem_i4);
+                        }
+                        else if (storeArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int64))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stelem_i8);
+                        }
+                        else if (storeArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Float32))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stelem_r4);
+                        }
+                        else if (storeArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Float64))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stelem_r8);
+                        }
+                        else if (storeArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.IntPtr))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stelem_i);
+                        }
+                        else if (storeArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Object))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stelem_ref);
+                        }
+                        else
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stelem);
+                        }
+
+                        instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(storeArrayElementInstruction.Array.ElementsType));
                         break;
                     default:
                         throw new Exception("instruction type not handled");
