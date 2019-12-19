@@ -110,8 +110,8 @@ namespace MetadataProvider
 		{
 			switch (opcode)
 			{
-				case SRM.ILOpCode.Castclass:
-				case SRM.ILOpCode.Isinst:		 return ConvertOperation.Cast;
+				case SRM.ILOpCode.Isinst:		 return  ConvertOperation.IsInst;
+				case SRM.ILOpCode.Castclass:     return ConvertOperation.Cast;
 				case SRM.ILOpCode.Box:			 return ConvertOperation.Box;
 				case SRM.ILOpCode.Unbox:		 return ConvertOperation.UnboxPtr;
 				case SRM.ILOpCode.Unbox_any:	 return ConvertOperation.Unbox;

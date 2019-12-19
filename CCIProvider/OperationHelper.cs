@@ -109,9 +109,9 @@ namespace CCIProvider
 		public static ConvertOperation ToConvertOperation(Cci.OperationCode opcode)
 		{
 			switch (opcode)
-			{
-				case Cci.OperationCode.Castclass:
-				case Cci.OperationCode.Isinst:		return ConvertOperation.Cast;
+			{					
+				case Cci.OperationCode.Isinst:	    return  ConvertOperation.IsInst;
+				case Cci.OperationCode.Castclass:	return ConvertOperation.Cast;
 				case Cci.OperationCode.Box:			return ConvertOperation.Box;
 				case Cci.OperationCode.Unbox:		return ConvertOperation.UnboxPtr;
 				case Cci.OperationCode.Unbox_Any:	return ConvertOperation.Unbox;

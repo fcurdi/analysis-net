@@ -66,6 +66,7 @@ namespace Model.Bytecode
 	public enum ConvertOperation
 	{
 		Conv,
+		IsInst,
 		Cast,
 		Box,
 		Unbox,
