@@ -344,8 +344,17 @@ namespace MetadataGenerator.Generators.Methods.Body
 
                         break;
                     case LoadFieldInstruction loadFieldInstruction:
-                        // TODO handle ldflda. Example present but not supported in model
-                        instructionEncoder.OpCode(SRM.ILOpCode.Ldfld);
+                        switch (loadFieldInstruction.Operation)
+                        {
+                            case LoadFieldOperation.Content:
+                                instructionEncoder.OpCode(SRM.ILOpCode.Ldfld);
+                                break;
+                            case LoadFieldOperation.Address:
+                                // TODO test. Example present but not supported in model
+                                instructionEncoder.OpCode(SRM.ILOpCode.Ldflda);
+                                break;
+                        }
+
                         instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadFieldInstruction.Field));
                         break;
                     case LoadArrayElementInstruction loadArrayElementInstruction:
