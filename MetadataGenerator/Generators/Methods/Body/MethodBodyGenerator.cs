@@ -185,6 +185,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                         instructionEncoder.Branch(opCode, controlFlowGenerator.LabelHandleFor(branchInstruction.Target));
                         break;
                     }
+
                     case ConvertInstruction convertInstruction:
                         switch (convertInstruction.Operation)
                         {
@@ -234,8 +235,12 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 break;
                             case ConvertOperation.Cast:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Castclass);
-                                // FIXME could also be instructionEncoder.OpCode(SRM.ILOpCode.Isinst);
                                 break;
+                            /* FIXMEunccoment when isInst PR is merged
+                            case ConvertOperation.IsInst:
+                                instructionEncoder.OpCode(SRM.ILOpCode.Isinst);
+                                break;
+                                */
                             case ConvertOperation.Box:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Box);
                                 break;

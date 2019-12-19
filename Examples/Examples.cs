@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Reflection.Metadata;
 using Accessibility;
 using Classes;
-using Generics;
 using Hierarchy;
 using Nested.NestedNamespace.NestedNestedNamesace;
 using Structs;
@@ -650,6 +649,7 @@ namespace MethodBody
         {
         }
 
+        // FIXME not generated correctly
         public void Convert(object o)
         {
             long x1 = 1;
@@ -672,8 +672,8 @@ namespace MethodBody
             var x = (int[]) (object) new int[] { };
 
 
-            // FIXME framework read not working.
-            //   var b = o is Classes.SimpleClass; // isinst $class
+            // FIXME framework read not working (unccoment when isInst PR is merged)
+            // var b = o is Classes.SimpleClass; // isinst $class
 
             object l = 1; // box int
             int i = (int) l; // unbox.any int
@@ -733,7 +733,7 @@ namespace MethodBody
         {
             unsafe
             {
-                var p = default(int*); // ldloca.s 0
+                var p = default(int*); // ldloca.s 0 + initobj int*
                 // TODO ldloca $argNum
                 var q = &x; // ldarga.s 0
                 // TODO ldarga $argNum
@@ -807,8 +807,8 @@ namespace MethodBody
             var j = (new float[] { })[0]; // ldelem.r4
             var k = (new double[] { })[0]; // ldelem.r8
             // TODO unccoment when LoadArrayElementInstruction PR is merged
-    //        var l = new EmptyStruct[] {new EmptyStruct() }[0]; // ldelem typeTok
-            
+            //        var l = new EmptyStruct[] {new EmptyStruct() }[0]; // ldelem typeTok
+
             // TODO ldelem.i ???
             // 
             // FIXME framework read not working. Something not implemented? Maybe avoid fixed keyword?
