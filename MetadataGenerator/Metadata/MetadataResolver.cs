@@ -74,11 +74,11 @@ namespace MetadataGenerator.Metadata
             switch (type)
             {
                 case IBasicType basicType: return ReferenceHandleOf(basicType);
-                case IType arrayOrPointerType when arrayOrPointerType is ArrayType || arrayOrPointerType is PointerType:
+                case IType iType when iType is ArrayType || iType is PointerType || iType is IGenericParameterReference:
                 {
                     var signature = new SRM.BlobBuilder();
                     var encoder = new ECMA335.BlobEncoder(signature).TypeSpecificationSignature();
-                    Encode(arrayOrPointerType, encoder);
+                    Encode(iType, encoder);
                     // FIXME should be stored? or added every time?
                     return metadataContainer.metadataBuilder.AddTypeSpecification(metadataContainer.metadataBuilder.GetOrAddBlob(signature));
                 }

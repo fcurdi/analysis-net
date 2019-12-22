@@ -142,6 +142,11 @@ namespace MetadataGenerator.Metadata
                     break;
             }
 
+            if (parameter.HasDefaultValue)
+            {
+                attributes |= ParameterAttributes.Optional | ParameterAttributes.HasDefault;
+            }
+
             return attributes;
         }
 

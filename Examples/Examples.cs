@@ -148,7 +148,9 @@ namespace Classes
         public void MethodWithOptionalParameters(
             string someParam,
             int optionalInt = 0,
-            EmptyStruct optionalStruct = new EmptyStruct())
+            EmptyStruct optionalStruct = new EmptyStruct(),
+            Exception optionalException = null,
+            string optionalString = "some initial value")
         {
         }
 
@@ -555,14 +557,6 @@ namespace MethodBody
             z = z << 1;
         }
 
-        public void Comparison(int x)
-        {
-            var z = x > 1;
-            z = x < 1;
-            z = x == 1;
-        }
-
-
         public abstract void NoBody();
 
         public void Alloc()
@@ -588,10 +582,8 @@ namespace MethodBody
             simpleClass.DoNothing(); // virtual
             Alloc(); // normal
 
-            var l = new List<string> {"holas"}; // FIXME missing <string> in bytecode
+            var l = new List<string> {"holas"};
 
-            //FIXME callvirt instance void class. The "class" is not being generated. It seems to be only for generic method refs. 
-            // FIXME missing <int> in bytecode
             f(1);
 
             // TODO calli (indirect)
@@ -642,7 +634,6 @@ namespace MethodBody
             floatArray[1] = f; // stelem.r4
             doubleArray[1] = d; // stelem.r8
             structArray[0] = p; // stelem
-            // TODO stelem.i
         }
 
         public void Empty()
@@ -775,7 +766,7 @@ namespace MethodBody
             }
         }
 
-        public void Compare(int b)
+        public void Compare(int b, int x)
         {
             var a = b == 2; // ceq
             a = b > 2; // cgt
@@ -862,19 +853,19 @@ namespace MethodBody
         {
             unsafe
             {
-                // FIXME framework read not working
+                // FIXME unccomment when on of the instructiosn PRs is merged (needs the TypeDefinitionHandle case that is missing)
                 // var x = sizeof(Structs.NonEmptyStruct); // sizeof $type
                 var z = sizeof(NonEmptyStruct***); // sizeof $type***
                 var y = sizeof(int*); // sizeof int*
             }
         }
 
-        // doesnt work yet
         // TODO other cases
-        //        public void LoadToken<T>()
-        //{
-        //var x = typeof(T);
-        //}
+        // FIXME generation almost correct
+        public void LoadToken<T>()
+        {
+            var x = typeof(T);
+        }
 
         public void Branch(int a, int b, Exception e)
         {

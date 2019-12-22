@@ -23,7 +23,6 @@ namespace MetadataGenerator.Generators.Methods.Body
         {
             var instructionEncoder = new ECMA335.InstructionEncoder(new SRM.BlobBuilder(), new ECMA335.ControlFlowBuilder());
             var controlFlowGenerator = new MethodBodyControlFlowGenerator(instructionEncoder, metadataContainer);
-
             controlFlowGenerator.ProcessExceptionInformation(body.ExceptionInformation);
 
             foreach (var instruction in body.Instructions)
@@ -112,9 +111,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 instructionEncoder.OpCode(SRM.ILOpCode.Initblk);
                                 break;
                             case BasicOperation.InitObject:
-                                // FIXME InitObject needs an operand (should not be BasicInstruction)
-                                // instructionEncoder.OpCode(ILOpCode.Initobj);
-                                // instructionEncoder.Token(type)
+                                // FIXME InitObject needs an operand (should not be BasicInstruction). There's already a PR that fixes this
                                 break;
                             case BasicOperation.CopyObject:
                                 // FIXME CopyObject needs an operand (should not be BasicInstruction)
@@ -126,14 +123,11 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 instructionEncoder.OpCode(SRM.ILOpCode.Ldlen);
                                 break;
                             case BasicOperation.IndirectLoad:
-                                // FIXME IndirectLoad needs an operand (should not be BasicInstruction)
-                                // TODO depending on type of operand instructionEncoder.OpCode(SRM.ILOpCode.Ldind_X);
+                                // FIXME IndirectLoad needs an operand (should not be BasicInstruction). There's already a PR that fixes this
                                 // example is already generated for all variants
                                 break;
                             case BasicOperation.IndirectStore:
-                                // FIXME IndirectStore needs an operand (should not be BasicInstruction)
-                                // instructionEncoder.OpCode(SRM.ILOpCode.Stobj);
-                                // instructionEncoder.token();
+                                // FIXME IndirectStore needs an operand (should not be BasicInstruction). There's already a PR that fixes this
                                 break;
                             case BasicOperation.Breakpoint:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Break);
@@ -415,6 +409,7 @@ namespace MetadataGenerator.Generators.Methods.Body
 
                                 break;
                             case LoadArrayElementOperation.Address:
+                                // TODO test. Example present but not supported in model
                                 instructionEncoder.OpCode(SRM.ILOpCode.Ldelema);
                                 break;
                         }

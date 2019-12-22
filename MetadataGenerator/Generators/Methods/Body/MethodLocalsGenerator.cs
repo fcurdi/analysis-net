@@ -69,7 +69,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                 // FIXME ??
                 var nextLocalConstantHandle =
                     ECMA335.MetadataTokens.LocalConstantHandle(metadataContainer.metadataBuilder.NextRowFor(ECMA335.TableIndex.LocalConstant));
-
                 metadataContainer.metadataBuilder.AddLocalScope(
                     method: containingMethodHandle,
                     importScope: default, // FIXME ??
