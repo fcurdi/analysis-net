@@ -1233,12 +1233,6 @@ namespace MetadataProvider
 						break;
 					}
 
-				case OperandType.TypeDefinition:
-				{
-					var handle = (SRM.TypeDefinitionHandle)op.Operand;
-					result = (T)(object)GetDefinedType(handle);
-					break;					
-				}
 				default:
 					throw op.OperandType.ToUnknownValueException();
 			}
