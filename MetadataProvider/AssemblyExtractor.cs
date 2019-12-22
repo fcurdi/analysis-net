@@ -1211,7 +1211,7 @@ namespace MetadataProvider
 						result = (T)GetMethodReference(handle);
 						break;
 					}
-				
+
 				default:
 					throw op.OperandType.ToUnknownValueException();
 			}
