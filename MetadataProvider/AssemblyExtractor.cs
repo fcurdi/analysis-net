@@ -1177,6 +1177,13 @@ namespace MetadataProvider
 						break;
 					}
 
+				case OperandType.TypeDefinition:
+				{
+					var handle = (SRM.TypeDefinitionHandle)op.Operand;
+					result = (T)(object)GetDefinedType(handle);
+					break;					
+				}
+				
 				case OperandType.TypeReference:
 					{
 						var handle = (SRM.TypeReferenceHandle)op.Operand;
