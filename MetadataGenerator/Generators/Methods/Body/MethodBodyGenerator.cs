@@ -34,27 +34,47 @@ namespace MetadataGenerator.Generators.Methods.Body
                     case BasicInstruction basicInstruction:
                         switch (basicInstruction.Operation)
                         {
-                            // TODO 
-                            // check overflow for variants (ej: add, add_ovf, add_ovf_un)
-                            // see all IlOpCode constants and ECMA
-
                             case BasicOperation.Nop:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Nop);
                                 break;
                             case BasicOperation.Add:
-                                instructionEncoder.OpCode(SRM.ILOpCode.Add);
+                                if (basicInstruction.OverflowCheck)
+                                {
+                                    instructionEncoder.OpCode(basicInstruction.UnsignedOperands ? SRM.ILOpCode.Add_ovf_un : SRM.ILOpCode.Add_ovf);
+                                }
+                                else
+                                {
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Add);
+                                }
+
                                 break;
                             case BasicOperation.Sub:
-                                instructionEncoder.OpCode(SRM.ILOpCode.Sub);
+                                if (basicInstruction.OverflowCheck)
+                                {
+                                    instructionEncoder.OpCode(basicInstruction.UnsignedOperands ? SRM.ILOpCode.Sub_ovf_un : SRM.ILOpCode.Sub_ovf);
+                                }
+                                else
+                                {
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Sub);
+                                }
+
                                 break;
                             case BasicOperation.Mul:
-                                instructionEncoder.OpCode(SRM.ILOpCode.Mul);
+                                if (basicInstruction.OverflowCheck)
+                                {
+                                    instructionEncoder.OpCode(basicInstruction.UnsignedOperands ? SRM.ILOpCode.Mul_ovf_un : SRM.ILOpCode.Mul_ovf);
+                                }
+                                else
+                                {
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Mul);
+                                }
+
                                 break;
                             case BasicOperation.Div:
-                                instructionEncoder.OpCode(SRM.ILOpCode.Div);
+                                instructionEncoder.OpCode(basicInstruction.UnsignedOperands ? SRM.ILOpCode.Div_un : SRM.ILOpCode.Div);
                                 break;
                             case BasicOperation.Rem:
-                                instructionEncoder.OpCode(SRM.ILOpCode.Rem);
+                                instructionEncoder.OpCode(basicInstruction.UnsignedOperands ? SRM.ILOpCode.Rem_un : SRM.ILOpCode.Rem);
                                 break;
                             case BasicOperation.And:
                                 instructionEncoder.OpCode(SRM.ILOpCode.And);
@@ -69,16 +89,16 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 instructionEncoder.OpCode(SRM.ILOpCode.Shl);
                                 break;
                             case BasicOperation.Shr:
-                                instructionEncoder.OpCode(SRM.ILOpCode.Shr);
+                                instructionEncoder.OpCode(basicInstruction.UnsignedOperands ? SRM.ILOpCode.Shr_un : SRM.ILOpCode.Shr);
                                 break;
                             case BasicOperation.Eq:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Ceq);
                                 break;
                             case BasicOperation.Lt:
-                                instructionEncoder.OpCode(SRM.ILOpCode.Clt);
+                                instructionEncoder.OpCode(basicInstruction.UnsignedOperands ? SRM.ILOpCode.Clt_un : SRM.ILOpCode.Clt);
                                 break;
                             case BasicOperation.Gt:
-                                instructionEncoder.OpCode(SRM.ILOpCode.Cgt);
+                                instructionEncoder.OpCode(basicInstruction.UnsignedOperands ? SRM.ILOpCode.Cgt_un : SRM.ILOpCode.Cgt);
                                 break;
                             case BasicOperation.Throw:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Throw);
@@ -143,7 +163,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                         var opCode = SRM.ILOpCode.Br_s;
                         switch (branchInstruction.Operation)
                         {
-                            // TODO all short forms can also be not short form (ex: br and br.s) and there's "un" variants
+                            // TODO all short forms can also be not short form (ex: br and br.s)
                             case BranchOperation.False:
                                 opCode = SRM.ILOpCode.Brfalse_s;
                                 break;
@@ -157,16 +177,16 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 opCode = SRM.ILOpCode.Bne_un_s;
                                 break;
                             case BranchOperation.Lt:
-                                opCode = SRM.ILOpCode.Blt_s;
+                                opCode = branchInstruction.UnsignedOperands ? SRM.ILOpCode.Blt_un_s : SRM.ILOpCode.Blt_s;
                                 break;
                             case BranchOperation.Le:
-                                opCode = SRM.ILOpCode.Ble_s;
+                                opCode = branchInstruction.UnsignedOperands ? SRM.ILOpCode.Ble_un_s : SRM.ILOpCode.Ble_s;
                                 break;
                             case BranchOperation.Gt:
-                                opCode = SRM.ILOpCode.Bgt_s;
+                                opCode = branchInstruction.UnsignedOperands ? SRM.ILOpCode.Bgt_un_s : SRM.ILOpCode.Bgt_s;
                                 break;
                             case BranchOperation.Ge:
-                                opCode = SRM.ILOpCode.Bge_s;
+                                opCode = branchInstruction.UnsignedOperands ? SRM.ILOpCode.Bge_un_s : SRM.ILOpCode.Bge_s;
                                 break;
                             case BranchOperation.Branch:
                                 opCode = SRM.ILOpCode.Br_s;
@@ -183,47 +203,119 @@ namespace MetadataGenerator.Generators.Methods.Body
                     case ConvertInstruction convertInstruction:
                         switch (convertInstruction.Operation)
                         {
-                            // TODO overflow variants and conv.i, conv.u, conv.r.un
+                            // TODO conv.i, conv.u,
                             case ConvertOperation.Conv:
                                 if (convertInstruction.ConversionType.Equals(PlatformTypes.Int8))
                                 {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Conv_i1);
+                                    if (convertInstruction.OverflowCheck)
+                                    {
+                                        instructionEncoder.OpCode(convertInstruction.UnsignedOperands
+                                            ? SRM.ILOpCode.Conv_ovf_i1_un
+                                            : SRM.ILOpCode.Conv_ovf_i1);
+                                    }
+                                    else
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Conv_i1);
+                                    }
                                 }
                                 else if (convertInstruction.ConversionType.Equals(PlatformTypes.UInt8))
                                 {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Conv_u1);
+                                    if (convertInstruction.OverflowCheck)
+                                    {
+                                        instructionEncoder.OpCode(convertInstruction.UnsignedOperands
+                                            ? SRM.ILOpCode.Conv_ovf_u1_un
+                                            : SRM.ILOpCode.Conv_ovf_u1);
+                                    }
+                                    else
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Conv_u1);
+                                    }
                                 }
                                 else if (convertInstruction.ConversionType.Equals(PlatformTypes.Int16))
                                 {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Conv_i2);
+                                    if (convertInstruction.OverflowCheck)
+                                    {
+                                        instructionEncoder.OpCode(convertInstruction.UnsignedOperands
+                                            ? SRM.ILOpCode.Conv_ovf_i2_un
+                                            : SRM.ILOpCode.Conv_ovf_i2);
+                                    }
+                                    else
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Conv_i2);
+                                    }
                                 }
                                 else if (convertInstruction.ConversionType.Equals(PlatformTypes.UInt16))
                                 {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Conv_u2);
+                                    if (convertInstruction.OverflowCheck)
+                                    {
+                                        instructionEncoder.OpCode(convertInstruction.UnsignedOperands
+                                            ? SRM.ILOpCode.Conv_ovf_u2_un
+                                            : SRM.ILOpCode.Conv_ovf_u2);
+                                    }
+                                    else
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Conv_u2);
+                                    }
                                 }
                                 else if (convertInstruction.ConversionType.Equals(PlatformTypes.Int32))
                                 {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Conv_i4);
+                                    if (convertInstruction.OverflowCheck)
+                                    {
+                                        instructionEncoder.OpCode(convertInstruction.UnsignedOperands
+                                            ? SRM.ILOpCode.Conv_ovf_i4_un
+                                            : SRM.ILOpCode.Conv_ovf_i4);
+                                    }
+                                    else
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Conv_i4);
+                                    }
                                 }
                                 else if (convertInstruction.ConversionType.Equals(PlatformTypes.UInt32))
                                 {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Conv_u4);
+                                    if (convertInstruction.OverflowCheck)
+                                    {
+                                        instructionEncoder.OpCode(convertInstruction.UnsignedOperands
+                                            ? SRM.ILOpCode.Conv_ovf_u4_un
+                                            : SRM.ILOpCode.Conv_ovf_u4);
+                                    }
+                                    else
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Conv_u4);
+                                    }
                                 }
                                 else if (convertInstruction.ConversionType.Equals(PlatformTypes.Int64))
                                 {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Conv_i8);
+                                    if (convertInstruction.OverflowCheck)
+                                    {
+                                        instructionEncoder.OpCode(convertInstruction.UnsignedOperands
+                                            ? SRM.ILOpCode.Conv_ovf_i8_un
+                                            : SRM.ILOpCode.Conv_ovf_i8);
+                                    }
+                                    else
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Conv_i8);
+                                    }
                                 }
                                 else if (convertInstruction.ConversionType.Equals(PlatformTypes.UInt64))
                                 {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Conv_u8);
+                                    if (convertInstruction.OverflowCheck)
+                                    {
+                                        instructionEncoder.OpCode(convertInstruction.UnsignedOperands
+                                            ? SRM.ILOpCode.Conv_ovf_u8_un
+                                            : SRM.ILOpCode.Conv_ovf_u8);
+                                    }
+                                    else
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Conv_u8);
+                                    }
                                 }
                                 else if (convertInstruction.ConversionType.Equals(PlatformTypes.Float32))
                                 {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Conv_r4);
+                                    instructionEncoder.OpCode(convertInstruction.UnsignedOperands ? SRM.ILOpCode.Conv_r_un : SRM.ILOpCode.Conv_r4);
                                 }
                                 else if (convertInstruction.ConversionType.Equals(PlatformTypes.Float64))
                                 {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Conv_r8);
+                                    instructionEncoder.OpCode(convertInstruction.UnsignedOperands ? SRM.ILOpCode.Conv_r_un : SRM.ILOpCode.Conv_r8);
                                 }
 
                                 break;
