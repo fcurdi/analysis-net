@@ -17,6 +17,8 @@ namespace MetadataGenerator
 
         public static bool IsOneOf(this MethodParameterKind kind, params MethodParameterKind[] kinds) => ImmutableList.Create(kinds).Contains(kind);
 
+        public static bool IsOneOf(this IType type, params IType[] types) => ImmutableList.Create(types).Contains(type);
+
         public static void CallVirtual(this ECMA335.InstructionEncoder encoder, SRM.EntityHandle methodReference)
         {
             encoder.OpCode(SRM.ILOpCode.Callvirt);

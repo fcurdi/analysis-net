@@ -317,28 +317,58 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 {
                                     instructionEncoder.OpCode(convertInstruction.UnsignedOperands ? SRM.ILOpCode.Conv_r_un : SRM.ILOpCode.Conv_r8);
                                 }
+                                else if (convertInstruction.ConversionType.Equals(PlatformTypes.IntPtr))
+                                {
+                                    if (convertInstruction.OverflowCheck)
+                                    {
+                                        instructionEncoder.OpCode(convertInstruction.UnsignedOperands
+                                            ? SRM.ILOpCode.Conv_ovf_i_un
+                                            : SRM.ILOpCode.Conv_ovf_i);
+                                    }
+                                    else
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Conv_i);
+                                    }
+                                }
+                                else if (convertInstruction.ConversionType.Equals(PlatformTypes.UIntPtr))
+                                {
+                                    if (convertInstruction.OverflowCheck)
+                                    {
+                                        instructionEncoder.OpCode(convertInstruction.UnsignedOperands
+                                            ? SRM.ILOpCode.Conv_ovf_u_un
+                                            : SRM.ILOpCode.Conv_ovf_u);
+                                    }
+                                    else
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Conv_u);
+                                    }
+                                }
 
                                 break;
                             case ConvertOperation.Cast:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Castclass);
+                                instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(convertInstruction.ConversionType));
                                 break;
                             /* FIXMEunccoment when isInst PR is merged
                             case ConvertOperation.IsInst:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Isinst);
+                                instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(convertInstruction.ConversionType));
                                 break;
                                 */
                             case ConvertOperation.Box:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Box);
+                                instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(convertInstruction.ConversionType));
                                 break;
                             case ConvertOperation.Unbox:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Unbox_any);
+                                instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(convertInstruction.ConversionType));
                                 break;
                             case ConvertOperation.UnboxPtr:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Unbox);
+                                instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(convertInstruction.ConversionType));
                                 break;
                         }
 
-                        instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(convertInstruction.ConversionType));
                         break;
                     case MethodCallInstruction methodCallInstruction:
                         switch (methodCallInstruction.Operation)
@@ -392,24 +422,19 @@ namespace MetadataGenerator.Generators.Methods.Body
                                     instructionEncoder.LoadString(metadataContainer.metadataBuilder.GetOrAddUserString(value));
                                 }
 
-                                else if (loadInstruction.Operand.Type.Equals(PlatformTypes.Int8) ||
-                                         loadInstruction.Operand.Type.Equals(PlatformTypes.UInt8))
+                                else if (loadInstruction.Operand.Type.IsOneOf(PlatformTypes.Int8, PlatformTypes.UInt8))
                                 {
                                     var value = (int) (loadInstruction.Operand as Constant).Value;
                                     instructionEncoder.OpCode(SRM.ILOpCode.Ldc_i4_s);
                                     instructionEncoder.Token(value);
                                 }
-                                else if (
-                                    loadInstruction.Operand.Type.Equals(PlatformTypes.Int16) ||
-                                    loadInstruction.Operand.Type.Equals(PlatformTypes.Int32) ||
-                                    loadInstruction.Operand.Type.Equals(PlatformTypes.UInt16) ||
-                                    loadInstruction.Operand.Type.Equals(PlatformTypes.UInt32))
+                                else if (loadInstruction.Operand.Type.IsOneOf(PlatformTypes.Int16, PlatformTypes.Int32, PlatformTypes.UInt16,
+                                    PlatformTypes.UInt32))
                                 {
                                     var value = (int) (loadInstruction.Operand as Constant).Value;
                                     instructionEncoder.LoadConstantI4(value);
                                 }
-                                else if (loadInstruction.Operand.Type.Equals(PlatformTypes.Int64) ||
-                                         loadInstruction.Operand.Type.Equals(PlatformTypes.UInt64))
+                                else if (loadInstruction.Operand.Type.IsOneOf(PlatformTypes.Int64, PlatformTypes.UInt64))
                                 {
                                     var value = (long) (loadInstruction.Operand as Constant).Value;
                                     instructionEncoder.LoadConstantI8(value);
@@ -477,8 +502,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 {
                                     instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_u4);
                                 }
-                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int64) ||
-                                         loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.UInt64))
+                                else if (loadArrayElementInstruction.Array.ElementsType.IsOneOf(PlatformTypes.Int64, PlatformTypes.UInt64))
                                 {
                                     instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i8);
                                 }
@@ -497,16 +521,18 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 else
                                 {
                                     instructionEncoder.OpCode(SRM.ILOpCode.Ldelem);
+                                    instructionEncoder.Token(
+                                        metadataContainer.ResolveReferenceHandleFor(loadArrayElementInstruction.Array.ElementsType));
                                 }
 
                                 break;
                             case LoadArrayElementOperation.Address:
                                 // TODO test. Example present but not supported in model
                                 instructionEncoder.OpCode(SRM.ILOpCode.Ldelema);
+                                instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadArrayElementInstruction.Array.ElementsType));
                                 break;
                         }
 
-                        instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadArrayElementInstruction.Array.ElementsType));
                         break;
                     case LoadMethodAddressInstruction loadMethodAddressInstruction:
                         instructionEncoder.OpCode(SRM.ILOpCode.Ldftn);
@@ -601,9 +627,9 @@ namespace MetadataGenerator.Generators.Methods.Body
                         else
                         {
                             instructionEncoder.OpCode(SRM.ILOpCode.Stelem);
+                            instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(storeArrayElementInstruction.Array.ElementsType));
                         }
 
-                        instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(storeArrayElementInstruction.Array.ElementsType));
                         break;
                     default:
                         throw new Exception("instruction type not handled");

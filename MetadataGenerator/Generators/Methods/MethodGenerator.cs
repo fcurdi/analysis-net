@@ -39,14 +39,15 @@ namespace MetadataGenerator.Generators.Methods
                 }
             }
 
+
             // FIXME maxStack should be computed from instructions. When a dll is read, the maxStack will be available (Model) but if code is generated 
             // programatically then the maxStack is gonna be missing
-            var methodBody = method.HasBody
+            var methodBodyOffset = method.HasBody
                 ? metadataContainer.methodBodyStream.AddMethodBody(
                     instructionEncoder: methodBodyGenerator.Generate(method.Body),
                     localVariablesSignature: methodLocalsGenerator.GenerateLocalVariablesSignatureFor(method.Body),
                     maxStack: method.Body.MaxStack)
-                : default;
+                : -1;
 
             var nextParameterHandle = ECMA335.MetadataTokens.ParameterHandle(metadataContainer.metadataBuilder.NextRowFor(ECMA335.TableIndex.Param));
             var methodDefinitionHandle = metadataContainer.metadataBuilder.AddMethodDefinition(
@@ -54,7 +55,7 @@ namespace MetadataGenerator.Generators.Methods
                 implAttributes: SR.MethodImplAttributes.IL | SR.MethodImplAttributes.Managed, // FIXME what else?
                 name: metadataContainer.metadataBuilder.GetOrAddString(method.Name),
                 signature: metadataContainer.metadataBuilder.GetOrAddBlob(methodSignature),
-                bodyOffset: methodBody,
+                bodyOffset: methodBodyOffset,
                 parameterList: firstParameterHandle ?? nextParameterHandle);
 
             methodLocalsGenerator.GenerateLocalVariables(method.Body, methodDefinitionHandle);

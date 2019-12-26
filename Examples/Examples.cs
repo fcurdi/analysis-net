@@ -140,8 +140,10 @@ namespace Classes
     public class ClassWithMoreComplexFieldsAndParametersOrReturnTypes
     {
         public string[] stringArrayField;
-        public string[][] stringArrayArrayField;
-        public string[,,] stringJaggedArrayField;
+        public string[][] stringJaggedArrayField;
+        public string[,,] stringMultiDimensionalArrayField;
+        public Exception[][,] exceptionMultiDimensionalJaggedArray;
+        public int[,][] intMultiDimensionalJaggedArray;
         public Exception[] exceptionArrayField;
         public B b;
 

@@ -5,6 +5,7 @@ using MetadataGenerator.Generators.Fields;
 using MetadataGenerator.Generators.Methods;
 using Model;
 using Model.Types;
+using static System.Linq.Enumerable;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
@@ -243,12 +244,13 @@ namespace MetadataGenerator.Metadata
                             elementTypeEncoder => Encode(arrayType.ElementsType, elementTypeEncoder),
                             arrayShapeEncoder =>
                             {
-                                // FIXME real values for sizes and lowerBounds
-                                // size cannot be known (example: int[])
+                                var lowerBounds = arrayType.Rank > 1
+                                    ? Repeat(0, (int) arrayType.Rank).ToImmutableArray() // FIXME 0 because ArrayType does not know bounds
+                                    : ImmutableArray<int>.Empty;
                                 arrayShapeEncoder.Shape(
                                     rank: (int) arrayType.Rank,
                                     sizes: ImmutableArray<int>.Empty,
-                                    lowerBounds: ImmutableArray<int>.Empty);
+                                    lowerBounds: lowerBounds);
                             });
                         break;
                     case PointerType pointerType:
