@@ -30,6 +30,7 @@
     <Compile Include="Generator.cs" />
     <Compile Include="Generators\AssemblyGenerator.cs" />
     <Compile Include="Generators\Methods\MethodGenerator.cs" />
+    <Compile Include="Generators\Methods\MethodParametersGenerator.cs" />
     <Compile Include="Generators\Methods\MethodSignatureGenerator.cs" />
     <Compile Include="Generators\NamespaceGenerator.cs" />
     <Compile Include="Generators\TypeGenerator.cs" />

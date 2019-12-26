@@ -14,6 +14,7 @@ namespace MetadataGenerator.Generators.Methods
         private readonly MethodSignatureGenerator methodSignatureGenerator;
         private readonly MethodBodyGenerator methodBodyGenerator;
         private readonly MethodLocalsGenerator methodLocalsGenerator;
+        private readonly MethodParametersGenerator methodParametersGenerator;
 
         public MethodGenerator(MetadataContainer metadataContainer)
         {
@@ -21,24 +22,14 @@ namespace MetadataGenerator.Generators.Methods
             methodSignatureGenerator = new MethodSignatureGenerator(metadataContainer);
             methodBodyGenerator = new MethodBodyGenerator(metadataContainer);
             methodLocalsGenerator = new MethodLocalsGenerator(metadataContainer);
+            methodParametersGenerator = new MethodParametersGenerator(metadataContainer);
         }
 
         public SRM.MethodDefinitionHandle Generate(MethodDefinition method)
         {
+            var parameters = methodParametersGenerator.Generate(method.Parameters)
+                             ?? ECMA335.MetadataTokens.ParameterHandle(metadataContainer.metadataBuilder.NextRowFor(ECMA335.TableIndex.Param));
             var methodSignature = methodSignatureGenerator.GenerateSignatureOf(method);
-            SRM.ParameterHandle? firstParameterHandle = null;
-            foreach (var parameter in method.Parameters)
-            {
-                var parameterHandle = metadataContainer.metadataBuilder.AddParameter(
-                    GetParameterAttributesFor(parameter),
-                    metadataContainer.metadataBuilder.GetOrAddString(parameter.Name),
-                    parameter.Index);
-                if (!firstParameterHandle.HasValue)
-                {
-                    firstParameterHandle = parameterHandle;
-                }
-            }
-
 
             // FIXME maxStack should be computed from instructions. When a dll is read, the maxStack will be available (Model) but if code is generated 
             // programatically then the maxStack is gonna be missing
@@ -49,14 +40,14 @@ namespace MetadataGenerator.Generators.Methods
                     maxStack: method.Body.MaxStack)
                 : -1;
 
-            var nextParameterHandle = ECMA335.MetadataTokens.ParameterHandle(metadataContainer.metadataBuilder.NextRowFor(ECMA335.TableIndex.Param));
+
             var methodDefinitionHandle = metadataContainer.metadataBuilder.AddMethodDefinition(
                 attributes: GetMethodAttributesFor(method),
                 implAttributes: SR.MethodImplAttributes.IL | SR.MethodImplAttributes.Managed, // FIXME what else?
                 name: metadataContainer.metadataBuilder.GetOrAddString(method.Name),
                 signature: metadataContainer.metadataBuilder.GetOrAddBlob(methodSignature),
                 bodyOffset: methodBodyOffset,
-                parameterList: firstParameterHandle ?? nextParameterHandle);
+                parameterList: parameters);
 
             methodLocalsGenerator.GenerateLocalVariables(method.Body, methodDefinitionHandle);
 

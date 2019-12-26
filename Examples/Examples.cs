@@ -147,7 +147,7 @@ namespace Classes
         public Exception[] exceptionArrayField;
         public B b;
 
-        public void MethodWithOptionalParameters(
+        public void MethodWithOptionalParametersAndDefaultValues(
             string someParam,
             int optionalInt = 0,
             EmptyStruct optionalStruct = new EmptyStruct(),

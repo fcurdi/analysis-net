@@ -1,4 +1,5 @@
-﻿using MetadataGenerator.Metadata;
+﻿using System.Threading;
+using MetadataGenerator.Metadata;
 using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;

@@ -221,12 +221,13 @@ namespace MetadataGenerator.Metadata
                 {
                     case IBasicType basicType:
                     {
+                        var isValueType = type.TypeKind == TypeKind.ValueType;
                         if (basicType.IsGenericInstantiation())
                         {
                             var genericInstantiation = encoder.GenericInstantiation(
                                 ReferenceHandleOf(basicType.GenericType),
                                 basicType.GenericParameterCount,
-                                type.TypeKind == TypeKind.ValueType);
+                                isValueType);
                             foreach (var genericArg in basicType.GenericArguments)
                             {
                                 Encode(genericArg, genericInstantiation.AddArgument());
@@ -234,7 +235,7 @@ namespace MetadataGenerator.Metadata
                         }
                         else
                         {
-                            encoder.Type(ReferenceHandleOf(basicType), type.TypeKind == TypeKind.ValueType);
+                            encoder.Type(ReferenceHandleOf(basicType), isValueType);
                         }
 
                         break;
