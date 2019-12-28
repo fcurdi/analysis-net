@@ -17,7 +17,7 @@ namespace MetadataGenerator.Generators.Fields
         public SRM.BlobBuilder GenerateSignatureOf(IFieldReference field)
         {
             var fieldSignature = new SRM.BlobBuilder();
-            metadataContainer.Encode(field.Type, new ECMA335.BlobEncoder(fieldSignature).FieldSignature());
+            metadataContainer.metadataResolver.Encode(field.Type, new ECMA335.BlobEncoder(fieldSignature).FieldSignature());
             return fieldSignature;
         }
     }

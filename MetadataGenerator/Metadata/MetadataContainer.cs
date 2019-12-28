@@ -12,7 +12,7 @@ namespace MetadataGenerator.Metadata
     internal class MetadataContainer
     {
         public readonly ECMA335.MetadataBuilder metadataBuilder;
-        private readonly MetadataResolver metadataResolver;
+        public readonly MetadataResolver metadataResolver;
         public readonly ECMA335.MethodBodyStreamEncoder methodBodyStream;
         private SRM.MethodDefinitionHandle? mainMethodHandle;
         private readonly IDictionary<int, IList<Action>> genericParameters = new Dictionary<int, IList<Action>>();
@@ -37,11 +37,6 @@ namespace MetadataGenerator.Metadata
             metadataResolver = new MetadataResolver(this, assembly);
         }
 
-        public SRM.EntityHandle ResolveReferenceHandleFor(IMetadataReference metadataReference) =>
-            metadataResolver.ReferenceHandleOf(metadataReference);
-
-        public void Encode(IType type, ECMA335.SignatureTypeEncoder encoder) => metadataResolver.Encode(type, encoder);
-
         public void RegisterGenericParameter(SRM.TypeDefinitionHandle owner, GenericParameter genericParameter) =>
             DoRegisterGenericParameter(owner, genericParameter);
 
@@ -55,11 +50,12 @@ namespace MetadataGenerator.Metadata
                 GenericParameterAttributes.None,
                 metadataBuilder.GetOrAddString(genericParameter.Name), genericParameter.Index);
 
-            /* FIXME generic constraints not in the model
+            /* TODO generic constraints not in the model. Do when PR is merged
+             pseudocode:
              if(genericParameter.hasConstraint()){
                  metadataBuilder.AddGenericParameterConstraint(
                  genericParameterHandle, 
-                metadataContainer.ResolveReferenceHandleFor(genericParameter.contraint));
+                metadataContainer.metadataResolver.HandleOf(genericParameter.contraint));
              }*/
 
             var key = ECMA335.CodedIndex.TypeOrMethodDef(owner);

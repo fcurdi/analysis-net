@@ -347,25 +347,25 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 break;
                             case ConvertOperation.Cast:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Castclass);
-                                instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(convertInstruction.ConversionType));
+                                instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(convertInstruction.ConversionType));
                                 break;
                             /* FIXMEunccoment when isInst PR is merged
                             case ConvertOperation.IsInst:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Isinst);
-                                instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(convertInstruction.ConversionType));
+                                instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(convertInstruction.ConversionType));
                                 break;
                                 */
                             case ConvertOperation.Box:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Box);
-                                instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(convertInstruction.ConversionType));
+                                instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(convertInstruction.ConversionType));
                                 break;
                             case ConvertOperation.Unbox:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Unbox_any);
-                                instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(convertInstruction.ConversionType));
+                                instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(convertInstruction.ConversionType));
                                 break;
                             case ConvertOperation.UnboxPtr:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Unbox);
-                                instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(convertInstruction.ConversionType));
+                                instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(convertInstruction.ConversionType));
                                 break;
                         }
 
@@ -374,11 +374,11 @@ namespace MetadataGenerator.Generators.Methods.Body
                         switch (methodCallInstruction.Operation)
                         {
                             case MethodCallOperation.Virtual:
-                                instructionEncoder.CallVirtual(metadataContainer.ResolveReferenceHandleFor(methodCallInstruction.Method));
+                                instructionEncoder.CallVirtual(metadataContainer.metadataResolver.HandleOf(methodCallInstruction.Method));
                                 break;
                             case MethodCallOperation.Static:
                             case MethodCallOperation.Jump:
-                                instructionEncoder.Call(metadataContainer.ResolveReferenceHandleFor(methodCallInstruction.Method));
+                                instructionEncoder.Call(metadataContainer.metadataResolver.HandleOf(methodCallInstruction.Method));
                                 break;
                         }
 
@@ -466,14 +466,13 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 break;
                         }
 
-                        instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadFieldInstruction.Field));
+                        instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(loadFieldInstruction.Field));
                         break;
                     case LoadArrayElementInstruction loadArrayElementInstruction:
                         switch (loadArrayElementInstruction.Operation)
                         {
                             // TODO not doing anything until LoadArrayElementInstruction PR is merged (because right now is treated as BasicOperation)
                             case LoadArrayElementOperation.Content:
-                                // TODO there are multiple instructions with this kind of ifs. Maybe extract method?
                                 if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.IntPtr))
                                 {
                                     instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i);
@@ -522,27 +521,26 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 {
                                     instructionEncoder.OpCode(SRM.ILOpCode.Ldelem);
                                     instructionEncoder.Token(
-                                        metadataContainer.ResolveReferenceHandleFor(loadArrayElementInstruction.Array.ElementsType));
+                                        metadataContainer.metadataResolver.HandleOf(loadArrayElementInstruction.Array.ElementsType));
                                 }
 
                                 break;
                             case LoadArrayElementOperation.Address:
-                                // TODO test. Example present but not supported in model
                                 instructionEncoder.OpCode(SRM.ILOpCode.Ldelema);
-                                instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadArrayElementInstruction.Array.ElementsType));
+                                instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(loadArrayElementInstruction.Array.ElementsType));
                                 break;
                         }
 
                         break;
                     case LoadMethodAddressInstruction loadMethodAddressInstruction:
                         instructionEncoder.OpCode(SRM.ILOpCode.Ldftn);
-                        instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadMethodAddressInstruction.Method));
+                        instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(loadMethodAddressInstruction.Method));
                         break;
                     case CreateArrayInstruction createArrayInstruction:
                         if (createArrayInstruction.Type.IsVector)
                         {
                             instructionEncoder.OpCode(SRM.ILOpCode.Newarr);
-                            instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(createArrayInstruction.Type.ElementsType));
+                            instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(createArrayInstruction.Type.ElementsType));
                         }
                         else
                         {
@@ -551,7 +549,7 @@ namespace MetadataGenerator.Generators.Methods.Body
 
                         break;
                     case CreateObjectInstruction createObjectInstruction:
-                        var method = metadataContainer.ResolveReferenceHandleFor(createObjectInstruction.Constructor);
+                        var method = metadataContainer.metadataResolver.HandleOf(createObjectInstruction.Constructor);
                         instructionEncoder.OpCode(SRM.ILOpCode.Newobj);
                         instructionEncoder.Token(method);
                         break;
@@ -568,7 +566,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                         break;
                     case StoreFieldInstruction storeFieldInstruction:
                         instructionEncoder.OpCode(storeFieldInstruction.Field.IsStatic ? SRM.ILOpCode.Stsfld : SRM.ILOpCode.Stfld);
-                        instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(storeFieldInstruction.Field));
+                        instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(storeFieldInstruction.Field));
                         break;
                     case SwitchInstruction switchInstruction:
                         instructionEncoder.OpCode(SRM.ILOpCode.Switch);
@@ -580,15 +578,14 @@ namespace MetadataGenerator.Generators.Methods.Body
                         break;
                     case SizeofInstruction sizeofInstruction:
                         instructionEncoder.OpCode(SRM.ILOpCode.Sizeof);
-                        instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(sizeofInstruction.MeasuredType));
+                        instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(sizeofInstruction.MeasuredType));
                         break;
                     case LoadTokenInstruction loadTokenInstruction:
                         instructionEncoder.OpCode(SRM.ILOpCode.Ldtoken);
-                        instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(loadTokenInstruction.Token));
+                        instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(loadTokenInstruction.Token));
                         break;
                     case IndirectMethodCallInstruction indirectMethodCallInstruction:
-                        // TODO test
-                        var methodSignature = metadataContainer.ResolveReferenceHandleFor(indirectMethodCallInstruction.Function);
+                        var methodSignature = metadataContainer.metadataResolver.HandleOf(indirectMethodCallInstruction.Function);
                         instructionEncoder.CallIndirect((SRM.StandaloneSignatureHandle) methodSignature);
                         break;
                     case StoreArrayElementInstruction storeArrayElementInstruction:
@@ -627,7 +624,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                         else
                         {
                             instructionEncoder.OpCode(SRM.ILOpCode.Stelem);
-                            instructionEncoder.Token(metadataContainer.ResolveReferenceHandleFor(storeArrayElementInstruction.Array.ElementsType));
+                            instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(storeArrayElementInstruction.Array.ElementsType));
                         }
 
                         break;

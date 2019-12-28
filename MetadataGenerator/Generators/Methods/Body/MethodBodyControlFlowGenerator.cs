@@ -67,7 +67,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                     case ExceptionHandlerBlockKind.Catch:
                         var catchType = ((CatchExceptionHandler) protectedBlock.Handler).ExceptionType;
                         controlFlowBuilder.AddCatchRegion(tryStart, tryEnd, handlerStart, handlerEnd,
-                            metadataContainer.ResolveReferenceHandleFor(catchType));
+                            metadataContainer.metadataResolver.HandleOf(catchType));
                         break;
                     case ExceptionHandlerBlockKind.Fault:
                     case ExceptionHandlerBlockKind.Finally:

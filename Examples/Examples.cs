@@ -87,6 +87,10 @@ namespace Classes
         }
     }
 
+    public static class EmptyStaticClass
+    {
+    }
+
 
     public class SimpleClass
     {

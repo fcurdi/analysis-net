@@ -1,5 +1,4 @@
-﻿using System.Threading;
-using MetadataGenerator.Metadata;
+﻿using MetadataGenerator.Metadata;
 using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
@@ -24,17 +23,11 @@ namespace MetadataGenerator.Generators.Methods.Body
                 var encoder = new ECMA335.BlobEncoder(signature).LocalVariableSignature(body.LocalVariables.Count);
                 foreach (var localVariable in body.LocalVariables)
                 {
-                    metadataContainer.Encode(
-                        localVariable.Type,
-                        encoder.AddVariable().Type(isPinned: false));
-                    // FIXME pinned is achieved by the fixed keyword and this is not in the modeled
+                    // TODO pinned is achieved by the fixed keyword and this is not in the model
+                    metadataContainer.metadataResolver.Encode(localVariable.Type, encoder.AddVariable().Type(isPinned: false));
                 }
 
-                // FIXME this adds ad signature everytime? getOrAddBlob though. Locals are most likely different for each method though
-                localVariablesSignature =
-                    metadataContainer.metadataBuilder.AddStandaloneSignature(metadataContainer.metadataBuilder.GetOrAddBlob(signature));
-
-                return localVariablesSignature;
+                localVariablesSignature = metadataContainer.metadataResolver.GetOrAddStandaloneSignature(signature);
             }
 
             return localVariablesSignature;
@@ -67,9 +60,9 @@ namespace MetadataGenerator.Generators.Methods.Body
                 var nextLocalVariableHandle =
                     ECMA335.MetadataTokens.LocalVariableHandle(metadataContainer.metadataBuilder.NextRowFor(ECMA335.TableIndex.LocalVariable));
 
-                // FIXME ??
                 var nextLocalConstantHandle =
                     ECMA335.MetadataTokens.LocalConstantHandle(metadataContainer.metadataBuilder.NextRowFor(ECMA335.TableIndex.LocalConstant));
+
                 metadataContainer.metadataBuilder.AddLocalScope(
                     method: containingMethodHandle,
                     importScope: default, // FIXME ??

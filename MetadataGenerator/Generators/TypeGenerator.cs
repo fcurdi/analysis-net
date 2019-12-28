@@ -30,8 +30,8 @@ namespace MetadataGenerator.Generators
             var metadataBuilder = metadataContainer.metadataBuilder;
             var fieldDefinitionHandles = type.Fields.Select(field => fieldGenerator.Generate(field)).ToList();
 
-            /* TODO Properties: (works) but model is missing Property concept
-             * extract to PropertiesGenerator
+            /* TODO model is missing Property concept
+             * pseudocode
 
                 var propertySignatureBlogBuilder = new BlobBuilder();
                 new BlobEncoder(propertySignatureBlogBuilder)
@@ -70,7 +70,7 @@ namespace MetadataGenerator.Generators
                 attributes: GetTypeAttributesFor(type),
                 @namespace: metadataBuilder.GetOrAddString(type.ContainingNamespace.FullName),
                 name: metadataBuilder.GetOrAddString(TypeNameOf(type)),
-                baseType: type.Base != null ? metadataContainer.ResolveReferenceHandleFor(type.Base) : default,
+                baseType: type.Base != null ? metadataContainer.metadataResolver.HandleOf(type.Base) : default,
                 fieldList: fieldDefinitionHandles.FirstOr(nextFieldDefinitionHandle),
                 methodList: methodDefinitionHandles.FirstOr(nextMethodDefinitionHandle));
 
@@ -78,7 +78,7 @@ namespace MetadataGenerator.Generators
             {
                 metadataBuilder.AddInterfaceImplementation(
                     type: typeDefinitionHandle,
-                    implementedInterface: metadataContainer.ResolveReferenceHandleFor(interfaze));
+                    implementedInterface: metadataContainer.metadataResolver.HandleOf(interfaze));
             }
 
             // generate class generic parameters (Class<T>)

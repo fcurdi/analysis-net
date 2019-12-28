@@ -11,8 +11,8 @@ namespace MetadataGenerator
     {
         public void Generate(Assembly assembly)
         {
-             using (var peStream = File.OpenWrite($"./{assembly.Name}.dll"))
-            //    using (var peStream = File.OpenWrite($"./{assembly.Name}.exe"))
+            using (var peStream = File.OpenWrite($"./{assembly.Name}.dll"))
+                //    using (var peStream = File.OpenWrite($"./{assembly.Name}.exe"))
             {
                 var metadataContainer = AssemblyGenerator.Generate(assembly);
                 var peHeaderBuilder = new SRPE.PEHeaderBuilder(
@@ -25,9 +25,8 @@ namespace MetadataGenerator
                     header: peHeaderBuilder,
                     metadataRootBuilder: new ECMA335.MetadataRootBuilder(metadataContainer.metadataBuilder),
                     ilStream: metadataContainer.methodBodyStream.Builder,
-                    entryPoint: metadataContainer.MainMethodHandle ?? default,
-                    // FIXME CorFlags.Requires32Bit | CorFlags.StrongNameSigned depend on dll. Requires/prefers 32 bit?
-                    flags: SRPE.CorFlags.ILOnly).Serialize(peBlob);
+                    entryPoint: metadataContainer.MainMethodHandle ?? default
+                ).Serialize(peBlob);
                 peBlob.WriteContentTo(peStream);
             }
         }

@@ -40,10 +40,9 @@ namespace MetadataGenerator.Generators.Methods
                     maxStack: method.Body.MaxStack)
                 : -1;
 
-
             var methodDefinitionHandle = metadataContainer.metadataBuilder.AddMethodDefinition(
                 attributes: GetMethodAttributesFor(method),
-                implAttributes: SR.MethodImplAttributes.IL | SR.MethodImplAttributes.Managed, // FIXME what else?
+                implAttributes: SR.MethodImplAttributes.IL | SR.MethodImplAttributes.Managed,
                 name: metadataContainer.metadataBuilder.GetOrAddString(method.Name),
                 signature: metadataContainer.metadataBuilder.GetOrAddBlob(methodSignature),
                 bodyOffset: methodBodyOffset,

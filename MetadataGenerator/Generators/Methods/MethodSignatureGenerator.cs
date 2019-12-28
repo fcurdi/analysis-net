@@ -23,7 +23,7 @@ namespace MetadataGenerator.Generators.Methods
                 var encoder = new ECMA335.BlobEncoder(signature).MethodSpecificationSignature(method.GenericArguments.Count);
                 foreach (var genericArg in method.GenericArguments)
                 {
-                    metadataContainer.Encode(genericArg, encoder.AddArgument());
+                    metadataContainer.metadataResolver.Encode(genericArg, encoder.AddArgument());
                 }
 
                 return signature;
@@ -34,7 +34,7 @@ namespace MetadataGenerator.Generators.Methods
             }
         }
 
-        // FIXME 0 because FunctionPointerType does not have that property (there's a fixme in that class)
+        // 0 because FunctionPointerType does not have that property (there's a comment in that class)
         public SRM.BlobBuilder GenerateSignatureOf(FunctionPointerType method) =>
             GenerateMethodSignature(method.IsStatic, 0, method.Parameters, method.ReturnType);
 
@@ -59,7 +59,7 @@ namespace MetadataGenerator.Generators.Methods
                         {
                             // TODO isByRef param. ref in return type is not in the model
                             var encoder = returnTypeEncoder.Type();
-                            metadataContainer.Encode(returnType, encoder);
+                            metadataContainer.metadataResolver.Encode(returnType, encoder);
                         }
                     },
                     parametersEncoder =>
@@ -69,7 +69,7 @@ namespace MetadataGenerator.Generators.Methods
                             var isByRef = parameter.Kind.IsOneOf(MethodParameterKind.Out, MethodParameterKind.Ref);
                             var type = isByRef ? (parameter.Type as PointerType).TargetType : parameter.Type;
                             var encoder = parametersEncoder.AddParameter().Type(isByRef);
-                            metadataContainer.Encode(type, encoder);
+                            metadataContainer.metadataResolver.Encode(type, encoder);
                         }
                     });
             return methodSignature;

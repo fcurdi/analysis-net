@@ -11,6 +11,7 @@ using SRM = System.Reflection.Metadata;
 
 namespace MetadataGenerator.Metadata
 {
+    // FIXME is there a way to unify all this dictionaries and logic of GetOrAdd?
     internal class MetadataResolver
     {
         private readonly Assembly assembly;
@@ -18,6 +19,16 @@ namespace MetadataGenerator.Metadata
         private readonly IDictionary<string, SRM.AssemblyReferenceHandle> assemblyReferences = new Dictionary<string, SRM.AssemblyReferenceHandle>();
         private readonly IDictionary<string, SRM.TypeReferenceHandle> typeReferences = new Dictionary<string, SRM.TypeReferenceHandle>();
         private readonly IDictionary<string, SRM.MemberReferenceHandle> memberReferences = new Dictionary<string, SRM.MemberReferenceHandle>();
+
+        private readonly IDictionary<SRM.BlobHandle, SRM.TypeSpecificationHandle> typeSpecificationReferences =
+            new Dictionary<SRM.BlobHandle, SRM.TypeSpecificationHandle>();
+
+        private readonly IDictionary<SRM.BlobHandle, SRM.MethodSpecificationHandle> methodSpecificationReferences =
+            new Dictionary<SRM.BlobHandle, SRM.MethodSpecificationHandle>();
+
+        private readonly IDictionary<SRM.BlobHandle, SRM.StandaloneSignatureHandle> standaloneSignatureReferences =
+            new Dictionary<SRM.BlobHandle, SRM.StandaloneSignatureHandle>();
+
         private readonly FieldSignatureGenerator fieldSignatureGenerator;
         private readonly MethodSignatureGenerator methodSignatureGenerator;
 
@@ -31,7 +42,7 @@ namespace MetadataGenerator.Metadata
                 // FIXME parameters
                 assemblyReferences.Add(assemblyReference.Name, metadataContainer.metadataBuilder.AddAssemblyReference(
                     name: metadataContainer.metadataBuilder.GetOrAddString(assemblyReference.Name),
-                    version: new Version(4, 0, 0, 0),
+                    version: new Version(4, 0, 0, 0), // version should be in the assemblyReference
                     culture: metadataContainer.metadataBuilder.GetOrAddString("neutral"),
                     publicKeyOrToken: metadataContainer.metadataBuilder.GetOrAddBlob(
                         ImmutableArray.Create<byte>(0xB7, 0x7A, 0x5C, 0x56, 0x19, 0x34, 0xE0, 0x89)),
@@ -44,75 +55,45 @@ namespace MetadataGenerator.Metadata
             methodSignatureGenerator = new MethodSignatureGenerator(metadataContainer);
         }
 
-        public SRM.EntityHandle ReferenceHandleOf(IMetadataReference metadataReference)
+        public SRM.EntityHandle HandleOf(IMetadataReference metadataReference)
         {
             switch (metadataReference)
             {
                 case IFieldReference field:
                 {
                     var signature = fieldSignatureGenerator.GenerateSignatureOf(field);
-                    return ReferenceHandleOf(field, signature);
+                    return GetOrAddFieldReference(field, signature);
                 }
                 case IMethodReference method:
                 {
                     var signature = methodSignatureGenerator.GenerateSignatureOf(method);
-                    return ReferenceHandleOf(method, signature);
+                    return GetOrAddMethodReference(method, signature);
                 }
                 case FunctionPointerType functionPointer:
                 {
                     var signature = methodSignatureGenerator.GenerateSignatureOf(functionPointer);
-                    return metadataContainer.metadataBuilder.AddStandaloneSignature(metadataContainer.metadataBuilder.GetOrAddBlob(signature));
+                    return GetOrAddStandaloneSignature(signature);
                 }
                 case IType type:
-                    return ReferenceHandleOf(type);
+                    switch (type)
+                    {
+                        case IBasicType basicType:
+                            return GetOrAddTypeReference(basicType);
+                        case IType iType when iType is ArrayType || iType is PointerType || iType is IGenericParameterReference:
+                            return GetOrAddTypeSpecificationFor(iType);
+                        default:
+                            throw new Exception($"type {type} not yet supported");
+                    }
                 default:
-                    throw new Exception($"Metadata reference not supported");
+                    throw new Exception($"Metadata {metadataReference} reference not supported");
             }
         }
 
-        private SRM.EntityHandle ReferenceHandleOf(IType type)
+        private SRM.EntityHandle GetOrAddTypeReference(IBasicType type)
         {
-            switch (type)
-            {
-                case IBasicType basicType: return ReferenceHandleOf(basicType);
-                case IType iType when iType is ArrayType || iType is PointerType || iType is IGenericParameterReference:
-                {
-                    var signature = new SRM.BlobBuilder();
-                    var encoder = new ECMA335.BlobEncoder(signature).TypeSpecificationSignature();
-                    Encode(iType, encoder);
-                    // FIXME should be stored? or added every time?
-                    return metadataContainer.metadataBuilder.AddTypeSpecification(metadataContainer.metadataBuilder.GetOrAddBlob(signature));
-                }
-                default:
-                    throw new Exception($"type ${type} not yet supported");
-            }
-        }
-
-        /*
-         * Returns a TypeReference for type. It stores references because metadata does not have a getOrAddTypeReference.
-         */
-        private SRM.EntityHandle ReferenceHandleOf(IBasicType type)
-        {
-            // TODO rewrite this method better
-            // FIXME should be stored? or added every time?
-            if (type.IsGenericInstantiation())
-            {
-                var signature = new SRM.BlobBuilder();
-                var encoder = new ECMA335.BlobEncoder(signature).TypeSpecificationSignature();
-                Encode(type, encoder);
-                return metadataContainer.metadataBuilder.AddTypeSpecification(metadataContainer.metadataBuilder.GetOrAddBlob(signature));
-            }
+            if (type.IsGenericInstantiation()) return GetOrAddTypeSpecificationFor(type);
 
             var typeName = type.Name;
-
-            /**
-             * CLS-compliant generic type names are encoded using the format “name[`arity]”, where […] indicates that the grave accent character “`” and
-             * arity together are optional. The encoded name shall follow these rules:
-             *     - name shall be an ID that does not contain the “`” character.
-             *     - arity is specified as an unsigned decimal number without leading zeros or spaces.
-             *     - For a normal generic type, arity is the number of type parameters declared on the type.
-             *     - For a nested generic type, arity is the number of newly introduced type parameters.
-             */
 
             // FIXME partial logic. See TypeGenerator.TypeNameOf. Needs to be unified with that
             if (type.IsGenericType())
@@ -134,7 +115,7 @@ namespace MetadataGenerator.Metadata
                 else
                 {
                     // if not, recursively get a reference for the containing type and use that as the resolution scope
-                    resolutionScope = ReferenceHandleOf(type.ContainingType);
+                    resolutionScope = GetOrAddTypeReference(type.ContainingType);
                 }
 
                 typeReference = metadataContainer.metadataBuilder.AddTypeReference(
@@ -142,25 +123,58 @@ namespace MetadataGenerator.Metadata
                     @namespace: metadataContainer.metadataBuilder.GetOrAddString(type.ContainingNamespace),
                     name: metadataContainer.metadataBuilder.GetOrAddString(typeName));
                 typeReferences.Add(key, typeReference);
-
-                return typeReference;
             }
 
-            // if not add the new type reference to metadata and store it
             return typeReference;
         }
 
-        private SRM.EntityHandle ReferenceHandleOf(IMethodReference method, SRM.BlobBuilder signature)
+        private SRM.TypeSpecificationHandle GetOrAddTypeSpecificationFor(IType type)
+        {
+            var signature = new SRM.BlobBuilder();
+            var encoder = new ECMA335.BlobEncoder(signature).TypeSpecificationSignature();
+            Encode(type, encoder);
+            var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
+            if (!typeSpecificationReferences.TryGetValue(blobHandle, out var typeSpecification))
+            {
+                typeSpecification = metadataContainer.metadataBuilder.AddTypeSpecification(blobHandle);
+                typeSpecificationReferences.Add(blobHandle, typeSpecification);
+            }
+
+            return typeSpecification;
+        }
+
+        private SRM.MethodSpecificationHandle GetOrAddMethodSpecificationFor(IMethodReference method, SRM.BlobBuilder signature)
+        {
+            var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
+            if (!methodSpecificationReferences.TryGetValue(blobHandle, out var methodSpecification))
+            {
+                methodSpecification = metadataContainer.metadataBuilder.AddMethodSpecification(
+                    GetOrAddMethodReference(method.GenericMethod, methodSignatureGenerator.GenerateSignatureOf(method.GenericMethod)),
+                    blobHandle
+                );
+                methodSpecificationReferences.Add(blobHandle, methodSpecification);
+            }
+
+            return methodSpecification;
+        }
+
+        public SRM.StandaloneSignatureHandle GetOrAddStandaloneSignature(SRM.BlobBuilder signature)
+        {
+            var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
+            if (!standaloneSignatureReferences.TryGetValue(blobHandle, out var standaloneSignature))
+            {
+                standaloneSignature = metadataContainer.metadataBuilder.AddStandaloneSignature(blobHandle);
+                standaloneSignatureReferences.Add(blobHandle, standaloneSignature);
+            }
+
+            return standaloneSignature;
+        }
+
+        private SRM.EntityHandle GetOrAddMethodReference(IMethodReference method, SRM.BlobBuilder signature)
         {
             if (method.IsGenericInstantiation())
             {
-                // FIXME should be stored and not add a new one each time (like the else branch).
-                // FIXME To do this, the key should have info related to the instantiation that unequivocally identifies that particular instantiation
-                var methodSpecificationHandle = metadataContainer.metadataBuilder.AddMethodSpecification(
-                    ReferenceHandleOf(method.GenericMethod, methodSignatureGenerator.GenerateSignatureOf(method.GenericMethod)),
-                    metadataContainer.metadataBuilder.GetOrAddBlob(signature)
-                );
-                return methodSpecificationHandle;
+                return GetOrAddMethodSpecificationFor(method, signature);
             }
             else
             {
@@ -169,7 +183,7 @@ namespace MetadataGenerator.Metadata
                 if (!memberReferences.TryGetValue(key, out var methodReferenceHandle))
                 {
                     methodReferenceHandle = metadataContainer.metadataBuilder.AddMemberReference(
-                        parent: ReferenceHandleOf(method.ContainingType),
+                        parent: GetOrAddTypeReference(method.ContainingType),
                         name: metadataContainer.metadataBuilder.GetOrAddString(method.Name),
                         signature: metadataContainer.metadataBuilder.GetOrAddBlob(signature));
                     memberReferences.Add(key, methodReferenceHandle);
@@ -179,14 +193,14 @@ namespace MetadataGenerator.Metadata
             }
         }
 
-        private SRM.MemberReferenceHandle ReferenceHandleOf(IFieldReference field, SRM.BlobBuilder signature)
+        private SRM.MemberReferenceHandle GetOrAddFieldReference(IFieldReference field, SRM.BlobBuilder signature)
         {
             var key =
                 $"{field.ContainingType.ContainingAssembly.Name}.{field.ContainingType.ContainingNamespace}.{field.ContainingType.Name}.{field.Name}";
             if (!memberReferences.TryGetValue(key, out var memberReferenceHandle))
             {
                 memberReferenceHandle = metadataContainer.metadataBuilder.AddMemberReference(
-                    parent: ReferenceHandleOf(field.ContainingType),
+                    parent: GetOrAddTypeReference(field.ContainingType),
                     name: metadataContainer.metadataBuilder.GetOrAddString(field.Name),
                     signature: metadataContainer.metadataBuilder.GetOrAddBlob(signature));
                 memberReferences.Add(key, memberReferenceHandle);
@@ -198,7 +212,7 @@ namespace MetadataGenerator.Metadata
         }
 
         // SignatureTypeEncoder is a struct but it is not necessary to pass it by reference since 
-        // it operates on its Builder (BlobBuilder) which is a class (tha means the builder reference is always the same)
+        // it operates on its Builder (BlobBuilder) which is a class (that means the builder reference is always the same)
         public void Encode(IType type, ECMA335.SignatureTypeEncoder encoder)
         {
             if (type.Equals(PlatformTypes.Boolean)) encoder.Boolean();
@@ -225,7 +239,7 @@ namespace MetadataGenerator.Metadata
                         if (basicType.IsGenericInstantiation())
                         {
                             var genericInstantiation = encoder.GenericInstantiation(
-                                ReferenceHandleOf(basicType.GenericType),
+                                GetOrAddTypeReference(basicType.GenericType),
                                 basicType.GenericParameterCount,
                                 isValueType);
                             foreach (var genericArg in basicType.GenericArguments)
@@ -235,7 +249,7 @@ namespace MetadataGenerator.Metadata
                         }
                         else
                         {
-                            encoder.Type(ReferenceHandleOf(basicType), isValueType);
+                            encoder.Type(GetOrAddTypeReference(basicType), isValueType);
                         }
 
                         break;
@@ -246,7 +260,7 @@ namespace MetadataGenerator.Metadata
                             arrayShapeEncoder =>
                             {
                                 var lowerBounds = arrayType.Rank > 1
-                                    ? Repeat(0, (int) arrayType.Rank).ToImmutableArray() // FIXME 0 because ArrayType does not know bounds
+                                    ? Repeat(0, (int) arrayType.Rank).ToImmutableArray() // 0 because ArrayType does not know bounds
                                     : ImmutableArray<int>.Empty;
                                 arrayShapeEncoder.Shape(
                                     rank: (int) arrayType.Rank,
@@ -256,7 +270,6 @@ namespace MetadataGenerator.Metadata
                         break;
                     case PointerType pointerType:
                     {
-                        // TODO there's also signatureTypeEncode.FunctionPointer()/IntPtr()/UIntPtr
                         var targetType = pointerType.TargetType;
                         if (targetType.Equals(PlatformTypes.Void))
                         {
