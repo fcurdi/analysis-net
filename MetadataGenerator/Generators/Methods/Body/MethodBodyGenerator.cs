@@ -348,12 +348,10 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 instructionEncoder.OpCode(SRM.ILOpCode.Castclass);
                                 instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(convertInstruction.ConversionType));
                                 break;
-                            /* FIXMEunccoment when isInst PR is merged
                             case ConvertOperation.IsInst:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Isinst);
                                 instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(convertInstruction.ConversionType));
                                 break;
-                                */
                             case ConvertOperation.Box:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Box);
                                 instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(convertInstruction.ConversionType));
@@ -470,7 +468,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                     case LoadArrayElementInstruction loadArrayElementInstruction:
                         switch (loadArrayElementInstruction.Operation)
                         {
-                            // TODO not doing anything until LoadArrayElementInstruction PR is merged (because right now is treated as BasicOperation)
                             case LoadArrayElementOperation.Content:
                                 if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.IntPtr))
                                 {
