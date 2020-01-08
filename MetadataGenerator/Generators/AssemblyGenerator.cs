@@ -27,12 +27,14 @@ namespace MetadataGenerator.Generators
                 flags: SR.AssemblyFlags.PublicKey,
                 hashAlgorithm: SR.AssemblyHashAlgorithm.Sha1);
 
+            var moduleName = $"{assembly.Name}.{(metadataContainer.Executable ? "exe" : "dll")}";
             metadataBuilder.AddModule(
                 generation: 0,
-                moduleName: metadataBuilder.GetOrAddString($"{assembly.Name}.{(metadataContainer.Executable ? "exe" : "dll")}"),
+                moduleName: metadataBuilder.GetOrAddString(moduleName),
                 mvid: metadataBuilder.GetOrAddGuid(Guid.NewGuid()),
                 encId: metadataBuilder.GetOrAddGuid(Guid.Empty),
                 encBaseId: metadataBuilder.GetOrAddGuid(Guid.Empty));
+            Console.WriteLine($"Generating: {moduleName}");
             /*
              * Generic parameters table must be sorted by owner (TypeOrMethodDef that owns the generic parameter). Since the dll's methods and types don't follow a
              * particular order, the info needed to generate this parameters is stored during type/method generation but not added to the MetadataBuilder until now

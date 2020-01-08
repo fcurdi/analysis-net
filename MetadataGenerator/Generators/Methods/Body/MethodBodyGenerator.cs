@@ -203,7 +203,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                     case ConvertInstruction convertInstruction:
                         switch (convertInstruction.Operation)
                         {
-                            // TODO conv.i, conv.u,
                             case ConvertOperation.Conv:
                                 if (convertInstruction.ConversionType.Equals(PlatformTypes.Int8))
                                 {

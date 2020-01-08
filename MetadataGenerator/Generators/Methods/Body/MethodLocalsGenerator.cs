@@ -63,11 +63,14 @@ namespace MetadataGenerator.Generators.Methods.Body
                 var nextLocalConstantHandle =
                     ECMA335.MetadataTokens.LocalConstantHandle(metadataContainer.metadataBuilder.NextRowFor(ECMA335.TableIndex.LocalConstant));
 
+                var nextImportScopeHandle =
+                    ECMA335.MetadataTokens.ImportScopeHandle(metadataContainer.metadataBuilder.NextRowFor(ECMA335.TableIndex.ImportScope));
+
                 metadataContainer.metadataBuilder.AddLocalScope(
                     method: containingMethodHandle,
-                    importScope: default, // FIXME ??
+                    importScope: nextImportScopeHandle, // addImportScope() ?
                     variableList: firstLocalVariableHandle ?? nextLocalVariableHandle,
-                    constantList: nextLocalConstantHandle, // FIXME addLocalConstant()
+                    constantList: nextLocalConstantHandle, // addLocalConstant() ?
                     startOffset: default, // FIXME ??
                     length: default); // FIXME ??
             }

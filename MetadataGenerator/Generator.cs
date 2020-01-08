@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using MetadataGenerator.Generators;
 using Model;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
@@ -11,9 +12,11 @@ namespace MetadataGenerator
     {
         public void Generate(Assembly assembly)
         {
-            using (var peStream = File.OpenWrite($"./{assembly.Name}.dll"))
-                //    using (var peStream = File.OpenWrite($"./{assembly.Name}.exe"))
+            var fileName = $"./{assembly.Name}.dll";
+            // var fileName = $"./{assembly.Name}.exe";
+            using (var peStream = File.OpenWrite(fileName))
             {
+                Console.WriteLine($"Processing: {fileName.Substring(2)}");
                 var metadataContainer = AssemblyGenerator.Generate(assembly);
                 var peHeaderBuilder = new SRPE.PEHeaderBuilder(
                     imageCharacteristics: metadataContainer.Executable

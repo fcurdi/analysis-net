@@ -42,10 +42,9 @@ namespace MetadataGenerator.Metadata
                 // FIXME parameters
                 assemblyReferences.Add(assemblyReference.Name, metadataContainer.metadataBuilder.AddAssemblyReference(
                     name: metadataContainer.metadataBuilder.GetOrAddString(assemblyReference.Name),
-                    version: new Version(4, 0, 0, 0), // version should be in the assemblyReference
-                    culture: metadataContainer.metadataBuilder.GetOrAddString("neutral"),
-                    publicKeyOrToken: metadataContainer.metadataBuilder.GetOrAddBlob(
-                        ImmutableArray.Create<byte>(0xB7, 0x7A, 0x5C, 0x56, 0x19, 0x34, 0xE0, 0x89)),
+                    version: new Version(4, 0, 0, 0), // FIXME version should be in the assemblyReference?
+                    culture: default,
+                    publicKeyOrToken: default,
                     flags: default,
                     hashValue: default)
                 );

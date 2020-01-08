@@ -149,7 +149,7 @@ namespace Classes
         public Exception[][,] exceptionMultiDimensionalJaggedArray;
         public int[,][] intMultiDimensionalJaggedArray;
         public Exception[] exceptionArrayField;
-        public B b;
+        public B b = new B();
 
         public void MethodWithOptionalParametersAndDefaultValues(
             string someParam,
@@ -518,7 +518,7 @@ namespace Generics
 
 namespace MethodBody
 {
-    public abstract class ContainingClass
+    public /*FIXME unccoment abstract*/ class ContainingClass
     {
         public void HelloWorld()
         {
@@ -546,35 +546,41 @@ namespace MethodBody
             return z;
         }
 
-        public void Logic(bool x, bool y)
+        public bool Logic(bool x, bool y)
         {
             var z = x && y;
             z = x || y;
             z = !x;
             z = x ^ y;
+
+            return z;
         }
 
-        public void BitwiseOperations(int x)
+        public int BitwiseOperations(int x)
         {
             var z = x & x;
             z = x | x;
             z = x ^ x;
             z = x >> 1;
             z = z << 1;
+
+            return z;
         }
 
-        public abstract void NoBody();
+        // FIXME unccoment public abstract void NoBody();
 
         public void Alloc()
         {
             unsafe
             {
                 var x = stackalloc int[3];
+                Console.WriteLine(*x);
             }
         }
 
-        public void Nothing<T>(T arg)
+        public Type Nothing<T>(T arg)
         {
+            return arg.GetType();
         }
 
         public void Nothing2<T>()
@@ -582,7 +588,7 @@ namespace MethodBody
         }
 
         // TODO more generic method calls examples
-        public void Calls(SimpleClass simpleClass, Action<int> f)
+        public int Calls(SimpleClass simpleClass, Func<int, int> func)
         {
             Console.WriteLine("A method call"); // static
             simpleClass.DoNothing(); // virtual
@@ -590,27 +596,30 @@ namespace MethodBody
 
             var l = new List<string> {"holas"};
 
-            f(1);
+            var result = func(1);
+            result += l.Count;
 
             // TODO calli (indirect)
 
-            /* FIXME
-             not working when reading dll
-            var g = new Generics.Generic<int, Exception>();
-            g.PrintGeneric("hola");
-            g.PrintGeneric(1);
-            */
+            // FIXME
+            // not working when reading dll
+            //var g = new Generics.Generic<int, Exception>();
+            //g.PrintGeneric("hola");
+            //g.PrintGeneric(1);
+            //
 
             Nothing("");
             Nothing2<int>();
-            /* FIXME
-            not working when reading dll
-            Nothing2<ClassThatContainsNestedGenericClass.NestedGenericClass<int>>();
-            Nothing2<GenericClassContainingOtherClasses<string>.NestedClassThatAddsNewGenericParameters<int, long>.NestedNestedClassThatDoesNotAddNewGenericParameters>();
-            */
+            // FIXME
+            //not working when reading dll
+            //Nothing2<ClassThatContainsNestedGenericClass.NestedGenericClass<int>>();
+            //Nothing2<GenericClassContainingOtherClasses<string>.NestedClassThatAddsNewGenericParameters<int, long>.NestedNestedClassThatDoesNotAddNewGenericParameters>();
+            //
+
+            return result;
         }
 
-        public void Arrays(EmptyStruct[] structArray)
+        public double Arrays(EmptyStruct[] structArray)
         {
             byte y = 1;
             short s = 3;
@@ -640,6 +649,8 @@ namespace MethodBody
             floatArray[1] = f; // stelem.r4
             doubleArray[1] = d; // stelem.r8
             structArray[0] = p; // stelem
+
+            return y + d + byteArray.Length + structArray[0].GetHashCode() + structArray.Rank;
         }
 
         public void Empty()
@@ -647,7 +658,7 @@ namespace MethodBody
         }
 
         // FIXME not generated correctly
-        public void Convert(object o)
+        public int Convert(object o)
         {
             long x1 = 1;
             double d = 1.0;
@@ -676,9 +687,11 @@ namespace MethodBody
             int i = (int) l; // unbox.any int
 
             // TODO unbox (unbox ptr)
+
+            return i + x6 + s.Length + l.GetHashCode() + o.ToString().Length;
         }
 
-        public void LoadConstant()
+        public double LoadConstant()
         {
             string s = "hello world!"; // ldstr
             int zero = 0; // ldc.i4.0
@@ -698,9 +711,11 @@ namespace MethodBody
             long l = long.MinValue; // ldc.i8
             float f = float.MinValue; // ldc.r4
             double d = double.MinValue; // ldc.r8
+
+            return s.Length + minusOne + k + f;
         }
 
-        public void LoadArgument(int arg1, string arg2, bool arg3, int arg4)
+        public string LoadArgument(int arg1, string arg2, bool arg3, int arg4)
         {
             var i0 = this; // ldarg.0
             var i1 = arg1; // ldarg.1
@@ -708,9 +723,11 @@ namespace MethodBody
             var i3 = arg3; // ldarg.3
             var i4 = arg4; // ldarg.s $value
             // TODO ldarg $value (see ecma)
+
+            return arg2 + arg1 + i4 + i0;
         }
 
-        public void LoadLocal()
+        public int LoadLocal()
         {
             var x0 = 10;
             var x1 = 12;
@@ -724,6 +741,8 @@ namespace MethodBody
             var y3 = x3; // ldloc.3
             var y4 = x4; // ldloc.s $index (=4)
             // TODO ldloc $index (see ecma)
+
+            return x0 + x1 + y4 + y2;
         }
 
         public void LoadAddress(int x)
@@ -734,6 +753,8 @@ namespace MethodBody
                 // TODO ldloca $argNum
                 var q = &x; // ldarga.s 0
                 // TODO ldarga $argNum
+
+                Console.WriteLine(*q);
             }
         }
 
@@ -743,7 +764,7 @@ namespace MethodBody
             Action<int> y = null; // ldnull
         }
 
-        public void LoadIndirect(ref object g)
+        public string LoadIndirect(ref object g)
         {
             unsafe
             {
@@ -769,40 +790,43 @@ namespace MethodBody
                 var x9 = *&f; // ldind.r8
                 var x10 = *&h; // ldind.i
                 var x11 = g; // ldind.ref
+
+                return a_1 + c_2.ToString() + x4 + x11 + g.ToString().Length;
             }
         }
 
-        public void Compare(int b, int x)
+        public bool Compare(int b, int x)
         {
             var a = b == 2; // ceq
             a = b > 2; // cgt
             a = b < 2; // clt
+
+            return a;
         }
 
-        public void Create()
+        public unsafe int**[] Create()
         {
             new SimpleClass(1, "a"); // newobj $methodCall
             var a = new int[] {1, 2, 3}; // newarr int
             var b = new Exception[] { }; // newarr Clases.SimpleClass
-            unsafe
-            {
-                var c = new int*[] { }; // newarr int*
-                var d = new int**[] { }; // newarr int**
-            }
+            var c = new int*[] { }; // newarr int*
+            var d = new int**[] { }; // newarr int**
+
+            return d;
         }
 
-        public void LoadArray(Exception[] x, int[] q)
+        public int LoadArray(Exception[] x, int[] q)
         {
             var a = x[1]; // ldelem.ref
-            var b = (new sbyte[] { })[0]; // ldelem.i1
-            var c = (new byte[] { })[0]; // ldelem.u1
-            var d = (new short[] { })[0]; // ldelem.i2
-            var e = (new ushort[] { })[0]; // ldelem.u2
-            var f = (new int[] { })[0]; // ldelem.i4
-            var g = (new uint[] { })[0]; // ldelem.u4
-            var h = (new long[] { })[0]; // ldelem.i8 -- ldelem.u8 (alias)
-            var j = (new float[] { })[0]; // ldelem.r4
-            var k = (new double[] { })[0]; // ldelem.r8
+            var b = (new sbyte[] {1})[0]; // ldelem.i1
+            var c = (new byte[] {2})[0]; // ldelem.u1
+            var d = (new short[] {3})[0]; // ldelem.i2
+            var e = (new ushort[] {4})[0]; // ldelem.u2
+            var f = (new int[] {5})[0]; // ldelem.i4
+            var g = (new uint[] {6})[0]; // ldelem.u4
+            var h = (new long[] {7})[0]; // ldelem.i8 -- ldelem.u8 (alias)
+            var j = (new float[] {8})[0]; // ldelem.r4
+            var k = (new double[] {9})[0]; // ldelem.r8
             // TODO unccoment when LoadArrayElementInstruction PR is merged
             //        var l = new EmptyStruct[] {new EmptyStruct() }[0]; // ldelem typeTok
 
@@ -818,9 +842,11 @@ namespace MethodBody
 
 
             var m = (new int[] {1, 2, 3}).Length; // ldlen
+
+            return m + k.GetHashCode() + c + a.Message.Length + q.Length;
         }
 
-        public void LoadField()
+        public string LoadField()
         {
             var a = new SimpleClass(1, "b").unassignedString; // ldfld string $field
             var b = new SimpleClass(1, "b").readOnlyIntField; // ldfld int $field
@@ -832,16 +858,21 @@ namespace MethodBody
             //                fixed (int* d = &(new Classes.SimpleClass(1, "b")).readOnlyIntField) // ldflda int32 $field
             //                { }
             //            }
+
+
+            return c.GetType().ToString() + b;
         }
 
-        public void StoreField()
+        public Exception StoreField()
         {
             new SimpleClass(1, "b").unassignedString = ""; // stfld string $field
             StaticClass.i = 1; // stsfld int $field
             StaticClass.e = new Exception(); // stsfld Exception $field
+
+            return StaticClass.e;
         }
 
-        public void StoreValue(int arg)
+        public int StoreValue(int arg)
         {
             int l0, l1, l2, l3, l4;
             l0 = 1; // stloc.0
@@ -853,9 +884,11 @@ namespace MethodBody
 
             arg = 1; // starg.s arg
             // TODO starg arg (not short form)
+
+            return arg + l4;
         }
 
-        public void SizeOf()
+        public int SizeOf()
         {
             unsafe
             {
@@ -863,14 +896,17 @@ namespace MethodBody
                 // var x = sizeof(Structs.NonEmptyStruct); // sizeof $type
                 var z = sizeof(NonEmptyStruct***); // sizeof $type***
                 var y = sizeof(int*); // sizeof int*
+
+                return y + z;
             }
         }
 
         // TODO other cases
         // FIXME generation almost correct
-        public void LoadToken<T>()
+        public Type LoadToken<T>()
         {
             var x = typeof(T);
+            return x;
         }
 
         public void Branch(int a, int b, Exception e)
@@ -935,6 +971,7 @@ namespace MethodBody
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
             }
         }
 
@@ -947,6 +984,7 @@ namespace MethodBody
             }
             catch (Exception ex) when (ex.Message.Contains("by zero"))
             {
+                Console.WriteLine(ex.Message);
             }
         }
 

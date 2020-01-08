@@ -101,7 +101,7 @@ namespace MetadataGenerator.Metadata
                 (method.IsVirtual ? MethodAttributes.Virtual : 0) |
                 (method.ContainingType.Kind is TypeDefinitionKind.Interface
                     ? MethodAttributes.NewSlot
-                    : 0) | // FIXME not correct. Depends on the new keyword but model is missing it
+                    : 0) | // TODO not correct. Depends on the new keyword but model is missing it
                 (constructor ? MethodAttributes.SpecialName | MethodAttributes.RTSpecialName : 0) |
                 (specialName ? MethodAttributes.SpecialName : 0);
             switch (method.Visibility)
@@ -132,7 +132,7 @@ namespace MetadataGenerator.Metadata
             {
                 case MethodParameterKind.In:
                     // attributes |= ParameterAttributes.In;
-                    // FIXME this seems to be always true... and illspy of original is not. Unncoment when PR is merged
+                    // TODO this seems to be always true... and illspy of original is not. Unncoment when PR is merged
                     break;
                 case MethodParameterKind.Out:
                     attributes |= ParameterAttributes.Out;
