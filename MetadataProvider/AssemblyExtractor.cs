@@ -780,24 +780,45 @@ namespace MetadataProvider
 				case SRM.ILOpCode.Newarr:
 					instruction = ProcessCreateArray(operation);
 					break;
-
+				
 				case SRM.ILOpCode.Ldelem:
-				case SRM.ILOpCode.Ldelem_i:
-				case SRM.ILOpCode.Ldelem_i1:
-				case SRM.ILOpCode.Ldelem_i2:
-				case SRM.ILOpCode.Ldelem_i4:
-				case SRM.ILOpCode.Ldelem_i8:
-				case SRM.ILOpCode.Ldelem_r4:
-				case SRM.ILOpCode.Ldelem_r8:
-				case SRM.ILOpCode.Ldelem_u1:
-				case SRM.ILOpCode.Ldelem_u2:
-				case SRM.ILOpCode.Ldelem_u4:
-				case SRM.ILOpCode.Ldelem_ref:
-					instruction = ProcessBasic(operation);
+					instruction = ProcessLoadArrayElement(operation,  new ArrayType(GetOperand<IType>(operation)), LoadArrayElementOperation.Content);
 					break;
-
+				case SRM.ILOpCode.Ldelem_i:
+					instruction = ProcessLoadArrayElement(operation,  new ArrayType(PlatformTypes.IntPtr), LoadArrayElementOperation.Content);
+					break;
+				case SRM.ILOpCode.Ldelem_i1:
+					instruction = ProcessLoadArrayElement(operation, new ArrayType(PlatformTypes.Int8), LoadArrayElementOperation.Content);
+					break;
+				case SRM.ILOpCode.Ldelem_i2:
+					instruction = ProcessLoadArrayElement(operation, new ArrayType(PlatformTypes.Int16), LoadArrayElementOperation.Content);
+					break;
+				case SRM.ILOpCode.Ldelem_i4:
+					instruction = ProcessLoadArrayElement(operation, new ArrayType(PlatformTypes.Int32), LoadArrayElementOperation.Content);
+					break;
+				case SRM.ILOpCode.Ldelem_i8:
+					instruction = ProcessLoadArrayElement(operation, new ArrayType(PlatformTypes.Int64), LoadArrayElementOperation.Content);
+					break;
+				case SRM.ILOpCode.Ldelem_r4:
+					instruction = ProcessLoadArrayElement(operation, new ArrayType(PlatformTypes.Float32), LoadArrayElementOperation.Content);
+					break;
+				case SRM.ILOpCode.Ldelem_r8:
+					instruction = ProcessLoadArrayElement(operation, new ArrayType(PlatformTypes.Float64), LoadArrayElementOperation.Content);
+					break;
+				case SRM.ILOpCode.Ldelem_u1:
+					instruction = ProcessLoadArrayElement(operation, new ArrayType(PlatformTypes.UInt8), LoadArrayElementOperation.Content);
+					break;
+				case SRM.ILOpCode.Ldelem_u2:
+					instruction = ProcessLoadArrayElement(operation, new ArrayType(PlatformTypes.UInt16), LoadArrayElementOperation.Content);
+					break;
+				case SRM.ILOpCode.Ldelem_u4:
+					instruction = ProcessLoadArrayElement(operation, new ArrayType(PlatformTypes.UInt32), LoadArrayElementOperation.Content);
+					break;
+				case SRM.ILOpCode.Ldelem_ref: 
+					instruction = ProcessLoadArrayElement(operation, new ArrayType(PlatformTypes.Object), LoadArrayElementOperation.Content);
+					break;
 				case SRM.ILOpCode.Ldelema:
-					instruction = ProcessBasic(operation);
+					instruction = ProcessLoadArrayElement(operation, new ArrayType(GetOperand<IType>(operation)), LoadArrayElementOperation.Address);
 					break;
 
 				case SRM.ILOpCode.Beq:

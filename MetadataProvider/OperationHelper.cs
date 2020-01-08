@@ -69,19 +69,6 @@ namespace MetadataProvider
 				case SRM.ILOpCode.Ldind_u2:
 				case SRM.ILOpCode.Ldind_u4:
 				case SRM.ILOpCode.Ldobj:		return BasicOperation.IndirectLoad;
-				case SRM.ILOpCode.Ldelem:
-				case SRM.ILOpCode.Ldelem_i:
-				case SRM.ILOpCode.Ldelem_i1:
-				case SRM.ILOpCode.Ldelem_i2:
-				case SRM.ILOpCode.Ldelem_i4:
-				case SRM.ILOpCode.Ldelem_i8:
-				case SRM.ILOpCode.Ldelem_r4:
-				case SRM.ILOpCode.Ldelem_r8:
-				case SRM.ILOpCode.Ldelem_u1:
-				case SRM.ILOpCode.Ldelem_u2:
-				case SRM.ILOpCode.Ldelem_u4:
-				case SRM.ILOpCode.Ldelem_ref:	return BasicOperation.LoadArrayElement;
-				case SRM.ILOpCode.Ldelema:		return BasicOperation.LoadArrayElementAddress;
 				case SRM.ILOpCode.Stind_i:
 				case SRM.ILOpCode.Stind_i1:
 				case SRM.ILOpCode.Stind_i2:
