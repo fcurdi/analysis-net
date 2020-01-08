@@ -91,15 +91,6 @@ namespace CCIProvider
 				case Cci.OperationCode.Stind_R8:
 				case Cci.OperationCode.Stind_Ref:
 				case Cci.OperationCode.Stobj:		return BasicOperation.IndirectStore;
-				case Cci.OperationCode.Stelem:
-				case Cci.OperationCode.Stelem_I:
-				case Cci.OperationCode.Stelem_I1:
-				case Cci.OperationCode.Stelem_I2:
-				case Cci.OperationCode.Stelem_I4:
-				case Cci.OperationCode.Stelem_I8:
-				case Cci.OperationCode.Stelem_R4:
-				case Cci.OperationCode.Stelem_R8:
-				case Cci.OperationCode.Stelem_Ref:	return BasicOperation.StoreArrayElement;
 				case Cci.OperationCode.Break:		return BasicOperation.Breakpoint;
 				
 				default: throw opcode.ToUnknownValueException();

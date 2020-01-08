@@ -44,7 +44,6 @@ namespace Model.Bytecode
 		LoadArrayElement,
 		LoadArrayElementAddress,
 		IndirectStore,
-		StoreArrayElement,
 		Breakpoint,
 		Return
 	}
