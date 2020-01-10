@@ -18,22 +18,23 @@ namespace MetadataGenerator.Generators
                 namespaceGenerator.Generate(namezpace);
             }
 
-            // FIXME args
             metadataBuilder.AddAssembly(
                 name: metadataBuilder.GetOrAddString(assembly.Name),
-                version: new Version(1, 0, 0, 0),
+                version: new Version(0, 0, 0, 1),
                 culture: default,
                 publicKey: default,
                 flags: SR.AssemblyFlags.PublicKey,
-                hashAlgorithm: SR.AssemblyHashAlgorithm.Sha1);
+                hashAlgorithm: SR.AssemblyHashAlgorithm.Sha1
+            );
 
             var moduleName = $"{assembly.Name}.{(metadataContainer.Executable ? "exe" : "dll")}";
             metadataBuilder.AddModule(
                 generation: 0,
                 moduleName: metadataBuilder.GetOrAddString(moduleName),
                 mvid: metadataBuilder.GetOrAddGuid(Guid.NewGuid()),
-                encId: metadataBuilder.GetOrAddGuid(Guid.Empty),
-                encBaseId: metadataBuilder.GetOrAddGuid(Guid.Empty));
+                encId: default,
+                encBaseId: default);
+
             Console.WriteLine($"Generating: {moduleName}");
             /*
              * Generic parameters table must be sorted by owner (TypeOrMethodDef that owns the generic parameter). Since the dll's methods and types don't follow a

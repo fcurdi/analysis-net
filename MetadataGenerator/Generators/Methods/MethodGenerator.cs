@@ -31,14 +31,20 @@ namespace MetadataGenerator.Generators.Methods
                              ?? ECMA335.MetadataTokens.ParameterHandle(metadataContainer.metadataBuilder.NextRowFor(ECMA335.TableIndex.Param));
             var methodSignature = methodSignatureGenerator.GenerateSignatureOf(method);
 
-            // FIXME maxStack should be computed from instructions. When a dll is read, the maxStack will be available (Model) but if code is generated 
-            // programatically then the maxStack is gonna be missing
-            var methodBodyOffset = method.HasBody
-                ? metadataContainer.methodBodyStream.AddMethodBody(
-                    instructionEncoder: methodBodyGenerator.Generate(method.Body),
+            var methodBodyOffset = -1;
+            var bodyLengthInBytes = 0;
+            if (method.HasBody)
+            {
+                // FIXME maxStack should be computed from instructions. When a dll is read, the maxStack will be available (Model) but if code is generated 
+                // programatically then the maxStack is gonna be missing
+                var maxStack = method.Body.MaxStack;
+                var instructionEncoder = methodBodyGenerator.Generate(method.Body);
+                methodBodyOffset = metadataContainer.methodBodyStream.AddMethodBody(
+                    instructionEncoder: instructionEncoder,
                     localVariablesSignature: methodLocalsGenerator.GenerateLocalVariablesSignatureFor(method.Body),
-                    maxStack: method.Body.MaxStack)
-                : -1;
+                    maxStack: maxStack);
+                bodyLengthInBytes = instructionEncoder.Offset;
+            }
 
             var methodDefinitionHandle = metadataContainer.metadataBuilder.AddMethodDefinition(
                 attributes: GetMethodAttributesFor(method),
@@ -48,7 +54,7 @@ namespace MetadataGenerator.Generators.Methods
                 bodyOffset: methodBodyOffset,
                 parameterList: parameters);
 
-            methodLocalsGenerator.GenerateLocalVariables(method.Body, methodDefinitionHandle);
+            methodLocalsGenerator.GenerateLocalVariables(method.Body, methodDefinitionHandle, bodyLengthInBytes);
 
             return methodDefinitionHandle;
         }

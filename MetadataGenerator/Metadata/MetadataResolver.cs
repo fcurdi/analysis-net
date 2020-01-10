@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Reflection;
 using MetadataGenerator.Generators.Fields;
 using MetadataGenerator.Generators.Methods;
-using Model;
 using Model.Types;
 using static System.Linq.Enumerable;
+using Assembly = Model.Assembly;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
@@ -39,13 +40,12 @@ namespace MetadataGenerator.Metadata
 
             foreach (var assemblyReference in assembly.References)
             {
-                // FIXME parameters
                 assemblyReferences.Add(assemblyReference.Name, metadataContainer.metadataBuilder.AddAssemblyReference(
                     name: metadataContainer.metadataBuilder.GetOrAddString(assemblyReference.Name),
                     version: new Version(4, 0, 0, 0), // FIXME version should be in the assemblyReference?
                     culture: default,
                     publicKeyOrToken: default,
-                    flags: default,
+                    flags: AssemblyFlags.PublicKey,
                     hashValue: default)
                 );
             }

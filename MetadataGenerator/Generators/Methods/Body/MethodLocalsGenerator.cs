@@ -33,7 +33,7 @@ namespace MetadataGenerator.Generators.Methods.Body
             return localVariablesSignature;
         }
 
-        public void GenerateLocalVariables(MethodBody body, SRM.MethodDefinitionHandle containingMethodHandle)
+        public void GenerateLocalVariables(MethodBody body, SRM.MethodDefinitionHandle containingMethodHandle, int bodyLengthInBytes)
         {
             /* FIXME GenerateLocalVariablesSignatureFor solo genera la firma (que se usa para hacer el addMethodBody) 
              y no agrega las variables por lo que no deberia andar. Sin embargo parece que anda solo con eso. 
@@ -71,8 +71,8 @@ namespace MetadataGenerator.Generators.Methods.Body
                     importScope: nextImportScopeHandle, // addImportScope() ?
                     variableList: firstLocalVariableHandle ?? nextLocalVariableHandle,
                     constantList: nextLocalConstantHandle, // addLocalConstant() ?
-                    startOffset: default, // FIXME ??
-                    length: default); // FIXME ??
+                    startOffset: 0,
+                    length: bodyLengthInBytes);
             }
         }
     }

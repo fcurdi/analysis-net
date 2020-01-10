@@ -35,6 +35,10 @@ namespace ExamplesEXE
                 a.ExceptionHandlingTryCatchFilter(0);
             */
 
+            /* works but differs form original
+                a.ExceptionHandlingTryCatchFinally(new AggregateException("Intentionally not catched exception"));
+            */
+
             /* does not work
                 a.Alloc();
                 Console.WriteLine(a.Arrays(new[] {new EmptyStruct()}));
@@ -49,7 +53,6 @@ namespace ExamplesEXE
 
             // pending to try
             // a.Create();
-            // a.ExceptionHandlingTryCatchFinally(new Exception("asd"));
             // a.LoadIndirect();
         }
     }

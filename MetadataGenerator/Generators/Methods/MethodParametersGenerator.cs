@@ -23,9 +23,9 @@ namespace MetadataGenerator.Generators.Methods
             foreach (var parameter in methodParameters)
             {
                 var parameterHandle = metadataContainer.metadataBuilder.AddParameter(
-                    GetParameterAttributesFor(parameter),
-                    metadataContainer.metadataBuilder.GetOrAddString(parameter.Name),
-                    parameter.Index);
+                    attributes: GetParameterAttributesFor(parameter),
+                    name: metadataContainer.metadataBuilder.GetOrAddString(parameter.Name),
+                    sequenceNumber: parameter.Index);
                 if (parameter.HasDefaultValue)
                 {
                     metadataContainer.metadataBuilder.AddConstant(parameterHandle, parameter.DefaultValue.Value);
