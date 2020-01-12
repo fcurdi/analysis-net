@@ -176,7 +176,7 @@ namespace MetadataProvider
 		{
 			if (headers.IsDll) return AssemblyKind.DLL;
 			if (headers.IsExe || headers.IsConsoleApplication) return AssemblyKind.EXE;
-			else throw new Exception($"Assembly kind not supported");
+			else throw new Exception("Assembly kind not supported");
 		}
 
 		public Assembly Extract()
