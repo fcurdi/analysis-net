@@ -77,7 +77,7 @@ namespace Model
 
 		public override int GetHashCode()
 		{
-			return this.Name.GetHashCode();
+			return this.Name.GetHashCode() ^ this.Kind.GetHashCode();
 		}
 
 		public override bool Equals(object obj)
@@ -85,7 +85,8 @@ namespace Model
 			var other = obj as Assembly;
 
 			var result = other != null &&
-						 this.Name == other.Name;
+						 this.Name == other.Name &&
+				         this.Kind == other.Kind;
 
 			return result;
 		}
