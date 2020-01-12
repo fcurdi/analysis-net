@@ -33,6 +33,9 @@ namespace ExamplesEXE
                 a.ExceptionHandlingTryCatchSpecific(0);
                 a.ExceptionHandlingTryCatch(0);
                 a.ExceptionHandlingTryCatchFilter(0);
+                a.Calls(new SimpleClass(3, "a"), e => 5);
+                Console.WriteLine(a.LoadField());
+                Console.WriteLine(a.StoreField());
             */
 
             /* works but differs form original
@@ -40,20 +43,15 @@ namespace ExamplesEXE
             */
 
             /* does not work
-                a.Alloc();
-                Console.WriteLine(a.Arrays(new[] {new EmptyStruct()}));
-                a.Calls(new SimpleClass(3, "a"), e => 5);
-                Console.WriteLine(a.Nothing(new object()));
-                a.LoadAddress(4);
-                Console.WriteLine(a.LoadArray(new[] {new Exception("m1"), new Exception("m2")}, new int[5]));
-                Console.WriteLine(a.LoadField());
-                Console.WriteLine(a.LoadToken<Exception>());
-                Console.WriteLine(a.StoreField());
+                a.Alloc(); Esta no anda por que faltan los load y store indirect
+                a.LoadAddress(4); no anda por que faltan los load y store indirect
+                a.LoadIndirect(); no anda por que faltan los load y store indirect
+                Console.WriteLine(a.Arrays(new[] {new EmptyStruct()})); a este le falta el contrained. en Arrays()
+                Console.WriteLine(a.Nothing(new object())); a no anda porque falt a "constrained."
+                Console.WriteLine(a.LoadArray(new[] {new Exception("m1"), new Exception("m2")}, new int[5])); no anda porque pongo mal unos class y value type
+                Console.WriteLine(a.LoadToken<Exception>()); no anda porque pongo mal unos class y value type
+                unsafe { Console.WriteLine(a.Create()); } no anda porque pongo mal unos class y value type
             */
-
-            // pending to try
-            // a.Create();
-            // a.LoadIndirect();
         }
     }
 }

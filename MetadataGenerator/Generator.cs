@@ -12,8 +12,8 @@ namespace MetadataGenerator
     {
         public void Generate(Assembly assembly)
         {
-            var fileName = $"./{assembly.Name}.dll";
-            // var fileName = $"./{assembly.Name}.exe";
+             var fileName = $"./{assembly.Name}.dll";
+          //  var fileName = $"./{assembly.Name}.exe";
             using (var peStream = File.OpenWrite(fileName))
             {
                 Console.WriteLine($"Processing: {fileName.Substring(2)}");

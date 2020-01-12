@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Model.Types;
@@ -15,7 +16,7 @@ namespace MetadataGenerator
             return first.Equals(default(T)) ? defaultValue : first;
         }
 
-        public static bool IsOneOf(this MethodParameterKind kind, params MethodParameterKind[] kinds) => ImmutableList.Create(kinds).Contains(kind);
+        public static bool IsOneOf(this Enum value, params Enum[] values) => ImmutableList.Create(values).Contains(value);
 
         public static bool IsOneOf(this IType type, params IType[] types) => ImmutableList.Create(types).Contains(type);
 

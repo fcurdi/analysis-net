@@ -97,6 +97,7 @@ namespace Classes
         public readonly int readOnlyIntField = 212;
         public string unassignedString;
         public const string CONST_STRING = "const";
+        public static long staticLongField = 2;
 
         public SimpleClass(int x, string y)
         {
@@ -569,12 +570,12 @@ namespace MethodBody
 
         // FIXME unccoment public abstract void NoBody();
 
-        public void Alloc()
+        public int Alloc()
         {
             unsafe
             {
                 var x = stackalloc int[3];
-                Console.WriteLine(*x);
+                return *x;
             }
         }
 
@@ -592,7 +593,7 @@ namespace MethodBody
         {
             Console.WriteLine("A method call"); // static
             simpleClass.DoNothing(); // virtual
-            Alloc(); // normal
+            ReturnsOne(); // normal
 
             var l = new List<string> {"holas"};
 
@@ -608,7 +609,6 @@ namespace MethodBody
             //g.PrintGeneric(1);
             //
 
-            Nothing("");
             Nothing2<int>();
             // FIXME
             //not working when reading dll
@@ -847,6 +847,7 @@ namespace MethodBody
             var a = new SimpleClass(1, "b").unassignedString; // ldfld string $field
             var b = new SimpleClass(1, "b").readOnlyIntField; // ldfld int $field
             var c = new ClassWithMoreComplexFieldsAndParametersOrReturnTypes().b; // ldfld class $field
+            var d = SimpleClass.staticLongField; // ldsfld
 
             //FIXME framework read not working. Something not implemented? Maybe avoid fixed keyword?
             //        unsafe
@@ -854,9 +855,10 @@ namespace MethodBody
             //                fixed (int* d = &(new Classes.SimpleClass(1, "b")).readOnlyIntField) // ldflda int32 $field
             //                { }
             //            }
+            // TODO ldsflda
 
 
-            return c.GetType().ToString() + b;
+            return c.GetType().ToString() + b + d;
         }
 
         public Exception StoreField()

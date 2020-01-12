@@ -19,7 +19,9 @@ namespace MetadataGenerator.Metadata
         private readonly MetadataContainer metadataContainer;
         private readonly IDictionary<string, SRM.AssemblyReferenceHandle> assemblyReferences = new Dictionary<string, SRM.AssemblyReferenceHandle>();
         private readonly IDictionary<string, SRM.TypeReferenceHandle> typeReferences = new Dictionary<string, SRM.TypeReferenceHandle>();
-        private readonly IDictionary<string, SRM.MemberReferenceHandle> memberReferences = new Dictionary<string, SRM.MemberReferenceHandle>();
+
+        private readonly IDictionary<KeyValuePair<string, SRM.BlobHandle>, SRM.MemberReferenceHandle> memberReferences =
+            new Dictionary<KeyValuePair<string, SRM.BlobHandle>, SRM.MemberReferenceHandle>();
 
         private readonly IDictionary<SRM.BlobHandle, SRM.TypeSpecificationHandle> typeSpecificationReferences =
             new Dictionary<SRM.BlobHandle, SRM.TypeSpecificationHandle>();
@@ -177,14 +179,17 @@ namespace MetadataGenerator.Metadata
             }
             else
             {
-                var key =
-                    $"{method.ContainingType.ContainingAssembly.Name}.{method.ContainingType.ContainingNamespace}.{method.ContainingType}.{method.Name}";
+                var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
+                var key = new KeyValuePair<string, SRM.BlobHandle>(
+                    $"{method.ContainingType.ContainingAssembly.Name}.{method.ContainingType.ContainingNamespace}.{method.ContainingType}.{method.Name}",
+                    blobHandle
+                );
                 if (!memberReferences.TryGetValue(key, out var methodReferenceHandle))
                 {
                     methodReferenceHandle = metadataContainer.metadataBuilder.AddMemberReference(
                         parent: GetOrAddTypeReference(method.ContainingType),
                         name: metadataContainer.metadataBuilder.GetOrAddString(method.Name),
-                        signature: metadataContainer.metadataBuilder.GetOrAddBlob(signature));
+                        signature: blobHandle);
                     memberReferences.Add(key, methodReferenceHandle);
                 }
 
@@ -194,14 +199,17 @@ namespace MetadataGenerator.Metadata
 
         private SRM.MemberReferenceHandle GetOrAddFieldReference(IFieldReference field, SRM.BlobBuilder signature)
         {
-            var key =
-                $"{field.ContainingType.ContainingAssembly.Name}.{field.ContainingType.ContainingNamespace}.{field.ContainingType.Name}.{field.Name}";
+            var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
+            var key = new KeyValuePair<string, SRM.BlobHandle>(
+                $"{field.ContainingType.ContainingAssembly.Name}.{field.ContainingType.ContainingNamespace}.{field.ContainingType.Name}.{field.Name}",
+                blobHandle
+            );
             if (!memberReferences.TryGetValue(key, out var memberReferenceHandle))
             {
                 memberReferenceHandle = metadataContainer.metadataBuilder.AddMemberReference(
                     parent: GetOrAddTypeReference(field.ContainingType),
                     name: metadataContainer.metadataBuilder.GetOrAddString(field.Name),
-                    signature: metadataContainer.metadataBuilder.GetOrAddBlob(signature));
+                    signature: blobHandle);
                 memberReferences.Add(key, memberReferenceHandle);
 
                 return memberReferenceHandle;

@@ -455,11 +455,11 @@ namespace MetadataGenerator.Generators.Methods.Body
                         switch (loadFieldInstruction.Operation)
                         {
                             case LoadFieldOperation.Content:
-                                instructionEncoder.OpCode(SRM.ILOpCode.Ldfld);
+                                instructionEncoder.OpCode(loadFieldInstruction.Field.IsStatic ? SRM.ILOpCode.Ldsfld : SRM.ILOpCode.Ldfld);
                                 break;
                             case LoadFieldOperation.Address:
                                 // TODO test. Example present but not supported in model
-                                instructionEncoder.OpCode(SRM.ILOpCode.Ldflda);
+                                instructionEncoder.OpCode(loadFieldInstruction.Field.IsStatic ? SRM.ILOpCode.Ldsflda : SRM.ILOpCode.Ldflda);
                                 break;
                         }
 
