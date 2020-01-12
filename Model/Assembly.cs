@@ -44,16 +44,24 @@ namespace Model
 		}
 	}
 
+	public enum AssemblyKind
+	{
+		EXE,
+		DLL
+	}
+
 	public class Assembly : IAssemblyReference
 	{
 		public string Name { get; private set; }
+		public AssemblyKind Kind { get; private set; }
 		public IList<IAssemblyReference> References { get; private set; }
 		public Namespace RootNamespace { get; set; }
 
-		public Assembly(string name)
+		public Assembly(string name, AssemblyKind kind)
 		{
 			this.Name = name;
 			this.References = new List<IAssemblyReference>();
+			this.Kind = kind;
 		}
 
 		public bool MatchReference(IAssemblyReference reference)
@@ -69,7 +77,7 @@ namespace Model
 
 		public override int GetHashCode()
 		{
-			return this.Name.GetHashCode();
+			return this.Name.GetHashCode() ^ this.Kind.GetHashCode();
 		}
 
 		public override bool Equals(object obj)
@@ -77,7 +85,8 @@ namespace Model
 			var other = obj as Assembly;
 
 			var result = other != null &&
-						 this.Name == other.Name;
+						 this.Name == other.Name &&
+				         this.Kind == other.Kind;
 
 			return result;
 		}

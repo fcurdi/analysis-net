@@ -34,10 +34,21 @@ namespace CCIProvider
 			this.TraverseIntoMethodBodies = false;
 			this.typeExtractor = new TypeExtractor(host);
 		}
+		
+		private AssemblyKind AssemblyKindFrom(Cci.IAssembly cciAssembly)
+		{
+			switch (cciAssembly.Kind)
+			{
+				case Cci.ModuleKind.ConsoleApplication:
+				case Cci.ModuleKind.WindowsApplication: return AssemblyKind.EXE;
+				case Cci.ModuleKind.DynamicallyLinkedLibrary: return AssemblyKind.DLL;
+				default: throw new Exception($"Assembly kind {cciAssembly.Kind} not supported");
+			}
+		}
 
 		public override void TraverseChildren(Cci.IAssembly cciAssembly)
 		{
-			var ourAssembly = new Assembly(cciAssembly.Name.Value);
+			var ourAssembly = new Assembly(cciAssembly.Name.Value, AssemblyKindFrom(cciAssembly));
 
 			foreach (var cciReference in cciAssembly.AssemblyReferences)
 			{

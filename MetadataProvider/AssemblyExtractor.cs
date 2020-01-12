@@ -171,11 +171,19 @@ namespace MetadataProvider
 			return result;
 		}
 
+
+		private AssemblyKind AssemblyKindFrom(SRPE.PEHeaders headers)
+		{
+			if (headers.IsDll) return AssemblyKind.DLL;
+			if (headers.IsExe || headers.IsConsoleApplication) return AssemblyKind.EXE;
+			else throw new Exception("Assembly kind not supported");
+		}
+
 		public Assembly Extract()
 		{
 			var assemblydef = metadata.GetAssemblyDefinition();
 			var name = metadata.GetString(assemblydef.Name);
-			assembly = new Assembly(name);
+			assembly = new Assembly(name, AssemblyKindFrom(reader.PEHeaders));
 
 			foreach (var handle in metadata.AssemblyReferences)
 			{
