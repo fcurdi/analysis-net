@@ -35,7 +35,6 @@ namespace MetadataGenerator.Generators
                 encId: default,
                 encBaseId: default);
 
-            Console.WriteLine($"Generating: {moduleName}");
             /*
              * Generic parameters table must be sorted by owner (TypeOrMethodDef that owns the generic parameter). Since the dll's methods and types don't follow a
              * particular order, the info needed to generate this parameters is stored during type/method generation but not added to the MetadataBuilder until now

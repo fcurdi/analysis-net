@@ -10,13 +10,14 @@ namespace MetadataGenerator
 {
     public class Generator : IGenerator
     {
+        // TODO assembly should know if it is a dll or exe. With this i can make the generation more dynamic. Submit PR
         public void Generate(Assembly assembly)
         {
-             var fileName = $"./{assembly.Name}.dll";
-          //  var fileName = $"./{assembly.Name}.exe";
+             var fileName = $"./{assembly.Name}(generated).dll";
+            // var fileName = $"./{assembly.Name}(generated).exe";
+            Console.WriteLine($"Generating Console/bin/debug/{fileName.Substring(2)}");
             using (var peStream = File.OpenWrite(fileName))
             {
-                Console.WriteLine($"Processing: {fileName.Substring(2)}");
                 var metadataContainer = AssemblyGenerator.Generate(assembly);
                 var peHeaderBuilder = new SRPE.PEHeaderBuilder(
                     imageCharacteristics: metadataContainer.Executable

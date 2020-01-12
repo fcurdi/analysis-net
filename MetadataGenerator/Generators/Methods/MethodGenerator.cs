@@ -13,7 +13,7 @@ namespace MetadataGenerator.Generators.Methods
         private readonly MetadataContainer metadataContainer;
         private readonly MethodSignatureGenerator methodSignatureGenerator;
         private readonly MethodBodyGenerator methodBodyGenerator;
-        private readonly MethodLocalsGenerator methodLocalsGenerator;
+        private readonly MethodLocalsSignatureGenerator methodLocalsSignatureGenerator;
         private readonly MethodParametersGenerator methodParametersGenerator;
 
         public MethodGenerator(MetadataContainer metadataContainer)
@@ -21,7 +21,7 @@ namespace MetadataGenerator.Generators.Methods
             this.metadataContainer = metadataContainer;
             methodSignatureGenerator = new MethodSignatureGenerator(metadataContainer);
             methodBodyGenerator = new MethodBodyGenerator(metadataContainer);
-            methodLocalsGenerator = new MethodLocalsGenerator(metadataContainer);
+            methodLocalsSignatureGenerator = new MethodLocalsSignatureGenerator(metadataContainer);
             methodParametersGenerator = new MethodParametersGenerator(metadataContainer);
         }
 
@@ -32,18 +32,15 @@ namespace MetadataGenerator.Generators.Methods
             var methodSignature = methodSignatureGenerator.GenerateSignatureOf(method);
 
             var methodBodyOffset = -1;
-            var bodyLengthInBytes = 0;
             if (method.HasBody)
             {
                 // FIXME maxStack should be computed from instructions. When a dll is read, the maxStack will be available (Model) but if code is generated 
                 // programatically then the maxStack is gonna be missing
                 var maxStack = method.Body.MaxStack;
-                var instructionEncoder = methodBodyGenerator.Generate(method.Body);
                 methodBodyOffset = metadataContainer.methodBodyStream.AddMethodBody(
-                    instructionEncoder: instructionEncoder,
-                    localVariablesSignature: methodLocalsGenerator.GenerateLocalVariablesSignatureFor(method.Body),
+                    instructionEncoder: methodBodyGenerator.Generate(method.Body),
+                    localVariablesSignature: methodLocalsSignatureGenerator.GenerateSignatureFor(method.Body.LocalVariables),
                     maxStack: maxStack);
-                bodyLengthInBytes = instructionEncoder.Offset;
             }
 
             var methodDefinitionHandle = metadataContainer.metadataBuilder.AddMethodDefinition(
@@ -53,8 +50,6 @@ namespace MetadataGenerator.Generators.Methods
                 signature: metadataContainer.metadataBuilder.GetOrAddBlob(methodSignature),
                 bodyOffset: methodBodyOffset,
                 parameterList: parameters);
-
-            methodLocalsGenerator.GenerateLocalVariables(method.Body, methodDefinitionHandle, bodyLengthInBytes);
 
             return methodDefinitionHandle;
         }

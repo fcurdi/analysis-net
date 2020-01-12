@@ -40,7 +40,7 @@
     <Compile Include="Generators\Fields\FieldGenerator.cs" />
     <Compile Include="Generators\Fields\FieldSignatureGenerator.cs" />
     <Compile Include="Generators\Methods\Body\MethodBodyGenerator.cs" />
-    <Compile Include="Generators\Methods\Body\MethodLocalsGenerator.cs" />
+    <Compile Include="Generators\Methods\Body\MethodLocalsSignatureGenerator.cs" />
     <Compile Include="Generators\Methods\Body\MethodBodyControlFlowGenerator.cs" />
   </ItemGroup>
   <ItemGroup>

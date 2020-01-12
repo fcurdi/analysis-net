@@ -372,6 +372,7 @@ namespace Console
 
 			PlatformTypes.Resolve(host);
 
+			System.Console.WriteLine($"Reading {input}");
 			var loader = new MetadataProvider.Loader(host);
 			loader.LoadAssembly(input);
 
@@ -385,8 +386,9 @@ namespace Console
 		
 		static void Main(string[] args)
 		{
-			DisassembleAndThenAssemble(@"../../../Examples/bin/Debug/Examples.dll");
-			// DisassembleAndThenAssemble(@"../../../ExamplesEXE/bin/Debug/ExamplesEXE.exe");
+			 var input = @"../../../Examples/bin/Debug/Examples.dll";
+			// var input = @"../../../ExamplesEXE/bin/Debug/ExamplesEXE.exe";
+			DisassembleAndThenAssemble(input);
 
 			//RunSomeTests();
 			// RunGenericsTests();

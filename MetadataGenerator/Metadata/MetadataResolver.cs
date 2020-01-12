@@ -42,9 +42,10 @@ namespace MetadataGenerator.Metadata
 
             foreach (var assemblyReference in assembly.References)
             {
+                // TODO version,culture and others should be in the assemblyReference. Submit PR with this
                 assemblyReferences.Add(assemblyReference.Name, metadataContainer.metadataBuilder.AddAssemblyReference(
                     name: metadataContainer.metadataBuilder.GetOrAddString(assemblyReference.Name),
-                    version: new Version(4, 0, 0, 0), // FIXME version should be in the assemblyReference?
+                    version: new Version(4, 0, 0, 0),
                     culture: default,
                     publicKeyOrToken: default,
                     flags: AssemblyFlags.PublicKey,

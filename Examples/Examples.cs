@@ -865,7 +865,7 @@ namespace MethodBody
         {
             new SimpleClass(1, "b").unassignedString = ""; // stfld string $field
             StaticClass.i = 1; // stsfld int $field
-            StaticClass.e = new Exception(); // stsfld Exception $field
+            StaticClass.e = new Exception("all good"); // stsfld Exception $field
 
             return StaticClass.e;
         }
