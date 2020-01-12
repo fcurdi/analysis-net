@@ -44,16 +44,24 @@ namespace Model
 		}
 	}
 
+	public enum AssemblyKind
+	{
+		EXE,
+		DLL
+	}
+
 	public class Assembly : IAssemblyReference
 	{
 		public string Name { get; private set; }
+		public AssemblyKind Kind { get; private set; }
 		public IList<IAssemblyReference> References { get; private set; }
 		public Namespace RootNamespace { get; set; }
 
-		public Assembly(string name)
+		public Assembly(string name, AssemblyKind kind)
 		{
 			this.Name = name;
 			this.References = new List<IAssemblyReference>();
+			this.Kind = kind;
 		}
 
 		public bool MatchReference(IAssemblyReference reference)
