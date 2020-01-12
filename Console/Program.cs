@@ -386,8 +386,7 @@ namespace Console
 		
 		static void Main(string[] args)
 		{
-			 var input = @"../../../Examples/bin/Debug/Examples.dll";
-			// var input = @"../../../ExamplesEXE/bin/Debug/ExamplesEXE.exe";
+			var input = args[0].Equals("dll") ? @"../../../Examples/bin/Debug/Examples.dll" : @"../../../ExamplesEXE/bin/Debug/ExamplesEXE.exe";
 			DisassembleAndThenAssemble(input);
 
 			//RunSomeTests();

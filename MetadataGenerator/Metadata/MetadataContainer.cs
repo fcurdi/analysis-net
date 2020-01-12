@@ -28,8 +28,6 @@ namespace MetadataGenerator.Metadata
             }
         }
 
-        public bool Executable => mainMethodHandle != null;
-
         public MetadataContainer(Assembly assembly)
         {
             metadataBuilder = new ECMA335.MetadataBuilder();
