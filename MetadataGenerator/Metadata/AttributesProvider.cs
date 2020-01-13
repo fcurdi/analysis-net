@@ -131,14 +131,15 @@ namespace MetadataGenerator.Metadata
             switch (parameter.Kind)
             {
                 case MethodParameterKind.In:
-                    // attributes |= ParameterAttributes.In;
-                    // TODO this seems to be always true... and illspy of original is not. Unncoment when PR is merged
+                    attributes |= ParameterAttributes.In;
                     break;
                 case MethodParameterKind.Out:
                     attributes |= ParameterAttributes.Out;
                     break;
                 case MethodParameterKind.Ref:
                     // There is no ParameterAttributes.Ref and no Params.Flags related (see ECMA)
+                    break;
+                case MethodParameterKind.Normal:
                     break;
             }
 

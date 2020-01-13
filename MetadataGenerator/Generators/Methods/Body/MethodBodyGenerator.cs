@@ -625,6 +625,10 @@ namespace MetadataGenerator.Generators.Methods.Body
                         instructionEncoder.OpCode(SRM.ILOpCode.Initobj);
                         instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(initObjInstruction.Type));
                         break;
+                    case ConstrainedInstruction constrainedInstruction:
+                        instructionEncoder.OpCode(SRM.ILOpCode.Constrained);
+                        instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(constrainedInstruction.ThisType));
+                        break;
                     default:
                         throw new Exception("instruction type not handled");
                 }

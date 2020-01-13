@@ -470,7 +470,6 @@ namespace Generics
             return new List<Exception>();
         }
 
-        // TODO this generated a "constrained." instruction. But is not supported in the model (it puts a Nop instruction in its place)
         public void PrintGeneric<T>(T t)
         {
             Console.WriteLine(t.ToString());
