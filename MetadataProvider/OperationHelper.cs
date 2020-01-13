@@ -52,7 +52,6 @@ namespace MetadataProvider
 				case SRM.ILOpCode.Dup:			return BasicOperation.Dup;
 				case SRM.ILOpCode.Localloc:		return BasicOperation.LocalAllocation;
 				case SRM.ILOpCode.Initblk:		return BasicOperation.InitBlock;
-				case SRM.ILOpCode.Initobj:		return BasicOperation.InitObject;
 				case SRM.ILOpCode.Cpblk:		return BasicOperation.CopyBlock;
 				case SRM.ILOpCode.Cpobj:		return BasicOperation.CopyObject;
 				case SRM.ILOpCode.Ret:			return BasicOperation.Return;

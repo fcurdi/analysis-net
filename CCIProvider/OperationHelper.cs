@@ -52,7 +52,6 @@ namespace CCIProvider
 				case Cci.OperationCode.Dup:			return BasicOperation.Dup;
 				case Cci.OperationCode.Localloc:	return BasicOperation.LocalAllocation;
 				case Cci.OperationCode.Initblk:		return BasicOperation.InitBlock;
-				case Cci.OperationCode.Initobj:		return BasicOperation.InitObject;
 				case Cci.OperationCode.Cpblk:		return BasicOperation.CopyBlock;
 				case Cci.OperationCode.Cpobj:		return BasicOperation.CopyObject;
 				case Cci.OperationCode.Ret:			return BasicOperation.Return;

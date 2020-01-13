@@ -36,7 +36,6 @@ namespace Model.Bytecode
 		EndFilter,
 		LocalAllocation,
 		InitBlock,
-		InitObject,
 		CopyObject,
 		CopyBlock,
 		LoadArrayLength,
@@ -165,7 +164,27 @@ namespace Model.Bytecode
 			return this.ToString("{0}", argument);
 		}
 	}
+	public class InitObjInstruction : Instruction
+	{
+		public IType Type { get; }
 
+		public InitObjInstruction(uint label, IType type)
+		: base(label)
+		{
+			this.Type = type;
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
+		public override string ToString()
+		{
+			return "init obj of type " + Type.ToString();
+		}
+	}
 	public class BasicInstruction : Instruction
 	{
 		public BasicOperation Operation { get; set; }

@@ -323,7 +323,7 @@ namespace CCIProvider
 					break;
 
 				case Cci.OperationCode.Initobj:
-					instruction = ProcessBasic(operation);
+					instruction = ProcessInitObj(operation);
 					break;
 
 				case Cci.OperationCode.Ldarg:
@@ -742,7 +742,12 @@ namespace CCIProvider
 			var instruction = new StoreFieldInstruction(op.Offset, ourField);
 			return instruction;
 		}
-
+		private IInstruction ProcessInitObj(Cci.IOperation op)
+		{
+			var type = typeExtractor.ExtractType(op.Value as Cci.ITypeReference);
+			var instruction = new InitObjInstruction(op.Offset, type);
+			return instruction;
+		}
 		private IInstruction ProcessBasic(Cci.IOperation op)
 		{
 			var operation = OperationHelper.ToBasicOperation(op.OperationCode);

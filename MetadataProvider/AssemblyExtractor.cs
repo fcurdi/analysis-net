@@ -967,7 +967,7 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Initobj:
-					instruction = ProcessBasic(operation);
+					instruction = ProcessInitObj(operation);
 					break;
 
 				case SRM.ILOpCode.Ldarg:
@@ -1667,7 +1667,12 @@ namespace MetadataProvider
 			var instruction = new StoreFieldInstruction(op.Offset, field);
 			return instruction;
 		}
-
+		private IInstruction ProcessInitObj(ILInstruction op)
+		{
+			var type = GetOperand<IType>(op);
+			var instruction = new InitObjInstruction(op.Offset, type);
+			return instruction;
+		}
 		private IInstruction ProcessBasic(ILInstruction op)
 		{
 			var operation = OperationHelper.ToBasicOperation(op.Opcode);

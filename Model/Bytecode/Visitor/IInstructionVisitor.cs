@@ -11,6 +11,7 @@ namespace Model.Bytecode.Visitor
 	{
 		void Visit(IInstructionContainer container);
 		void Visit(Instruction instruction);
+		void Visit(InitObjInstruction instruction);
 		void Visit(BasicInstruction instruction);
 		void Visit(LoadInstruction instruction);
 		void Visit(LoadFieldInstruction instruction);
