@@ -972,7 +972,7 @@ namespace CCIProvider
 
 		private MethodParameterKind GetMethodParameterKind(Cci.IParameterTypeInformation parameterref)
 		{
-			var result = MethodParameterKind.In;
+			var result = MethodParameterKind.Normal;
 
 			if (parameterref.IsByReference) result = MethodParameterKind.Ref;
 
@@ -981,10 +981,11 @@ namespace CCIProvider
 
 		private MethodParameterKind GetMethodParameterKind(Cci.IParameterDefinition parameterdef)
 		{
-			var result = MethodParameterKind.In;
+			var result = MethodParameterKind.Normal;
 
-			if (parameterdef.IsOut) result = MethodParameterKind.Out;
-			if (parameterdef.IsByReference) result = MethodParameterKind.Ref;
+			if (parameterdef.IsIn) result = MethodParameterKind.In;
+			else if (parameterdef.IsOut) result = MethodParameterKind.Out;
+			else if (parameterdef.IsByReference) result = MethodParameterKind.Ref;
 
 			return result;
 		}

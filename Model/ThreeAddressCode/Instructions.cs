@@ -936,7 +936,8 @@ namespace Model.ThreeAddressCode.Instructions
 				// We don't care here if the objects referenced by arguments could be modified.
 				foreach (var parameterInfo in this.Method.Parameters)
 				{
-					if (parameterInfo.Kind == MethodParameterKind.Ref)
+					if (parameterInfo.Kind == MethodParameterKind.Ref ||
+						parameterInfo.Kind == MethodParameterKind.Out)
 					{
 						var argument = this.Arguments[argumentIndex++];
 						result.Add(argument);
@@ -1017,7 +1018,8 @@ namespace Model.ThreeAddressCode.Instructions
 				// We don't care here if the objects referenced by arguments could be modified.
 				foreach (var parameterInfo in this.Function.Parameters)
 				{
-					if (parameterInfo.Kind == MethodParameterKind.Ref)
+					if (parameterInfo.Kind == MethodParameterKind.Ref ||
+						parameterInfo.Kind == MethodParameterKind.Out)
 					{
 						var argument = this.Arguments[argumentIndex++];
 						result.Add(argument);

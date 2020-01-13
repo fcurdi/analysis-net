@@ -161,9 +161,10 @@ namespace Model.Types
 
 	public enum MethodParameterKind
 	{
-		In,
-		Out,
-		Ref
+		Normal, // none
+		In, // in keyword
+		Out, // out keyword
+		Ref // ref keyword
 	}
 
 	public interface IMethodParameterReference
@@ -183,7 +184,7 @@ namespace Model.Types
 		{
 			this.Index = index;
 			this.Type = type;
-			this.Kind = MethodParameterKind.In;
+			this.Kind = MethodParameterKind.Normal;
 		}
 
 		public override string ToString()
@@ -192,7 +193,8 @@ namespace Model.Types
 
 			switch (this.Kind)
 			{
-				case MethodParameterKind.In: kind = string.Empty; break;
+				case MethodParameterKind.Normal: kind = String.Empty; break;
+				case MethodParameterKind.In: kind = "in "; break;
 				case MethodParameterKind.Out: kind = "out "; break;
 				case MethodParameterKind.Ref: kind = "ref "; break;
 
@@ -233,7 +235,7 @@ namespace Model.Types
 			this.Index = index;
 			this.Name = name;
 			this.Type = type;
-			this.Kind = MethodParameterKind.In;
+			this.Kind = MethodParameterKind.Normal;
 			this.Attributes = new HashSet<CustomAttribute>();
 		}
 
@@ -265,7 +267,8 @@ namespace Model.Types
 
 			switch (this.Kind)
 			{
-				case MethodParameterKind.In: kind = string.Empty; break;
+				case MethodParameterKind.Normal: kind = string.Empty; break;
+				case MethodParameterKind.In: kind = "in "; break;
 				case MethodParameterKind.Out: kind = "out "; break;
 				case MethodParameterKind.Ref: kind = "ref "; break;
 

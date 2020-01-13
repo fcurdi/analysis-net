@@ -557,12 +557,17 @@ namespace MetadataProvider
 
 		private static MethodParameterKind GetParameterKind(SR.ParameterAttributes attributes, IType type)
 		{
-			var result = MethodParameterKind.In;
+			var result = MethodParameterKind.Normal;
 			var isOut = attributes.HasFlag(SR.ParameterAttributes.Out);
+			var isIn = attributes.HasFlag(SR.ParameterAttributes.In);
 
 			if (isOut)
 			{
 				result = MethodParameterKind.Out;
+			}
+			else if (isIn)
+			{
+				result = MethodParameterKind.In;
 			}
 			else if (type.IsPointer())
 			{
