@@ -946,9 +946,9 @@ namespace MetadataProvider
 				//    expression = new MethodCall() { Arguments = new List<IExpression>(1) { operand }, IsStaticCall = true, Type = operand.Type, MethodToCall = chkfinite };
 				//    break;
 
-				//case SRM.ILOpCode.Constrained_:
-				//	// This prefix is redundant and is not represented in the code model.
-				//	break;
+				case SRM.ILOpCode.Constrained:
+                    instruction = ProcessConstrained(operation);
+					break;
 
 				case SRM.ILOpCode.Cpblk:
 					instruction = ProcessBasic(operation);
@@ -1448,8 +1448,14 @@ namespace MetadataProvider
 
 			parameters.Clear();
 		}
+        private IInstruction ProcessConstrained(ILInstruction op)
+        {
+            var thisType = GetOperand<IType>(op);
+            var ins = new ConstrainedInstruction(op.Offset, thisType);
+            return ins;
+        }
 
-		private IInstruction ProcessSwitch(ILInstruction op)
+        private IInstruction ProcessSwitch(ILInstruction op)
 		{
 			var targets = GetOperand<uint[]>(op);
 

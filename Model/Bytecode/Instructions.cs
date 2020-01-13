@@ -255,7 +255,29 @@ namespace Model.Bytecode
 			var targets = string.Join(", ", this.Targets);
 			return this.ToString("switch {0}", targets);
 		}
-	}
+    }
+
+    public class ConstrainedInstruction : Instruction
+    {
+        public IType ThisType { get; private set; }
+
+        public ConstrainedInstruction(uint label, IType thisType)
+            : base(label)
+        {
+            this.ThisType = thisType;
+        }
+
+        public override void Accept(IInstructionVisitor visitor)
+        {
+            base.Accept(visitor);
+            visitor.Visit(this);
+        }
+
+        public override string ToString()
+        {
+            return String.Format("constrain virtual call to type: {0}", ThisType.ToString());
+        }
+    }
 
 	public class CreateArrayInstruction : Instruction
 	{

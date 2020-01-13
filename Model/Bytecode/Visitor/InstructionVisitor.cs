@@ -21,7 +21,8 @@ namespace Model.Bytecode.Visitor
 		public virtual void Visit(Instruction instruction) { }
 		public virtual void Visit(InitObjInstruction instruction) { }
 		public virtual void Visit(BasicInstruction instruction) { }
-		public virtual void Visit(LoadInstruction instruction) { }
+        public virtual void Visit(ConstrainedInstruction instruction) { }
+        public virtual void Visit(LoadInstruction instruction) { }
 		public virtual void Visit(LoadFieldInstruction instruction) { }
 		public virtual void Visit(LoadMethodAddressInstruction instruction) { }
 		public virtual void Visit(StoreInstruction instruction) { }

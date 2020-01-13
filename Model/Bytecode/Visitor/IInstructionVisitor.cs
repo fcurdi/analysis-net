@@ -13,7 +13,8 @@ namespace Model.Bytecode.Visitor
 		void Visit(Instruction instruction);
 		void Visit(InitObjInstruction instruction);
 		void Visit(BasicInstruction instruction);
-		void Visit(LoadInstruction instruction);
+        void Visit(ConstrainedInstruction instruction);
+        void Visit(LoadInstruction instruction);
 		void Visit(LoadFieldInstruction instruction);
 		void Visit(LoadMethodAddressInstruction instruction);
 		void Visit(StoreInstruction instruction);
