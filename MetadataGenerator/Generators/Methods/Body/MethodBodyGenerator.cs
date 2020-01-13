@@ -130,9 +130,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                             case BasicOperation.InitBlock:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Initblk);
                                 break;
-                            case BasicOperation.InitObject:
-                                // FIXME InitObject needs an operand (should not be BasicInstruction). There's already a PR that fixes this
-                                break;
                             case BasicOperation.CopyObject:
                                 // FIXME CopyObject needs an operand (should not be BasicInstruction)
                                 break;
@@ -623,6 +620,10 @@ namespace MetadataGenerator.Generators.Methods.Body
                             instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(storeArrayElementInstruction.Array.ElementsType));
                         }
 
+                        break;
+                    case InitObjInstruction initObjInstruction:
+                        instructionEncoder.OpCode(SRM.ILOpCode.Initobj);
+                        instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(initObjInstruction.Type));
                         break;
                     default:
                         throw new Exception("instruction type not handled");
