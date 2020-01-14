@@ -169,6 +169,8 @@ namespace CCIProvider
 
 				case Cci.OperationCode.Array_Get:
 				case Cci.OperationCode.Array_Addr:
+					instruction = ProcessLoadArrayElement(operation);	
+					break;
 				case Cci.OperationCode.Ldelem:
 				case Cci.OperationCode.Ldelem_I:
 				case Cci.OperationCode.Ldelem_I1:
@@ -181,8 +183,10 @@ namespace CCIProvider
 				case Cci.OperationCode.Ldelem_U2:
 				case Cci.OperationCode.Ldelem_U4:
 				case Cci.OperationCode.Ldelem_Ref:
+					instruction = ProcessBasic(operation);
+					break;
 				case Cci.OperationCode.Ldelema:
-					instruction = ProcessLoadArrayElement(operation);
+					instruction = ProcessBasic(operation);	
                     break;
 
 				case Cci.OperationCode.Beq:
@@ -455,6 +459,8 @@ namespace CCIProvider
 					break;
 
 				case Cci.OperationCode.Array_Set:
+					instruction = ProcessStoreArrayElement(operation);	
+					break;
 				case Cci.OperationCode.Stelem:
 				case Cci.OperationCode.Stelem_I:
 				case Cci.OperationCode.Stelem_I1:
@@ -464,7 +470,7 @@ namespace CCIProvider
 				case Cci.OperationCode.Stelem_R4:
 				case Cci.OperationCode.Stelem_R8:
 				case Cci.OperationCode.Stelem_Ref:
-					instruction = ProcessStoreArrayElement(operation);
+					instruction = ProcessBasic(operation);	
 					break;
 
 				case Cci.OperationCode.Stfld:

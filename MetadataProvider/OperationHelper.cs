@@ -77,6 +77,28 @@ namespace MetadataProvider
 				case SRM.ILOpCode.Stind_r8:
 				case SRM.ILOpCode.Stind_ref:
 				case SRM.ILOpCode.Stobj:		return BasicOperation.IndirectStore;
+				case SRM.ILOpCode.Ldelem:	
+				case SRM.ILOpCode.Ldelem_i:	
+				case SRM.ILOpCode.Ldelem_i1:	
+				case SRM.ILOpCode.Ldelem_i2:	
+				case SRM.ILOpCode.Ldelem_i4:	
+				case SRM.ILOpCode.Ldelem_i8:	
+				case SRM.ILOpCode.Ldelem_r4:	
+				case SRM.ILOpCode.Ldelem_r8:	
+				case SRM.ILOpCode.Ldelem_u1:	
+				case SRM.ILOpCode.Ldelem_u2:	
+				case SRM.ILOpCode.Ldelem_u4:	
+				case SRM.ILOpCode.Ldelem_ref:	return BasicOperation.LoadArrayElement;	
+				case SRM.ILOpCode.Ldelema:		return BasicOperation.LoadArrayElementAddress;
+				case SRM.ILOpCode.Stelem:	
+				case SRM.ILOpCode.Stelem_i:	
+				case SRM.ILOpCode.Stelem_i1:	
+				case SRM.ILOpCode.Stelem_i2:	
+				case SRM.ILOpCode.Stelem_i4:	
+				case SRM.ILOpCode.Stelem_i8:	
+				case SRM.ILOpCode.Stelem_r4:	
+				case SRM.ILOpCode.Stelem_r8:	
+				case SRM.ILOpCode.Stelem_ref:	return BasicOperation.StoreArrayElement;
 				case SRM.ILOpCode.Break:		return BasicOperation.Breakpoint;
 				
 				default: throw opcode.ToUnknownValueException();
