@@ -110,11 +110,7 @@ namespace Backend.Transformations
 				this.body = body;				
 				this.returnType = returnType;
 			}
-			public override void Visit(Bytecode.InitObjInstruction op)
-			{
-				ProcessInitializeObject(op);
-			}
-			public override void Visit(Bytecode.BasicInstruction op)
+            public override void Visit(Bytecode.BasicInstruction op)
 			{
 				switch (op.Operation)
 				{
@@ -185,27 +181,6 @@ namespace Backend.Transformations
 
 					case Bytecode.BasicOperation.LoadArrayLength:
 						ProcessLoadArrayLength(op);
-						break;
-
-					case Bytecode.BasicOperation.IndirectLoad:
-						ProcessIndirectLoad(op);
-						break;
-					
-					case Bytecode.BasicOperation.StoreArrayElement:	
-						ProcessStoreArrayElement(op);	
-						break;
-					
-					case Bytecode.BasicOperation.LoadArrayElement:	
-						ProcessLoadArrayElement(op);	
-						break;	
-
-					case Bytecode.BasicOperation.LoadArrayElementAddress:	
-						ProcessLoadArrayElementAddress(op);	
-						break;	
-
-					
-					case Bytecode.BasicOperation.IndirectStore:
-						ProcessIndirectStore(op);
 						break;
 
 					case Bytecode.BasicOperation.Breakpoint:
@@ -362,56 +337,37 @@ namespace Backend.Transformations
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, length);
 				body.Instructions.Add(instruction);
 			}
-
-			private void ProcessIndirectLoad(Bytecode.BasicInstruction op)
+			private void ProcessLoadArrayElement(Bytecode.BasicInstruction op)
 			{
-				var address = stack.Pop();
+				var index = stack.Pop();
+				var array = stack.Pop();
 				var dest = stack.Push();
-				var source = new Dereference(address);
+				var source = new ArrayElementAccess(array, index);
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
-			
-			private void ProcessLoadArrayElement(Bytecode.BasicInstruction op)	
-			{	
-				var index = stack.Pop();	
-				var array = stack.Pop();	
-				var dest = stack.Push();	
-				var source = new ArrayElementAccess(array, index);	
-				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);	
-				body.Instructions.Add(instruction);	
-			}	
 
-			private void ProcessLoadArrayElementAddress(Bytecode.BasicInstruction op)	
-			{	
-				var index = stack.Pop();	
-				var array = stack.Pop();	
-				var dest = stack.Push();	
-				var access = new ArrayElementAccess(array, index);	
-				var source = new Reference(access);	
-				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);	
-				body.Instructions.Add(instruction);	
+			private void ProcessLoadArrayElementAddress(Bytecode.BasicInstruction op)
+			{
+				var index = stack.Pop();
+				var array = stack.Pop();
+				var dest = stack.Push();
+				var access = new ArrayElementAccess(array, index);
+				var source = new Reference(access);
+				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
+				body.Instructions.Add(instruction);
 			}
 
-			private void ProcessIndirectStore(Bytecode.BasicInstruction op)
+			private void ProcessStoreArrayElement(Bytecode.BasicInstruction op)
 			{
 				var source = stack.Pop();
-				var address = stack.Pop();
-				var dest = new Dereference(address);
+				var index = stack.Pop();
+				var array = stack.Pop();
+				var dest = new ArrayElementAccess(array, index);
 				var instruction = new Tac.StoreInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
-			
-			private void ProcessStoreArrayElement(Bytecode.BasicInstruction op)	
-			{	
-				var source = stack.Pop();	
-				var index = stack.Pop();	
-				var array = stack.Pop();	
-				var dest = new ArrayElementAccess(array, index);	
-				var instruction = new Tac.StoreInstruction(op.Offset, dest, source);	
-				body.Instructions.Add(instruction);	
-			}
-			
+
 			private void ProcessBreakpointOperation(Bytecode.BasicInstruction op)
 			{
 				var instruction = new Tac.BreakpointInstruction(op.Offset);
@@ -804,8 +760,15 @@ namespace Backend.Transformations
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
-
-			public override void Visit(Bytecode.LoadInstruction op)
+            public override void Visit(Bytecode.LoadIndirectInstruction op)
+            {
+                var address = stack.Pop();
+                var dest = stack.Push();
+                var source = new Dereference(address);
+                var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
+                body.Instructions.Add(instruction);
+            }
+            public override void Visit(Bytecode.LoadInstruction op)
 			{
 				switch (op.Operation)
 				{
@@ -960,7 +923,16 @@ namespace Backend.Transformations
 				body.Instructions.Add(instruction);
 			}
 
-			public override void Visit(Bytecode.StoreInstruction op)
+            public override void Visit(Bytecode.StoreIndirectInstruction op)
+            {
+                var source = stack.Pop();
+                var address = stack.Pop();
+                var dest = new Dereference(address);
+                var instruction = new Tac.StoreInstruction(op.Offset, dest, source);
+                body.Instructions.Add(instruction);
+            }
+
+            public override void Visit(Bytecode.StoreInstruction op)
 			{
 				var source = stack.Pop();
 				var instruction = new Tac.LoadInstruction(op.Offset, op.Target, source);

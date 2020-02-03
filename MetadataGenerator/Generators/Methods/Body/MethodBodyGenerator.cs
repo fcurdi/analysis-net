@@ -139,13 +139,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                             case BasicOperation.LoadArrayLength:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Ldlen);
                                 break;
-                            case BasicOperation.IndirectLoad:
-                                // FIXME IndirectLoad needs an operand (should not be BasicInstruction). There's already a PR that fixes this
-                                // example is already generated for all variants
-                                break;
-                            case BasicOperation.IndirectStore:
-                                // FIXME IndirectStore needs an operand (should not be BasicInstruction). There's already a PR that fixes this
-                                break;
                             case BasicOperation.Breakpoint:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Break);
                                 break;
@@ -628,6 +621,12 @@ namespace MetadataGenerator.Generators.Methods.Body
                     case ConstrainedInstruction constrainedInstruction:
                         instructionEncoder.OpCode(SRM.ILOpCode.Constrained);
                         instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(constrainedInstruction.ThisType));
+                        break;
+                    case LoadIndirectInstruction loadIndirectInstruction:
+                        // TODO
+                        break;
+                    case StoreIndirectInstruction storeIndirectInstruction:
+                        // TODO
                         break;
                     default:
                         throw new Exception("instruction type not handled");

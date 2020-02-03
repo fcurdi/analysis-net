@@ -56,49 +56,6 @@ namespace CCIProvider
 				case Cci.OperationCode.Cpobj:		return BasicOperation.CopyObject;
 				case Cci.OperationCode.Ret:			return BasicOperation.Return;
 				case Cci.OperationCode.Ldlen:		return BasicOperation.LoadArrayLength;
-				case Cci.OperationCode.Ldind_I:
-				case Cci.OperationCode.Ldind_I1:
-				case Cci.OperationCode.Ldind_I2:
-				case Cci.OperationCode.Ldind_I4:
-				case Cci.OperationCode.Ldind_I8:
-				case Cci.OperationCode.Ldind_R4:
-				case Cci.OperationCode.Ldind_R8:
-				case Cci.OperationCode.Ldind_Ref:
-				case Cci.OperationCode.Ldind_U1:
-				case Cci.OperationCode.Ldind_U2:
-				case Cci.OperationCode.Ldind_U4:
-				case Cci.OperationCode.Ldobj:		return BasicOperation.IndirectLoad;
-				case Cci.OperationCode.Ldelem:	
-				case Cci.OperationCode.Ldelem_I:	
-				case Cci.OperationCode.Ldelem_I1:	
-				case Cci.OperationCode.Ldelem_I2:	
-				case Cci.OperationCode.Ldelem_I4:	
-				case Cci.OperationCode.Ldelem_I8:	
-				case Cci.OperationCode.Ldelem_R4:	
-				case Cci.OperationCode.Ldelem_R8:	
-				case Cci.OperationCode.Ldelem_U1:	
-				case Cci.OperationCode.Ldelem_U2:	
-				case Cci.OperationCode.Ldelem_U4:	
-				case Cci.OperationCode.Ldelem_Ref:	return BasicOperation.LoadArrayElement;	
-				case Cci.OperationCode.Ldelema:		return BasicOperation.LoadArrayElementAddress;
-				case Cci.OperationCode.Stind_I:
-				case Cci.OperationCode.Stind_I1:
-				case Cci.OperationCode.Stind_I2:
-				case Cci.OperationCode.Stind_I4:
-				case Cci.OperationCode.Stind_I8:
-				case Cci.OperationCode.Stind_R4:
-				case Cci.OperationCode.Stind_R8:
-				case Cci.OperationCode.Stind_Ref:
-				case Cci.OperationCode.Stobj:		return BasicOperation.IndirectStore;
-				case Cci.OperationCode.Stelem:	
-				case Cci.OperationCode.Stelem_I:	
-				case Cci.OperationCode.Stelem_I1:	
-				case Cci.OperationCode.Stelem_I2:	
-				case Cci.OperationCode.Stelem_I4:	
-				case Cci.OperationCode.Stelem_I8:	
-				case Cci.OperationCode.Stelem_R4:	
-				case Cci.OperationCode.Stelem_R8:	
-				case Cci.OperationCode.Stelem_Ref:	return BasicOperation.StoreArrayElement;
 				case Cci.OperationCode.Break:		return BasicOperation.Breakpoint;
 				
 				default: throw opcode.ToUnknownValueException();
@@ -303,28 +260,32 @@ namespace CCIProvider
 		}
 
 		public static IType GetOperationType(Cci.OperationCode opcode)
-		{
+        {
 			switch (opcode)
 			{
-				case Cci.OperationCode.Ldind_I:
+                case Cci.OperationCode.Ldelem_I:
+                case Cci.OperationCode.Ldind_I:
 				case Cci.OperationCode.Stind_I:
 				case Cci.OperationCode.Stelem_I:
 				case Cci.OperationCode.Conv_I:
 				case Cci.OperationCode.Conv_Ovf_I:
 				case Cci.OperationCode.Conv_Ovf_I_Un:	return PlatformTypes.IntPtr;
-				case Cci.OperationCode.Ldind_I1:
+                case Cci.OperationCode.Ldelem_I1:
+                case Cci.OperationCode.Ldind_I1:
 				case Cci.OperationCode.Stind_I1:
 				case Cci.OperationCode.Stelem_I1:
 				case Cci.OperationCode.Conv_I1:
 				case Cci.OperationCode.Conv_Ovf_I1:
 				case Cci.OperationCode.Conv_Ovf_I1_Un:	return PlatformTypes.Int8;
-				case Cci.OperationCode.Ldind_I2:
+                case Cci.OperationCode.Ldelem_I2:
+                case Cci.OperationCode.Ldind_I2:
 				case Cci.OperationCode.Stind_I2:
 				case Cci.OperationCode.Stelem_I2:
 				case Cci.OperationCode.Conv_I2:
 				case Cci.OperationCode.Conv_Ovf_I2:
 				case Cci.OperationCode.Conv_Ovf_I2_Un:	return PlatformTypes.Int16;
-				case Cci.OperationCode.Ldc_I4:
+                case Cci.OperationCode.Ldelem_I4:
+                case Cci.OperationCode.Ldc_I4:
 				case Cci.OperationCode.Ldc_I4_0:
 				case Cci.OperationCode.Ldc_I4_1:
 				case Cci.OperationCode.Ldc_I4_2:
@@ -342,7 +303,8 @@ namespace CCIProvider
 				case Cci.OperationCode.Conv_I4:
 				case Cci.OperationCode.Conv_Ovf_I4:
 				case Cci.OperationCode.Conv_Ovf_I4_Un:	return PlatformTypes.Int32;
-				case Cci.OperationCode.Ldc_I8:
+                case Cci.OperationCode.Ldelem_I8:
+                case Cci.OperationCode.Ldc_I8:
 				case Cci.OperationCode.Ldind_I8:
 				case Cci.OperationCode.Stind_I8:
 				case Cci.OperationCode.Stelem_I8:
@@ -353,15 +315,18 @@ namespace CCIProvider
 				case Cci.OperationCode.Conv_Ovf_U:
 				case Cci.OperationCode.Conv_Ovf_U_Un:
 				case Cci.OperationCode.Ldlen:			return PlatformTypes.UIntPtr;
-				case Cci.OperationCode.Ldind_U1:
+                case Cci.OperationCode.Ldelem_U1:
+                case Cci.OperationCode.Ldind_U1:
 				case Cci.OperationCode.Conv_U1:
 				case Cci.OperationCode.Conv_Ovf_U1:
 				case Cci.OperationCode.Conv_Ovf_U1_Un:	return PlatformTypes.UInt8;
-				case Cci.OperationCode.Ldind_U2:
+                case Cci.OperationCode.Ldelem_U2:
+                case Cci.OperationCode.Ldind_U2:
 				case Cci.OperationCode.Conv_U2:
 				case Cci.OperationCode.Conv_Ovf_U2:
 				case Cci.OperationCode.Conv_Ovf_U2_Un:	return PlatformTypes.UInt16;
-				case Cci.OperationCode.Ldind_U4:
+                case Cci.OperationCode.Ldelem_U4:
+                case Cci.OperationCode.Ldind_U4:
 				case Cci.OperationCode.Conv_U4:
 				case Cci.OperationCode.Conv_Ovf_U4:
 				case Cci.OperationCode.Conv_Ovf_U4_Un:
@@ -369,18 +334,23 @@ namespace CCIProvider
 				case Cci.OperationCode.Conv_U8:
 				case Cci.OperationCode.Conv_Ovf_U8:
 				case Cci.OperationCode.Conv_Ovf_U8_Un:	return PlatformTypes.UInt64;
-				case Cci.OperationCode.Ldc_R4:
+                case Cci.OperationCode.Ldelem_R4:
+                case Cci.OperationCode.Ldc_R4:
 				case Cci.OperationCode.Ldind_R4:
 				case Cci.OperationCode.Stind_R4:
 				case Cci.OperationCode.Stelem_R4:
 				case Cci.OperationCode.Conv_R4:			return PlatformTypes.Float32;
-				case Cci.OperationCode.Ldc_R8:
+                case Cci.OperationCode.Ldelem_R8:
+                case Cci.OperationCode.Ldc_R8:
 				case Cci.OperationCode.Ldind_R8:
 				case Cci.OperationCode.Stind_R8:
 				case Cci.OperationCode.Stelem_R8:
 				case Cci.OperationCode.Conv_R8:
 				case Cci.OperationCode.Conv_R_Un:		return PlatformTypes.Float64;
-				case Cci.OperationCode.Ldnull:			return PlatformTypes.Object;
+                case Cci.OperationCode.Ldelem_Ref:
+                case Cci.OperationCode.Stind_Ref:
+                case Cci.OperationCode.Ldind_Ref:
+                case Cci.OperationCode.Ldnull:			return PlatformTypes.Object;
 				case Cci.OperationCode.Ldstr:			return PlatformTypes.String;
 
 				default: return null;
