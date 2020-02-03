@@ -130,9 +130,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                             case BasicOperation.InitBlock:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Initblk);
                                 break;
-                            case BasicOperation.CopyObject:
-                                // FIXME CopyObject needs an operand (should not be BasicInstruction)
-                                break;
                             case BasicOperation.CopyBlock:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Cpblk);
                                 break;
@@ -708,8 +705,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                         throw new Exception("instruction type not handled");
                 }
             }
-
-            controlFlowGenerator.MarkAllUnmarkedLabels(); // FIXME  remove
 
             return instructionEncoder;
         }
