@@ -791,6 +791,31 @@ namespace MethodBody
             }
         }
 
+        public unsafe int StoreIndirect(
+            out sbyte outByte,
+            out short outShort,
+            out int outInt,
+            out long outLong,
+            out float outFloat,
+            out double outDouble,
+            out IntPtr outIntPtr,
+            out SimpleClass outClass
+        )
+        {
+            IntPtr h = default;
+
+            outByte = 1; // stind.i1 
+            outShort = 2; // stind.i2 
+            outInt = 3; // stind.i4 
+            outLong = 4; // stind.i8 (stind.u8 is alias for stind.i8)
+            outFloat = 5; // stind.r4 
+            outDouble = 6; // stind.r8
+            outIntPtr = h; // stind.i
+            outClass = new SimpleClass(1, ""); // stind.ref
+
+            return (int) (outByte + outDouble + outClass.GetHashCode());
+        }
+
         public bool Compare(int b, int x)
         {
             var a = b == 2; // ceq

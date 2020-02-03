@@ -14,6 +14,7 @@ namespace ExamplesEXE
             // FIXME abstracta (porque tiene un metodo sin body) y al hacer una clase que herede esa aca y
             // FIXME hacerle un new revienta con lo del vtable
             var a = new ContainingClass();
+            object g = new object();
 
             // works and returns the same as original
             Console.WriteLine(a.Arithmetics(1, 2));
@@ -40,14 +41,17 @@ namespace ExamplesEXE
             Console.WriteLine(a.StoreField());
             a.Calls(new SimpleClass(3, "a"), e => 5);
             Console.WriteLine(a.Nothing(new object()));
+            Console.WriteLine(a.Alloc());
+            a.LoadAddress(4);
+
+
             /* FIXME works but differs form original
                 a.ExceptionHandlingTryCatchFinally(new AggregateException("Intentionally not catched exception"));
             */
 
             /* FIXME does not work
-                a.Alloc(); Esta no anda por que faltan los load y store indirect
-                a.LoadAddress(4); no anda por que faltan los load y store indirect
-                a.LoadIndirect(); no anda por que faltan los load y store indirect
+                Console.WriteLine(a.LoadIndirect(ref g)); 
+                a.StoreIndirect(out sbyte b, out short s, out int i, out long l, out float f, out double d, out IntPtr ip, out SimpleClass sc);
                 Console.WriteLine(a.Arrays(new[] {new EmptyStruct()})); ?????
                 Console.WriteLine(a.LoadArray(new[] {new Exception("m1"), new Exception("m2")}, new int[5])); no anda porque pongo mal unos class y value type
                 Console.WriteLine(a.LoadToken<Exception>()); no anda porque pongo mal unos class y value type

@@ -623,10 +623,86 @@ namespace MetadataGenerator.Generators.Methods.Body
                         instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(constrainedInstruction.ThisType));
                         break;
                     case LoadIndirectInstruction loadIndirectInstruction:
-                        // TODO
+                        if (loadIndirectInstruction.Type.Equals(PlatformTypes.Int8))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Ldind_i1);
+                        }
+                        else if (loadIndirectInstruction.Type.Equals(PlatformTypes.Int16))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Ldind_i2);
+                        }
+                        else if (loadIndirectInstruction.Type.Equals(PlatformTypes.Int32))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Ldind_i4);
+                        }
+                        else if (loadIndirectInstruction.Type.Equals(PlatformTypes.Int64))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Ldind_i8);
+                        }
+                        else if (loadIndirectInstruction.Type.Equals(PlatformTypes.UInt8))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Ldind_u1);
+                        }
+                        else if (loadIndirectInstruction.Type.Equals(PlatformTypes.UInt16))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Ldind_u2);
+                        }
+                        else if (loadIndirectInstruction.Type.Equals(PlatformTypes.UInt32))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Ldind_u4);
+                        }
+                        else if (loadIndirectInstruction.Type.Equals(PlatformTypes.Float32))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Ldind_r4);
+                        }
+                        else if (loadIndirectInstruction.Type.Equals(PlatformTypes.Float64))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Ldind_r8);
+                        }
+                        else if (loadIndirectInstruction.Type.Equals(PlatformTypes.IntPtr))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Ldind_i);
+                        }
+                        else if (loadIndirectInstruction.Type.Equals(PlatformTypes.Object))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Ldind_ref);
+                        }
+
                         break;
                     case StoreIndirectInstruction storeIndirectInstruction:
-                        // TODO
+                        if (storeIndirectInstruction.Type.Equals(PlatformTypes.Int8))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stind_i1);
+                        }
+                        else if (storeIndirectInstruction.Type.Equals(PlatformTypes.Int16))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stind_i2);
+                        }
+                        else if (storeIndirectInstruction.Type.Equals(PlatformTypes.Int32))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stind_i4);
+                        }
+                        else if (storeIndirectInstruction.Type.Equals(PlatformTypes.Int64))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stind_i8);
+                        }
+                        else if (storeIndirectInstruction.Type.Equals(PlatformTypes.Float32))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stind_r4);
+                        }
+                        else if (storeIndirectInstruction.Type.Equals(PlatformTypes.Float64))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stind_r8);
+                        }
+                        else if (storeIndirectInstruction.Type.Equals(PlatformTypes.IntPtr))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stind_i);
+                        }
+                        else if (storeIndirectInstruction.Type.Equals(PlatformTypes.Object))
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stind_ref);
+                        }
+
                         break;
                     default:
                         throw new Exception("instruction type not handled");
