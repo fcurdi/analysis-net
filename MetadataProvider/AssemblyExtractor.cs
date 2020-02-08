@@ -254,6 +254,24 @@ namespace MetadataProvider
 			type.ContainingType = currentType;
 			type.ContainingAssembly = assembly;
 			type.ContainingNamespace = currentNamespace;
+			if (typedef.Attributes.HasFlag(SR.TypeAttributes.Abstract))
+			{
+				if (typedef.Attributes.HasFlag(SR.TypeAttributes.Sealed))
+				{
+					type.IsStatic = true;
+				}
+				else
+				{
+					type.IsAbstract = true;
+				}
+			}
+			else if (typedef.Attributes.HasFlag(SR.TypeAttributes.Sealed))
+			{
+				type.IsSealed = true;
+			}
+
+			type.BeforeFieldInit = typedef.Attributes.HasFlag(SR.TypeAttributes.BeforeFieldInit);
+
 			currentType = type;
 
 			foreach (var handle in typedef.GetGenericParameters())
@@ -479,6 +497,10 @@ namespace MetadataProvider
 			field.IsStatic = fielddef.Attributes.HasFlag(SR.FieldAttributes.Static);
 			field.Visibility = GetVisibilityKind(fielddef.Attributes);
 			field.Value = ExtractFieldDefaultValue(fielddef);
+			field.IsReadonly = fielddef.Attributes.HasFlag(SR.FieldAttributes.InitOnly);
+			field.IsLiteral = fielddef.Attributes.HasFlag(SR.FieldAttributes.Literal);
+			field.SpecialName = fielddef.Attributes.HasFlag(SR.FieldAttributes.SpecialName);
+			field.RuntimeSpecialName = fielddef.Attributes.HasFlag(SR.FieldAttributes.RTSpecialName);
 
 			currentType.Fields.Add(field);
 		}
@@ -516,7 +538,11 @@ namespace MetadataProvider
 			method.IsVirtual = methoddef.Attributes.HasFlag(SR.MethodAttributes.Virtual);
 			method.IsExternal = methoddef.Attributes.HasFlag(SR.MethodAttributes.PinvokeImpl);
 			method.IsConstructor = method.Name.EndsWith(".ctor");
-
+			method.HidesMember = methoddef.Attributes.HasFlag(SR.MethodAttributes.NewSlot);
+			method.IsSealed = methoddef.Attributes.HasFlag(SR.MethodAttributes.Final);
+			method.SpecialName = methoddef.Attributes.HasFlag(SR.MethodAttributes.SpecialName);
+			method.RuntimeSpecialName = methoddef.Attributes.HasFlag(SR.MethodAttributes.RTSpecialName);
+			
 			currentType.Methods.Add(method);
 			currentMethod = method;
 
