@@ -112,6 +112,10 @@ namespace Model.Types
 		public Constant Value { get; set; }
 
 		public bool IsStatic { get; set; }
+		public bool IsReadonly { get; set; }
+		public bool IsLiteral { get; set; }
+		public bool SpecialName { get; set; }
+		public bool RuntimeSpecialName { get; set; }
 
 		public FieldDefinition(string name, IType type)
 		{
@@ -412,6 +416,10 @@ namespace Model.Types
 		public bool IsVirtual { get; set; }
 		public bool IsConstructor { get; set; }
 		public bool IsExternal { get; set; }
+		public bool HidesMember { get; set; }
+		public bool IsSealed { get; set; }
+		public bool SpecialName { get; set; }
+		public bool RuntimeSpecialName { get; set; }
 		public MethodBody Body { get; set; }
 
 		public MethodDefinition(string name, IType returnType)
@@ -623,6 +631,10 @@ namespace Model.Types
 		public IList<MethodDefinition> Methods { get; private set; }
 		public IList<TypeDefinition> Types { get; private set; }
 		public IBasicType UnderlayingType { get; set; }
+		public bool IsStatic { get; set;  }
+		public bool IsAbstract { get; set; }
+		public bool IsSealed { get; set; }
+		public bool BeforeFieldInit { get; set; }
 
 		public TypeDefinition(string name, TypeKind typeKind = TypeKind.Unknown, TypeDefinitionKind kind = TypeDefinitionKind.Unknown)
 		{
