@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Reflection.Metadata;
 using Accessibility;
 using Classes;
@@ -414,34 +415,23 @@ namespace Nested
     }
 }
 
-// FIXME ref and out are beign generated like type*& instead of type&. That is because the type a & type in the model is represented as a pointer type.
 namespace PointersAndReferences
 {
     public class PointersAndReferenceClass
     {
-        private int number = 1;
-        private Exception exception = new Exception();
-
-        public void MethodWithRefAndOutParameters(ref string refString, ref Exception refException, out int outInt, out SimpleClass outClass)
+        public unsafe void* MethodWithRefOutAndPointerParameters(
+            ref string refString,
+            out string outString,
+            ref int refInt,
+            out int outInt,
+            ref EmptyStruct refStruct,
+            out EmptyStruct outStruct,
+            int* intPointer,
+            EmptyStruct* structPointer)
         {
+            outString = "";
             outInt = 2;
-            outClass = new SimpleClass(1, "");
-        }
-
-        // FIXME not in the model
-        public ref int RefInt()
-        {
-            return ref number;
-        }
-
-        // FIXME not in the model
-        public ref Exception RefException()
-        {
-            return ref exception;
-        }
-
-        public unsafe void* UnsafeMethod(int* intPointer, EmptyStruct* structPointer, uint* uintPointer)
-        {
+            outStruct = new EmptyStruct();
             return null;
         }
     }
@@ -760,7 +750,7 @@ namespace MethodBody
             Action<int> y = null; // ldnull
         }
 
-        public string LoadIndirect(ref object g)
+        public string LoadIndirect(ref int g)
         {
             unsafe
             {
@@ -791,7 +781,7 @@ namespace MethodBody
             }
         }
 
-        public unsafe int StoreIndirect(
+        public double StoreIndirect(
             out sbyte outByte,
             out short outShort,
             out int outInt,
@@ -813,7 +803,7 @@ namespace MethodBody
             outIntPtr = h; // stind.i
             outClass = new SimpleClass(1, ""); // stind.ref
 
-            return (int) (outByte + outDouble + outClass.GetHashCode());
+            return outByte + outDouble + outClass.readOnlyIntField;
         }
 
         public bool Compare(int b, int x)
@@ -1010,8 +1000,8 @@ namespace MethodBody
             }
         }
 
-        /* FIXME finally end label is wrong in the model (one more that it should be, that label does not exist) so this results in an
-         FIXME unmarked label. Fix in the model. The IL though is generated correctly
+        /* FIXME finally end label is wrong in the model (one more that it should be, that label does not exist)? this example results in an
+         FIXME unmarked label. The IL though is generated correctly
         public void ExceptionHandlingTryCatchFinally(Exception e)
         {
             try

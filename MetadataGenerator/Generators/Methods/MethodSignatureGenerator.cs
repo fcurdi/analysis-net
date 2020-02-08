@@ -66,8 +66,14 @@ namespace MetadataGenerator.Generators.Methods
                     {
                         foreach (var parameter in parameters)
                         {
-                            var isByRef = parameter.Kind.IsOneOf(MethodParameterKind.Out, MethodParameterKind.Ref);
-                            var type = isByRef ? (parameter.Type as PointerType).TargetType : parameter.Type;
+                            var isByRef = false;
+                            var type = parameter.Type;
+                            if (parameter.Type is ManagedPointerType managedPointerType)
+                            {
+                                isByRef = true;
+                                type = managedPointerType.TargetType;
+                            }
+
                             var encoder = parametersEncoder.AddParameter().Type(isByRef);
                             metadataContainer.metadataResolver.Encode(type, encoder);
                         }

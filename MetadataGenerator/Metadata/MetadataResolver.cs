@@ -237,6 +237,8 @@ namespace MetadataGenerator.Metadata
             else if (type.Equals(PlatformTypes.String)) encoder.String();
             else if (type.Equals(PlatformTypes.Single)) encoder.Single();
             else if (type.Equals(PlatformTypes.Object)) encoder.Object();
+            else if (type.Equals(PlatformTypes.IntPtr)) encoder.IntPtr();
+            else if (type.Equals(PlatformTypes.UIntPtr)) encoder.UIntPtr();
             else
             {
                 switch (type)
@@ -288,6 +290,11 @@ namespace MetadataGenerator.Metadata
                             Encode(targetType, encoder.Pointer());
                         }
 
+                        break;
+                    }
+                    case FunctionPointerType _:
+                    {
+                        encoder.FunctionPointer();
                         break;
                     }
                     case IGenericParameterReference genericParameter:
