@@ -88,6 +88,10 @@ namespace Classes
         }
     }
 
+    public sealed class SealedClass
+    {
+    }
+
     public static class EmptyStaticClass
     {
     }
@@ -337,7 +341,7 @@ namespace Hierarchy
 
     public class DerivedClass : BaseClass
     {
-        public override void CanImplement()
+        public sealed override void CanImplement()
         {
         }
     }

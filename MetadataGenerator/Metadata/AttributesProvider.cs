@@ -33,7 +33,7 @@ namespace MetadataGenerator.Metadata
                    VisibilityAttributesFor(typeDefinition) |
                    TypeAttributes.SequentialLayout |
                    TypeAttributes.Sealed |
-                   TypeAttributes.BeforeFieldInit; //FIXME: when?
+                   (typeDefinition.BeforeFieldInit ? TypeAttributes.BeforeFieldInit : 0);
         }
 
         private static TypeAttributes EnumTypeAttributes(TypeDefinition typeDefinition)
@@ -46,7 +46,10 @@ namespace MetadataGenerator.Metadata
         private static TypeAttributes ClassTypeAttributes(TypeDefinition typeDefinition)
         {
             return TypeAttributes.Class |
-                   TypeAttributes.BeforeFieldInit | //FIXME: when?
+                   (typeDefinition.BeforeFieldInit ? TypeAttributes.BeforeFieldInit : 0) |
+                   (typeDefinition.IsAbstract ? TypeAttributes.Abstract : 0) |
+                   (typeDefinition.IsSealed ? TypeAttributes.Sealed : 0) |
+                   (typeDefinition.IsStatic ? TypeAttributes.Abstract | TypeAttributes.Sealed : 0) |
                    VisibilityAttributesFor(typeDefinition);
         }
 
@@ -59,13 +62,10 @@ namespace MetadataGenerator.Metadata
         {
             var fieldAttributes =
                 (field.IsStatic ? FieldAttributes.Static : 0) |
-                (field.ContainingType.Kind is TypeDefinitionKind.Enum && field.Type.Equals(field.ContainingType)
-                    ? FieldAttributes.Literal
-                    : 0) |
-                (field.ContainingType.Kind is TypeDefinitionKind.Enum &&
-                 field.Name.Equals("value__", StringComparison.InvariantCultureIgnoreCase)
-                    ? FieldAttributes.RTSpecialName | FieldAttributes.SpecialName
-                    : 0);
+                (field.IsLiteral ? FieldAttributes.Literal : 0) |
+                (field.IsReadonly ? FieldAttributes.InitOnly : 0) |
+                (field.SpecialName ? FieldAttributes.SpecialName : 0) |
+                (field.RuntimeSpecialName ? FieldAttributes.RTSpecialName : 0);
             switch (field.Visibility)
             {
                 case VisibilityKind.Public:
@@ -89,21 +89,15 @@ namespace MetadataGenerator.Metadata
 
         public static MethodAttributes GetMethodAttributesFor(MethodDefinition method)
         {
-            var constructor = method.IsConstructor || method.Name.Equals(".cctor");
-            var specialName =
-                method.Name.StartsWith("get_", StringComparison.Ordinal) ||
-                method.Name.StartsWith("set_", StringComparison.Ordinal) ||
-                method.Name.StartsWith("op_", StringComparison.Ordinal);
             var methodAttributes =
-                MethodAttributes.HideBySig | // FIXME when?
+                MethodAttributes.HideBySig |
                 (method.IsAbstract ? MethodAttributes.Abstract : 0) |
                 (method.IsStatic ? MethodAttributes.Static : 0) |
                 (method.IsVirtual ? MethodAttributes.Virtual : 0) |
-                (method.ContainingType.Kind is TypeDefinitionKind.Interface
-                    ? MethodAttributes.NewSlot
-                    : 0) | // TODO not correct. Depends on the new keyword but model is missing it
-                (constructor ? MethodAttributes.SpecialName | MethodAttributes.RTSpecialName : 0) |
-                (specialName ? MethodAttributes.SpecialName : 0);
+                (method.HidesMember ? MethodAttributes.NewSlot : 0) |
+                (method.IsSealed ? MethodAttributes.Final : 0) |
+                (method.SpecialName ? MethodAttributes.SpecialName : 0) |
+                (method.RuntimeSpecialName ? MethodAttributes.RTSpecialName : 0);
             switch (method.Visibility)
             {
                 case VisibilityKind.Public:
