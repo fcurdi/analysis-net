@@ -13,7 +13,7 @@ namespace ExamplesEXE
         public static void Main(string[] args)
         {
             var methodBodyExamples = new MethodBodyExamples();
-            var g = 5;qq
+            var g = 5;
             var sc = new SimpleClass(3, "a");
 
             // FIXME some fail due to the ValueType/ReferenceType problem.
