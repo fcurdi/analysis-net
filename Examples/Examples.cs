@@ -512,7 +512,7 @@ namespace Generics
 
 namespace MethodBody
 {
-    public /*FIXME unccoment abstract*/ class ContainingClass
+    public  abstract class ContainingClass
     {
         public void HelloWorld()
         {
@@ -561,7 +561,7 @@ namespace MethodBody
             return z;
         }
 
-        // FIXME unccoment public abstract void NoBody();
+        public abstract void NoBody();
 
         public int Alloc()
         {
