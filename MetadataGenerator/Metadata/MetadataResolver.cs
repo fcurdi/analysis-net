@@ -265,19 +265,30 @@ namespace MetadataGenerator.Metadata
                         break;
                     }
                     case ArrayType arrayType:
-                        encoder.Array(
-                            elementTypeEncoder => Encode(arrayType.ElementsType, elementTypeEncoder),
-                            arrayShapeEncoder =>
-                            {
-                                var lowerBounds = arrayType.Rank > 1
-                                    ? Repeat(0, (int) arrayType.Rank).ToImmutableArray() // 0 because ArrayType does not know bounds
-                                    : ImmutableArray<int>.Empty;
-                                arrayShapeEncoder.Shape(
-                                    rank: (int) arrayType.Rank,
-                                    sizes: ImmutableArray<int>.Empty,
-                                    lowerBounds: lowerBounds);
-                            });
+                    {
+                        if (arrayType.IsVector)
+                        {
+                            Encode(arrayType.ElementsType, encoder.SZArray());
+                        }
+                        else
+                        {
+                            encoder.Array(
+                                elementTypeEncoder => Encode(arrayType.ElementsType, elementTypeEncoder),
+                                arrayShapeEncoder =>
+                                {
+                                    /**
+                                     * This assumes that all dimensions have 0 as lower bound and none declare sizes.
+                                     * Lower bounds and sizes are not modelled. 
+                                     */
+                                    var lowerBounds = Repeat(0, (int) arrayType.Rank).ToImmutableArray();
+                                    var sizes = ImmutableArray<int>.Empty;
+                                    arrayShapeEncoder.Shape((int) arrayType.Rank, sizes, lowerBounds);
+                                });
+                        }
+
+
                         break;
+                    }
                     case PointerType pointerType:
                     {
                         var targetType = pointerType.TargetType;
@@ -298,6 +309,7 @@ namespace MetadataGenerator.Metadata
                         break;
                     }
                     case IGenericParameterReference genericParameter:
+                    {
                         switch (genericParameter.Kind)
                         {
                             case GenericParameterKind.Type:
@@ -309,6 +321,7 @@ namespace MetadataGenerator.Metadata
                         }
 
                         break;
+                    }
                     default:
                         throw new Exception($"Type {type} not supported");
                 }

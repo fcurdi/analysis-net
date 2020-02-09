@@ -1,4 +1,7 @@
-﻿using MethodBody;
+﻿using System;
+using Classes;
+using MethodBody;
+using Structs;
 
 namespace ExamplesEXE
 {
@@ -9,53 +12,58 @@ namespace ExamplesEXE
         // IMPORTANT ExamplesEXE has Examples as reference so it's important to copy de latest Examples.dll to the Console/bin/debug directory
         public static void Main(string[] args)
         {
-            var a = new ConcreteContainingClass();
-            var g = 5;
-            /* works and returns the same as original
-                Console.WriteLine(a.Arithmetics(1, 2));
-                Console.WriteLine(a.Compare(6, 90));
-                a.Branch(1, 2, new Exception());
-                Console.WriteLine(a.Convert(new Exception()));
-                a.Empty();
-                Console.WriteLine(a.Logic(true, false));
-                a.Nothing2<String>();
-                Console.WriteLine(a.BitwiseOperations(235));
-                a.HelloWorld();
-                Console.WriteLine(a.LoadArgument(1, "2", true, 4));
-                Console.WriteLine(a.LoadConstant());
-                Console.WriteLine(a.LoadLocal());
-                a.LoadPointer();
-                Console.WriteLine(a.ReturnsArg(10));
-                Console.WriteLine(a.ReturnsOne());
-                Console.WriteLine(a.SizeOf());
-                Console.WriteLine(a.StoreValue(100));
-                a.ExceptionHandlingTryCatchSpecific(0);
-                a.ExceptionHandlingTryCatch(0);
-                a.ExceptionHandlingTryCatchFilter(0);
-                Console.WriteLine(a.LoadField());
-                Console.WriteLine(a.StoreField());
-                a.Calls(new SimpleClass(3, "a"), e => 5);
-                Console.WriteLine(a.Nothing(new object()));
-                Console.WriteLine(a.Alloc());
-                a.LoadAddress(4);
-                Console.WriteLine(a.LoadIndirect(ref g));
-                Console.WriteLine(a.StoreIndirect(out sbyte b, out short s, out int i, out long l, out float f, out double d, out IntPtr ip, out SimpleClass sc));
-                Console.WriteLine(a.LoadToken<Exception>());
-            */
+            var methodBodyExamples = new MethodBodyExamples();
+            var g = 5;qq
+            var sc = new SimpleClass(3, "a");
 
-            /* FIXME works but differs form original
-                a.ExceptionHandlingTryCatchFinally(new AggregateException("Intentionally not catched exception"));
-            */
+            // FIXME some fail due to the ValueType/ReferenceType problem.
+            Console.WriteLine(methodBodyExamples.Arithmetics(1, 2));
+            Console.WriteLine(methodBodyExamples.Compare(6, 90));
+            methodBodyExamples.Branch(1, 2, new Exception());
+            Console.WriteLine(methodBodyExamples.Convert(new Exception()));
+            methodBodyExamples.Empty();
+            Console.WriteLine(methodBodyExamples.Logic(true, false));
+            methodBodyExamples.Nothing2<String>();
+            Console.WriteLine(methodBodyExamples.BitwiseOperations(235));
+            methodBodyExamples.HelloWorld();
+            Console.WriteLine(methodBodyExamples.LoadArgument(1, "2", true, 4));
+            Console.WriteLine(methodBodyExamples.LoadConstant());
+            Console.WriteLine(methodBodyExamples.LoadLocal());
+            methodBodyExamples.LoadPointer();
+            Console.WriteLine(methodBodyExamples.ReturnsArg(10));
+            Console.WriteLine(methodBodyExamples.ReturnsOne());
+            Console.WriteLine(methodBodyExamples.SizeOf());
+            Console.WriteLine(methodBodyExamples.StoreValue(100));
+            methodBodyExamples.ExceptionHandlingTryCatchSpecific(0);
+            methodBodyExamples.ExceptionHandlingTryCatch(0);
+            methodBodyExamples.ExceptionHandlingTryCatchFilter(0);
+            Console.WriteLine(methodBodyExamples.LoadField());
+            Console.WriteLine(methodBodyExamples.StoreField());
+            methodBodyExamples.Calls(sc, e => 5);
+            Console.WriteLine(methodBodyExamples.Nothing(new object()));
+            Console.WriteLine(methodBodyExamples.Alloc());
+            methodBodyExamples.LoadAddress(4);
+            Console.WriteLine(methodBodyExamples.LoadIndirect(ref g));
+            Console.WriteLine(methodBodyExamples.StoreIndirect(out sbyte b, out short q, out int i, out long l, out float f, out double d,
+                out IntPtr ip,
+                out SimpleClass s));
+            Console.WriteLine(methodBodyExamples.LoadToken<Exception>());
+            Console.WriteLine(sc.ReceivesArraysAndReturnsIntArray(new[] {""}, new[] {new Exception()}));
+            unsafe
+            {
+                Console.WriteLine(methodBodyExamples.Create());
+            }
 
-            /* FIXME does not work
-                Console.WriteLine(a.Arrays(new[] {new EmptyStruct()}));
-                Console.WriteLine(a.LoadArray(new[] {new Exception("m1"), new Exception("m2")}, new int[5])); 
-                unsafe { Console.WriteLine(a.Create()); }
+            Console.WriteLine(methodBodyExamples.Arrays(new[] {new EmptyStruct()}));
+            Console.WriteLine(methodBodyExamples.LoadArray(new[] {new Exception("m1"), new Exception("m2")}, new int[5]));
+
+            /* FIXME Try when that example is fixed
+                methodBodyExamples.ExceptionHandlingTryCatchFinally(new AggregateException("Intentionally not catched exception"));
             */
         }
     }
 
-    public class ConcreteContainingClass : ContainingClass
+    public class MethodBodyExamples : ContainingClass
     {
         public override void NoBody()
         {

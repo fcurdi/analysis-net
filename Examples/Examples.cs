@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
+using System.Globalization;
 using System.Reflection.Metadata;
 using Accessibility;
 using Classes;
@@ -122,7 +122,12 @@ namespace Classes
             return arg;
         }
 
-        internal double ReturnADobule(double arg)
+        public int[] ReceivesArraysAndReturnsIntArray(string[] s, Exception[] e)
+        {
+            return new[] {1};
+        }
+
+        internal double ReturnADouble(double arg)
         {
             return arg;
         }
@@ -450,7 +455,7 @@ namespace Generics
 
         public IList<IList<Exception>> listOfListField;
 
-        // FIXME the assigment is done in the .ctor with a stfld instruction but i'm generating a stsfld instruction. That's because somehow the field that i recieve is static
+        // FIXME the assigment is done in the .ctor with a stfld instruction but i'm generating a stsfld instruction. That's because somehow the field that i Receives is static
         // FIXME when in reality it is not. Maybe a fault in the model?
         public readonly List<string> stringList = new List<string> {"holas"};
 
@@ -473,12 +478,12 @@ namespace Generics
         {
         }
 
-        public E RecievesAndReturnsGenericType<T, E, F>(T t, E e)
+        public E ReceivesAndReturnsGenericType<T, E, F>(T t, E e)
         {
             return e;
         }
 
-        public IList<T> RecievesAndReturnsGenericTypeList<T>(IList<T> listT)
+        public IList<T> ReceivesAndReturnsGenericTypeList<T>(IList<T> listT)
         {
             return listT;
         }
@@ -512,7 +517,7 @@ namespace Generics
 
 namespace MethodBody
 {
-    public  abstract class ContainingClass
+    public abstract class ContainingClass
     {
         public void HelloWorld()
         {
@@ -643,7 +648,7 @@ namespace MethodBody
             doubleArray[1] = d; // stelem.r8
             structArray[0] = p; // stelem
 
-            return y + d + byteArray.Length + structArray[0].GetHashCode() + structArray.Rank;
+            return y + d + byteArray.Length + structArray[0].ToString().Length + structArray.Rank;
         }
 
         public void Empty()
@@ -678,7 +683,7 @@ namespace MethodBody
 
             // TODO unbox (unbox ptr)
 
-            return i + x6 + s.Length + l.GetHashCode() + o.ToString().Length;
+            return i + x6 + s.Length + l.ToString().Length + o.ToString().Length;
         }
 
         public double LoadConstant()
@@ -819,15 +824,14 @@ namespace MethodBody
             return a;
         }
 
-        public unsafe int**[] Create()
+        public unsafe int*[] Create()
         {
             new SimpleClass(1, "a"); // newobj $methodCall
             var a = new int[] {1, 2, 3}; // newarr int
             var b = new Exception[] { }; // newarr Clases.SimpleClass
             var c = new int*[] { }; // newarr int*
-            var d = new int**[] { }; // newarr int**
 
-            return d;
+            return c;
         }
 
         public int LoadArray(Exception[] x, int[] q)
@@ -857,7 +861,7 @@ namespace MethodBody
 
             var m = (new int[] {1, 2, 3}).Length; // ldlen
 
-            return m + k.GetHashCode() + c + a.Message.Length + q.Length;
+            return m + k.ToString(CultureInfo.InvariantCulture).Length + c + a.Message.Length + q.Length;
         }
 
         public string LoadField()
