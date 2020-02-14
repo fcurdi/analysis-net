@@ -302,8 +302,6 @@ namespace Interfaces
     }
 }
 
-// FIXME is generating [Examples.dll]Delegates.ClassThatUsesDelegate/Del ReturnsADelegate  instead of Delegates.ClassThatUsesDelegate/Del ReturnsADelegate 
-// (same assembly)
 namespace Delegates
 {
     public class SampleClass
@@ -912,8 +910,7 @@ namespace MethodBody
         {
             unsafe
             {
-                // FIXME unccomment when on of the instructiosn PRs is merged (needs the TypeDefinitionHandle case that is missing)
-                // var x = sizeof(Structs.NonEmptyStruct); // sizeof $type
+                var x = sizeof(NonEmptyStruct); // sizeof $type
                 var z = sizeof(NonEmptyStruct***); // sizeof $type***
                 var y = sizeof(int*); // sizeof int*
 
@@ -921,8 +918,6 @@ namespace MethodBody
             }
         }
 
-        // TODO other cases
-        // FIXME generation almost correct
         public Type LoadToken<T>()
         {
             var x = typeof(T);

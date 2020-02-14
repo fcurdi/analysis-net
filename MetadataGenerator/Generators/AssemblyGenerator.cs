@@ -13,11 +13,6 @@ namespace MetadataGenerator.Generators
             var namespaceGenerator = new NamespaceGenerator(metadataContainer);
             var metadataBuilder = metadataContainer.metadataBuilder;
 
-            foreach (var namezpace in assembly.RootNamespace.Namespaces)
-            {
-                namespaceGenerator.Generate(namezpace);
-            }
-
             metadataBuilder.AddAssembly(
                 name: metadataBuilder.GetOrAddString(assembly.Name),
                 version: new Version(0, 0, 0, 1),
@@ -34,6 +29,11 @@ namespace MetadataGenerator.Generators
                 mvid: metadataBuilder.GetOrAddGuid(Guid.NewGuid()),
                 encId: default,
                 encBaseId: default);
+
+            foreach (var namezpace in assembly.RootNamespace.Namespaces)
+            {
+                namespaceGenerator.Generate(namezpace);
+            }
 
             /*
              * Generic parameters table must be sorted by owner (TypeOrMethodDef that owns the generic parameter). Since the dll's methods and types don't follow a

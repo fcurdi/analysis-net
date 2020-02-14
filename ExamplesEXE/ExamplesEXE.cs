@@ -1,7 +1,5 @@
-﻿using System;
-using Classes;
+﻿using Classes;
 using MethodBody;
-using Structs;
 
 namespace ExamplesEXE
 {
@@ -15,7 +13,7 @@ namespace ExamplesEXE
             var methodBodyExamples = new MethodBodyExamples();
             var g = 5;
             var sc = new SimpleClass(3, "a");
-
+            /*
             // FIXME some fail due to the ValueType/ReferenceType problem.
             Console.WriteLine(methodBodyExamples.Arithmetics(1, 2));
             Console.WriteLine(methodBodyExamples.Compare(6, 90));
@@ -54,8 +52,10 @@ namespace ExamplesEXE
                 Console.WriteLine(methodBodyExamples.Create());
             }
 
-            Console.WriteLine(methodBodyExamples.Arrays(new[] {new EmptyStruct()}));
-            Console.WriteLine(methodBodyExamples.LoadArray(new[] {new Exception("m1"), new Exception("m2")}, new int[5]));
+         Console.WriteLine(methodBodyExamples.Arrays(new[] {new EmptyStruct()}));
+         Console.WriteLine(methodBodyExamples.LoadArray(new[] {new Exception("m1"), new Exception("m2")}, new int[5]));
+         methodBodyExamples.Calls(sc, e => 5);
+         */
 
             /* FIXME Try when that example is fixed
                 methodBodyExamples.ExceptionHandlingTryCatchFinally(new AggregateException("Intentionally not catched exception"));
