@@ -145,7 +145,6 @@ namespace MetadataGenerator.Metadata
             return attributes;
         }
 
-        // TODO other visibilities?
         private static TypeAttributes VisibilityAttributesFor(TypeDefinition typeDefinition)
         {
             if (typeDefinition.ContainingType != null)

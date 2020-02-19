@@ -38,7 +38,7 @@ namespace MetadataGenerator.Generators
                     .PropertySignature(isInstanceProperty: true?) 
                     .Parameters(
                     0,
-                    returnType => returnType.Type().Int32() (algun type), 
+                    returnType => returnType.Type().Int32() (some type), 
                     parameters => { });
 
                 var propertyDefinitionHandle = metadata.AddProperty(

@@ -445,7 +445,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 instructionEncoder.OpCode(loadFieldInstruction.Field.IsStatic ? SRM.ILOpCode.Ldsfld : SRM.ILOpCode.Ldfld);
                                 break;
                             case LoadFieldOperation.Address:
-                                // TODO test. Example present but not supported in model
                                 instructionEncoder.OpCode(loadFieldInstruction.Field.IsStatic ? SRM.ILOpCode.Ldsflda : SRM.ILOpCode.Ldflda);
                                 break;
                         }

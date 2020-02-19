@@ -12,7 +12,6 @@ using SRM = System.Reflection.Metadata;
 
 namespace MetadataGenerator.Metadata
 {
-    // FIXME is there a way to unify all this dictionaries and logic of GetOrAdd?
     internal class MetadataResolver
     {
         private readonly Assembly assembly;
