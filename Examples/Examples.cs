@@ -35,34 +35,46 @@ namespace Enums
     }
 }
 
-// TODO not yet supported in the framework model
-// TODO interface with properties
-// TODO struct with properties
-namespace PropertiesGettersAndSetters
+namespace Properties
 {
     public class ClassWithProperties
     {
-        public double AutoImplementedProperty { get; set; }
-        public char AnotherAutoImplementedProperty { get; }
+        public double DoublePropertyWithAutoImplementedGetSet { get; set; }
+        public byte BytePropertyWithAutoImplementedGetAndDefaultValue { get; } = 1;
+        public Exception ExceptionPropertyWithAutoImplementedGetSetAndDefaultValue { get; set; } = new Exception("all good");
+        public DerivedClass DerivedClassPropertyWithAutoImplementedGetSet { get; set; }
 
-        public int PropertyWithBackingField
+        public int IntPropertyWithBackingField
         {
-            get => backingField;
-            set => backingField = value;
+            get => intBackingField + 1;
+            set => intBackingField = value - 1;
         }
 
-        private int backingField;
+        private int intBackingField;
 
-        public string AnotherPropertyWithBackingField
+        public string StringPropertyWithBackingField => " " + stringBackingField + " ";
+
+        private readonly string stringBackingField = "some.value";
+    }
+
+    public struct StructWithProperties : IInterfaceWithProperties
+    {
+        public double DoublePropertyWithAutoImplementedGetSet { get; set; }
+        public DerivedClass DerivedClassPropertyWithAutoImplementedGetSet { get; set; }
+
+        public int IntPropertyWithBackingField
         {
-            get => otherBackingField;
+            get => intBackingField + 1;
+            set => intBackingField = value - 1;
         }
 
-        private string otherBackingField;
+        private int intBackingField;
+    }
 
-        public void get_ShouldNotHaveSpecialname()
-        {
-        }
+    public interface IInterfaceWithProperties
+    {
+        double DoublePropertyWithAutoImplementedGetSet { get; set; }
+        DerivedClass DerivedClassPropertyWithAutoImplementedGetSet { get; set; }
     }
 }
 
