@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using SRM = System.Reflection.Metadata;
 
@@ -50,6 +51,7 @@ namespace MetadataProvider
 		public virtual IType GetTypeFromDefinition(SRM.MetadataReader reader, SRM.TypeDefinitionHandle handle, byte rawTypeKind = 0)
 		{
 			var result = extractor.GetDefinedType(handle);
+			result.TypeKind = ResolveTypeKind(reader, handle, rawTypeKind); 
 			return result;
 		}
 
@@ -63,7 +65,8 @@ namespace MetadataProvider
 			var type = new BasicType(name)
 			{
 				ContainingNamespace = namespaze,
-				GenericParameterCount = genericParameterCount
+				GenericParameterCount = genericParameterCount,
+				TypeKind = ResolveTypeKind(reader, handle, rawTypeKind)
 			};
 
 			type.Resolve(extractor.Host);
@@ -231,6 +234,21 @@ namespace MetadataProvider
 			}
 
 			return result;
+		}
+
+		private TypeKind ResolveTypeKind(SRM.MetadataReader reader, SRM.EntityHandle typeHandle, byte rawTypeKind)
+		{
+			var typeKind = reader.ResolveSignatureTypeKind(typeHandle, rawTypeKind);
+			switch (typeKind)
+			{
+				case SRM.SignatureTypeKind.Class: 
+					return TypeKind.ReferenceType;
+				case SRM.SignatureTypeKind.ValueType:
+					return TypeKind.ValueType;
+				default:
+					return TypeKind.Unknown;
+			}
+			
 		}
 	}
 }
