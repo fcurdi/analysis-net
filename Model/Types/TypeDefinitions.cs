@@ -416,6 +416,7 @@ namespace Model.Types
 		{
 			get { return this.ContainingType; }
 		}
+		public bool IsInstanceProperty { get; set; }
 		public bool MatchReference(ITypeMemberReference member)
 		{
 			if (member is PropertyDefinition)
@@ -423,7 +424,6 @@ namespace Model.Types
 
 			return false;
 		}
-		public bool IsInstanceProperty { get; set; }
 		public override bool Equals(object obj)
 		{
 			if (obj is PropertyDefinition propertyDef)
