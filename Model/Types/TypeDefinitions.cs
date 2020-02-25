@@ -423,6 +423,7 @@ namespace Model.Types
 
 			return false;
 		}
+		public bool IsInstanceProperty { get; set; }
 		public override bool Equals(object obj)
 		{
 			if (obj is PropertyDefinition propertyDef)
