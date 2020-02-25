@@ -506,10 +506,12 @@ namespace MetadataProvider
 			var propertyDef = metadata.GetPropertyDefinition(handle);
 			var name = metadata.GetString(propertyDef.Name);
 			var signature = propertyDef.DecodeSignature(signatureTypeProvider, defGenericContext);
+			var getter = propertyDef.GetAccessors().Getter;
+			var setter = propertyDef.GetAccessors().Setter;
 			var property = new PropertyDefinition(name, signature.ReturnType)
 			{
-				Getter = !propertyDef.GetAccessors().Getter.IsNil ? GetDefinedMethod(propertyDef.GetAccessors().Getter) : default,
-				Setter = !propertyDef.GetAccessors().Setter.IsNil ? GetDefinedMethod(propertyDef.GetAccessors().Setter) : default,
+				Getter = !getter.IsNil ? GetDefinedMethod(getter) : default,
+				Setter = !setter.IsNil ? GetDefinedMethod(setter) : default,
 				ContainingType = currentType,
 				IsInstanceProperty = signature.Header.IsInstance
 			};
