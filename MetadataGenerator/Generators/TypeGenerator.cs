@@ -16,12 +16,14 @@ namespace MetadataGenerator.Generators
         private readonly MetadataContainer metadataContainer;
         private readonly MethodGenerator methodGenerator;
         private readonly FieldGenerator fieldGenerator;
+        private readonly PropertyGenerator propertyGenerator;
 
         public TypeGenerator(MetadataContainer metadataContainer)
         {
             this.metadataContainer = metadataContainer;
             methodGenerator = new MethodGenerator(metadataContainer);
             fieldGenerator = new FieldGenerator(metadataContainer);
+            propertyGenerator = new PropertyGenerator(metadataContainer);
         }
 
         public SRM.TypeDefinitionHandle Generate(TypeDefinition type)
@@ -29,30 +31,7 @@ namespace MetadataGenerator.Generators
             var methodDefinitionHandles = new List<SRM.MethodDefinitionHandle>();
             var metadataBuilder = metadataContainer.metadataBuilder;
             var fieldDefinitionHandles = type.Fields.Select(field => fieldGenerator.Generate(field)).ToList();
-
-            /* TODO model is missing Property concept
-             * pseudocode
-
-                var propertySignatureBlogBuilder = new BlobBuilder();
-                new BlobEncoder(propertySignatureBlogBuilder)
-                    .PropertySignature(isInstanceProperty: true?) 
-                    .Parameters(
-                    0,
-                    returnType => returnType.Type().Int32() (some type), 
-                    parameters => { });
-
-                var propertyDefinitionHandle = metadata.AddProperty(
-                    attributes: PropertyAttributes.None, 
-                    name: metadata.GetOrAddString(""), 
-                    signature: metadata.GetOrAddBlob(propertySignatureBlogBuilder));
-
-                // associate methods (get, set) to property  
-                metadata.AddMethodSemantics(
-                    propertyDefinitionHandle,
-                    method.Name.StartsWith("get_") ? MethodSemanticsAttributes.Getter : MethodSemanticsAttributes.Setter,
-                    methodHandle); //getter/setter
-                metadata.AddPropertyMap(typeDefinitionHandle, propertyDefinitionHandle);
-            */
+            var methodDefToHandle = new Dictionary<MethodDefinition, SRM.MethodDefinitionHandle>();
 
             foreach (var method in type.Methods)
             {
@@ -62,10 +41,18 @@ namespace MetadataGenerator.Generators
                 {
                     metadataContainer.MainMethodHandle = methodHandle;
                 }
+
+                methodDefToHandle.Add(method, methodHandle);
             }
+
+            var propertyDefinitionHandles = type.PropertyDefinitions
+                .Select(property => propertyGenerator.Generate(property, methodDefToHandle))
+                .ToList();
 
             var nextFieldDefinitionHandle = ECMA335.MetadataTokens.FieldDefinitionHandle(metadataBuilder.NextRowFor(ECMA335.TableIndex.Field));
             var nextMethodDefinitionHandle = ECMA335.MetadataTokens.MethodDefinitionHandle(metadataBuilder.NextRowFor(ECMA335.TableIndex.MethodDef));
+            var nextPropertyDefinitionHandle =
+                ECMA335.MetadataTokens.PropertyDefinitionHandle(metadataBuilder.NextRowFor(ECMA335.TableIndex.Property));
             var typeDefinitionHandle = metadataBuilder.AddTypeDefinition(
                 attributes: GetTypeAttributesFor(type),
                 @namespace: metadataBuilder.GetOrAddString(type.ContainingNamespace.FullName),
@@ -73,6 +60,8 @@ namespace MetadataGenerator.Generators
                 baseType: type.Base != null ? metadataContainer.metadataResolver.HandleOf(type.Base) : default,
                 fieldList: fieldDefinitionHandles.FirstOr(nextFieldDefinitionHandle),
                 methodList: methodDefinitionHandles.FirstOr(nextMethodDefinitionHandle));
+
+            metadataContainer.metadataBuilder.AddPropertyMap(typeDefinitionHandle, propertyDefinitionHandles.FirstOr(nextPropertyDefinitionHandle));
 
             foreach (var interfaze in type.Interfaces)
             {

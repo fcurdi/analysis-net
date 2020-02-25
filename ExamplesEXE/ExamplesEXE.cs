@@ -1,6 +1,8 @@
 ﻿using System;
 using Classes;
+using Hierarchy;
 using MethodBody;
+using Properties;
 using Structs;
 
 namespace ExamplesEXE
@@ -56,8 +58,7 @@ namespace ExamplesEXE
             Console.WriteLine(methodBodyExamples.Arrays(new[] {new EmptyStruct()}));
             Console.WriteLine(methodBodyExamples.LoadArray(new[] {new Exception("m1"), new Exception("m2")}, new int[5]));
             methodBodyExamples.Calls(sc, e => 5);
-/*
-            waiting on properties implementation
+
             var classWithProperties = new ClassWithProperties();
             classWithProperties.IntPropertyWithBackingField = 2;
             Console.WriteLine(classWithProperties.IntPropertyWithBackingField);
@@ -78,7 +79,6 @@ namespace ExamplesEXE
             Console.WriteLine(structWithProperties.DoublePropertyWithAutoImplementedGetSet);
             structWithProperties.DerivedClassPropertyWithAutoImplementedGetSet = new DerivedClass();
             Console.WriteLine(structWithProperties.DerivedClassPropertyWithAutoImplementedGetSet);
-*/
 
             /* FIXME Try when that example is fixed
                 methodBodyExamples.ExceptionHandlingTryCatchFinally(new AggregateException("Intentionally not catched exception"));
