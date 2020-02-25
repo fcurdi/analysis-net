@@ -307,6 +307,11 @@ namespace MetadataProvider
 			}
 
 			defGenericContext.TypeParameters.Clear();
+			
+			foreach (var handle in typedef.GetProperties())
+			{
+				ExtractProperty(handle);
+			}
 
 			foreach (var handle in typedef.GetNestedTypes())
 			{
@@ -524,6 +529,23 @@ namespace MetadataProvider
 			}
 
 			return result;
+		}
+		
+		private void ExtractProperty(SRM.PropertyDefinitionHandle handle)
+		{
+			var propertyDef = metadata.GetPropertyDefinition(handle);
+			var name = metadata.GetString(propertyDef.Name);
+			var signature = propertyDef.DecodeSignature(signatureTypeProvider, defGenericContext);
+			var getter = propertyDef.GetAccessors().Getter;
+			var setter = propertyDef.GetAccessors().Setter;
+			var property = new PropertyDefinition(name, signature.ReturnType)
+			{
+				Getter = !getter.IsNil ? GetDefinedMethod(getter) : default,
+				Setter = !setter.IsNil ? GetDefinedMethod(setter) : default,
+				ContainingType = currentType,
+				IsInstanceProperty = signature.Header.IsInstance
+			};
+			currentType.PropertyDefinitions.Add(property);
 		}
 
 		private void ExtractMethod(SRM.MethodDefinitionHandle methoddefHandle)
