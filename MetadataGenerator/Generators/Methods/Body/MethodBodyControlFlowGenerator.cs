@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using MetadataGenerator.Metadata;
 using Model;
+using Model.Bytecode;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 
 namespace MetadataGenerator.Generators.Methods.Body
@@ -29,6 +30,17 @@ namespace MetadataGenerator.Generators.Methods.Body
             return labelHandle;
         }
 
+        // FIXME name, quiza hacer tmb con las exception information asi es mas prolijo? y despues en el labelHandle solo levantarla y nunca crearla
+        public void DefineNeededBranchLabels(IList<IInstruction> instructions)
+        {
+            foreach (var instruction in instructions)
+            {
+                if (instruction is BranchInstruction branchInstruction)
+                {
+                    LabelHandleFor(branchInstruction.Target);
+                }
+            }
+        }
 
         public void MarkCurrentLabel()
         {

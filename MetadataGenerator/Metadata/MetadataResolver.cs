@@ -249,7 +249,7 @@ namespace MetadataGenerator.Metadata
                         {
                             var genericInstantiation = encoder.GenericInstantiation(
                                 GetOrAddTypeReference(basicType.GenericType),
-                                basicType.GenericParameterCount,
+                                basicType.GenericArguments.Count,
                                 isValueType);
                             foreach (var genericArg in basicType.GenericArguments)
                             {

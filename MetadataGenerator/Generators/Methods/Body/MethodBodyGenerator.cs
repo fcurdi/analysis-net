@@ -24,10 +24,13 @@ namespace MetadataGenerator.Generators.Methods.Body
             var instructionEncoder = new ECMA335.InstructionEncoder(new SRM.BlobBuilder(), new ECMA335.ControlFlowBuilder());
             var controlFlowGenerator = new MethodBodyControlFlowGenerator(instructionEncoder, metadataContainer);
             controlFlowGenerator.ProcessExceptionInformation(body.ExceptionInformation);
+            controlFlowGenerator.DefineNeededBranchLabels(body.Instructions);
 
             foreach (var instruction in body.Instructions)
             {
                 controlFlowGenerator.MarkCurrentLabel();
+
+                if (instruction.Offset != instructionEncoder.Offset) throw new Exception();
 
                 switch (instruction)
                 {
@@ -142,48 +145,86 @@ namespace MetadataGenerator.Generators.Methods.Body
                             case BasicOperation.Return:
                                 instructionEncoder.OpCode(SRM.ILOpCode.Ret);
                                 break;
+                            default:
+                                throw new UnhandledCase();
                         }
 
                         break;
                     case BranchInstruction branchInstruction:
                     {
-                        var opCode = SRM.ILOpCode.Br_s;
+                        SRM.ILOpCode opCode;
+                        var isShortForm = Convert.ToInt32(branchInstruction.Target.Substring(2), 16) < 256;
                         switch (branchInstruction.Operation)
                         {
-                            // TODO all short forms can also be not short form (ex: br and br.s)
                             case BranchOperation.False:
-                                opCode = SRM.ILOpCode.Brfalse_s;
+                                opCode = isShortForm ? SRM.ILOpCode.Brfalse_s : SRM.ILOpCode.Brfalse;
                                 break;
                             case BranchOperation.True:
-                                opCode = SRM.ILOpCode.Brtrue_s;
+                                opCode = isShortForm ? SRM.ILOpCode.Brtrue_s : SRM.ILOpCode.Brtrue;
                                 break;
                             case BranchOperation.Eq:
-                                opCode = SRM.ILOpCode.Beq_s;
+                                opCode = isShortForm ? SRM.ILOpCode.Beq_s : SRM.ILOpCode.Beq;
                                 break;
                             case BranchOperation.Neq:
-                                opCode = SRM.ILOpCode.Bne_un_s;
+                                opCode = isShortForm ? SRM.ILOpCode.Bne_un_s : SRM.ILOpCode.Bne_un;
                                 break;
                             case BranchOperation.Lt:
-                                opCode = branchInstruction.UnsignedOperands ? SRM.ILOpCode.Blt_un_s : SRM.ILOpCode.Blt_s;
+                                if (branchInstruction.UnsignedOperands)
+                                {
+                                    opCode = isShortForm ? SRM.ILOpCode.Blt_un_s : SRM.ILOpCode.Blt_un;
+                                }
+                                else
+                                {
+                                    opCode = isShortForm ? SRM.ILOpCode.Blt_s : SRM.ILOpCode.Blt;
+                                }
+
                                 break;
                             case BranchOperation.Le:
-                                opCode = branchInstruction.UnsignedOperands ? SRM.ILOpCode.Ble_un_s : SRM.ILOpCode.Ble_s;
+                                if (branchInstruction.UnsignedOperands)
+                                {
+                                    opCode = isShortForm ? SRM.ILOpCode.Ble_un_s : SRM.ILOpCode.Ble_un;
+                                }
+                                else
+                                {
+                                    opCode = isShortForm ? SRM.ILOpCode.Ble_s : SRM.ILOpCode.Ble;
+                                }
+
                                 break;
                             case BranchOperation.Gt:
-                                opCode = branchInstruction.UnsignedOperands ? SRM.ILOpCode.Bgt_un_s : SRM.ILOpCode.Bgt_s;
+                                if (branchInstruction.UnsignedOperands)
+                                {
+                                    opCode = isShortForm ? SRM.ILOpCode.Bgt_un_s : SRM.ILOpCode.Bgt_un;
+                                }
+                                else
+                                {
+                                    opCode = isShortForm ? SRM.ILOpCode.Bgt_s : SRM.ILOpCode.Bgt;
+                                }
+
                                 break;
                             case BranchOperation.Ge:
-                                opCode = branchInstruction.UnsignedOperands ? SRM.ILOpCode.Bge_un_s : SRM.ILOpCode.Bge_s;
+                                if (branchInstruction.UnsignedOperands)
+                                {
+                                    opCode = isShortForm ? SRM.ILOpCode.Bge_un_s : SRM.ILOpCode.Bge_un;
+                                }
+                                else
+                                {
+                                    opCode = isShortForm ? SRM.ILOpCode.Bge_s : SRM.ILOpCode.Bge;
+                                }
+
                                 break;
                             case BranchOperation.Branch:
-                                opCode = SRM.ILOpCode.Br_s;
+                                opCode = isShortForm ? SRM.ILOpCode.Br_s : SRM.ILOpCode.Br;
                                 break;
                             case BranchOperation.Leave:
-                                opCode = SRM.ILOpCode.Leave_s;
+                                opCode = isShortForm ? SRM.ILOpCode.Leave_s : SRM.ILOpCode.Leave;
                                 break;
+                            default:
+                                throw new UnhandledCase();
                         }
 
+
                         instructionEncoder.Branch(opCode, controlFlowGenerator.LabelHandleFor(branchInstruction.Target));
+
                         break;
                     }
 
@@ -329,6 +370,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                                         instructionEncoder.OpCode(SRM.ILOpCode.Conv_u);
                                     }
                                 }
+                                else throw new UnhandledCase();
 
                                 break;
                             case ConvertOperation.Cast:
@@ -351,6 +393,8 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 instructionEncoder.OpCode(SRM.ILOpCode.Unbox);
                                 instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(convertInstruction.ConversionType));
                                 break;
+                            default:
+                                throw new UnhandledCase();
                         }
 
                         break;
@@ -364,6 +408,8 @@ namespace MetadataGenerator.Generators.Methods.Body
                             case MethodCallOperation.Jump:
                                 instructionEncoder.Call(metadataContainer.metadataResolver.HandleOf(methodCallInstruction.Method));
                                 break;
+                            default:
+                                throw new UnhandledCase();
                         }
 
                         break;
@@ -399,8 +445,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 {
                                     instructionEncoder.OpCode(SRM.ILOpCode.Ldnull);
                                 }
-
-                                if (loadInstruction.Operand.Type.Equals(PlatformTypes.String))
+                                else if (loadInstruction.Operand.Type.Equals(PlatformTypes.String))
                                 {
                                     var value = (string) (loadInstruction.Operand as Constant).Value;
                                     instructionEncoder.LoadString(metadataContainer.metadataBuilder.GetOrAddUserString(value));
@@ -433,8 +478,11 @@ namespace MetadataGenerator.Generators.Methods.Body
                                     var value = (double) (loadInstruction.Operand as Constant).Value;
                                     instructionEncoder.LoadConstantR8(value);
                                 }
+                                else throw new UnhandledCase();
 
                                 break;
+                            default:
+                                throw new UnhandledCase();
                         }
 
                         break;
@@ -447,6 +495,8 @@ namespace MetadataGenerator.Generators.Methods.Body
                             case LoadFieldOperation.Address:
                                 instructionEncoder.OpCode(loadFieldInstruction.Field.IsStatic ? SRM.ILOpCode.Ldsflda : SRM.ILOpCode.Ldflda);
                                 break;
+                            default:
+                                throw new UnhandledCase();
                         }
 
                         instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(loadFieldInstruction.Field));
@@ -511,6 +561,9 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 instructionEncoder.OpCode(SRM.ILOpCode.Ldelema);
                                 instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(loadArrayElementInstruction.Array.ElementsType));
                                 break;
+
+                            default:
+                                throw new UnhandledCase();
                         }
 
                         break;
@@ -663,6 +716,11 @@ namespace MetadataGenerator.Generators.Methods.Body
                         {
                             instructionEncoder.OpCode(SRM.ILOpCode.Ldind_ref);
                         }
+                        else
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Ldobj);
+                            instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(loadIndirectInstruction.Type));
+                        }
 
                         break;
                     case StoreIndirectInstruction storeIndirectInstruction:
@@ -698,14 +756,23 @@ namespace MetadataGenerator.Generators.Methods.Body
                         {
                             instructionEncoder.OpCode(SRM.ILOpCode.Stind_ref);
                         }
+                        else
+                        {
+                            instructionEncoder.OpCode(SRM.ILOpCode.Stobj);
+                            instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(storeIndirectInstruction.Type));
+                        }
 
                         break;
                     default:
-                        throw new Exception("instruction type not handled");
+                        throw new UnhandledCase();
                 }
             }
 
             return instructionEncoder;
         }
+    }
+
+    internal class UnhandledCase : Exception
+    {
     }
 }
