@@ -1,4 +1,4 @@
-// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
+﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -386,7 +386,7 @@ namespace Console
 		
 		static void Main(string[] args)
 		{
-			var input = args[0].Equals("dll") ? @"../../../Examples/bin/Debug/Examples.dll" : @"../../../ExamplesEXE/bin/Debug/ExamplesEXE.exe";
+			var input = "../../../../C-Sharp-Algorithms/Algorithms/bin/Debug/netcoreapp2.0/Algorithms.dll";
 			DisassembleAndThenAssemble(input);
 
 			//RunSomeTests();

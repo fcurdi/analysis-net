@@ -13,75 +13,6 @@ namespace MetadataProvider
 {
 	internal class AssemblyExtractor
 	{
-		#region FakeArrayType
-
-		private struct FakeArrayType : IBasicType
-		{
-			public ArrayType Type { get; private set; }
-
-			public FakeArrayType(ArrayType type)
-			{
-				this.Type = type;
-			}
-
-			public IAssemblyReference ContainingAssembly
-			{
-				get { return null; }
-			}
-
-			public string ContainingNamespace
-			{
-				get { return string.Empty; }
-			}
-
-			public string Name
-			{
-				get { return "FakeArray"; }
-			}
-
-			public string GenericName
-			{
-				get { return this.Name; }
-			}
-
-			public IList<IType> GenericArguments
-			{
-				get { return null; }
-			}
-
-			public IBasicType GenericType
-			{
-				get { return null; }
-			}
-
-			public TypeDefinition ResolvedType
-			{
-				get { return null; }
-			}
-
-			public TypeKind TypeKind
-			{
-				get { return TypeKind.ReferenceType; }
-			}
-
-			public ISet<CustomAttribute> Attributes
-			{
-				get { return null; }
-			}
-
-			public int GenericParameterCount
-			{
-				get { return 0; }
-			}
-
-			public IBasicType ContainingType
-			{
-				get { return null; }
-			}
-		}
-
-		#endregion
-
 		private IDictionary<SRM.TypeDefinitionHandle, TypeDefinition> definedTypes;
 		private IDictionary<SRM.MethodDefinitionHandle, MethodDefinition> definedMethods;
 		private IDictionary<SRM.FieldDefinitionHandle, FieldDefinition> definedFields;
@@ -127,9 +58,17 @@ namespace MetadataProvider
 			{
 				var typedef = metadata.GetTypeDefinition(handle);
 				var name = metadata.GetString(typedef.Name);
-				name = GetGenericName(name);
+				name = GetGenericName(name, out var genericParameterCount);
 
-				result = new TypeDefinition(name);
+				result = new TypeDefinition(name)
+				{
+					GenericParameterCount = genericParameterCount,
+					ContainingAssembly = assembly,
+					
+					
+					// Fixme esta me suena a que estan mal porque lo que estoy buscando puede no ser por donde iba definiendo con el extract no? o si? debugear a ver que es
+					ContainingNamespace =  currentNamespace
+				};
 				definedTypes.Add(handle, result);
 			}
 
@@ -145,9 +84,13 @@ namespace MetadataProvider
 			{
 				var methoddef = metadata.GetMethodDefinition(handle);
 				var name = metadata.GetString(methoddef.Name);
-				name = GetGenericName(name);
+				name = GetGenericName(name, out _);
 
 				result = new MethodDefinition(name, null);
+				foreach (var genericParameterHandle in methoddef.GetGenericParameters())
+				{
+					ExtractGenericParameter(GenericParameterKind.Method, result, genericParameterHandle);
+				}
 				definedMethods.Add(handle, result);
 			}
 
@@ -535,7 +478,8 @@ namespace MetadataProvider
 		{
 			var propertyDef = metadata.GetPropertyDefinition(handle);
 			var name = metadata.GetString(propertyDef.Name);
-			var signature = propertyDef.DecodeSignature(signatureTypeProvider, defGenericContext);
+			CreateGenericParameterReferences(GenericParameterKind.Type, currentType.GenericParameters.Count);
+			var signature = propertyDef.DecodeSignature(signatureTypeProvider, refGenericContext);
 			var getter = propertyDef.GetAccessors().Getter;
 			var setter = propertyDef.GetAccessors().Setter;
 			var property = new PropertyDefinition(name, signature.ReturnType)
@@ -546,6 +490,7 @@ namespace MetadataProvider
 				IsInstanceProperty = signature.Header.IsInstance
 			};
 			currentType.PropertyDefinitions.Add(property);
+			BindGenericParameterReferences(GenericParameterKind.Type, currentType);
 		}
 
 		private void ExtractMethod(SRM.MethodDefinitionHandle methoddefHandle)
@@ -1336,7 +1281,7 @@ namespace MetadataProvider
 
 			if (type is ArrayType)
 			{
-				type = new FakeArrayType(type as ArrayType);
+				type = new ArrayTypeWrapper(type as ArrayType);
 			}
 
 			var containingType = (IBasicType)type;
@@ -1348,7 +1293,7 @@ namespace MetadataProvider
 			{
 				ContainingType = containingType,
 				GenericParameterCount = signature.GenericParameterCount,
-				IsStatic = !signature.Header.IsInstance
+				IsStatic = !signature.Header.IsInstance // FIXME a la property le puse isInstance, deberia ser IsStatic por consistencia, arreglar en el PR y en mi codigo.
 			};
 
 			method.Resolve(this.Host);
@@ -1474,7 +1419,7 @@ namespace MetadataProvider
 			return instruction;
 		}
 
-		private IInstruction ProcessCreateArray(ILInstruction op, ArrayType arrayType = null, bool withLowerBounds = false)
+		private CreateArrayInstruction ProcessCreateArray(ILInstruction op, ArrayType arrayType = null, bool withLowerBounds = false)
 		{
 			if (arrayType == null)
 			{
@@ -1487,7 +1432,7 @@ namespace MetadataProvider
 			return instruction;
 		}
 
-		private IInstruction ProcessLoadArrayElement(ILInstruction op, LoadArrayElementOperation operation, ArrayType arrayType = null)
+		private LoadArrayElementInstruction ProcessLoadArrayElement(ILInstruction op, LoadArrayElementOperation operation, ArrayType arrayType = null)
 		{
             if (arrayType == null)
             {
@@ -1500,7 +1445,7 @@ namespace MetadataProvider
             return instruction;
         }
 
-		private IInstruction ProcessStoreArrayElement(ILInstruction op, ArrayType arrayType = null)
+		private StoreArrayElementInstruction ProcessStoreArrayElement(ILInstruction op, ArrayType arrayType = null)
 		{
             if (arrayType == null)
             {
@@ -1517,12 +1462,13 @@ namespace MetadataProvider
 			var method = GetOperand<IMethodReference>(op);
 			IInstruction instruction;
 
-			if (method.ContainingType is FakeArrayType)
+			if (method.ContainingType is ArrayTypeWrapper)
 			{
-				var arrayType = (FakeArrayType)method.ContainingType;
+				var arrayType = (ArrayTypeWrapper)method.ContainingType;
 				var withLowerBounds = method.Parameters.Count > arrayType.Type.Rank;
-
-				instruction = ProcessCreateArray(op, arrayType.Type, withLowerBounds);
+				var createArrayInstruction = ProcessCreateArray(op, arrayType.Type, withLowerBounds);
+				createArrayInstruction.Constructor = method;
+				instruction = createArrayInstruction;
 			}
 			else
 			{
@@ -1537,19 +1483,22 @@ namespace MetadataProvider
 			var method = GetOperand<IMethodReference>(op);
 			IInstruction instruction;
 
-			if (method.ContainingType is FakeArrayType)
+			if (method.ContainingType is ArrayTypeWrapper)
 			{
-				var arrayType = (FakeArrayType)method.ContainingType;
+				var arrayType = (ArrayTypeWrapper)method.ContainingType;
 
 				if (method.Name == "Set")
 				{
-					instruction = ProcessStoreArrayElement(op, arrayType.Type);
+					var storeArrayElementInstruction = ProcessStoreArrayElement(op, arrayType.Type);
+					storeArrayElementInstruction.Method = method;
+					instruction = storeArrayElementInstruction;
 				}
 				else
 				{
 					var operation = OperationHelper.ToLoadArrayElementOperation(method.Name);
-
-                    instruction = ProcessLoadArrayElement(op, operation, arrayType.Type);
+					var loadArrayElementInstruction = ProcessLoadArrayElement(op, operation, arrayType.Type);
+					loadArrayElementInstruction.Method = method;
+					instruction = loadArrayElementInstruction;
 				}
 			}
 			else
@@ -1756,12 +1705,15 @@ namespace MetadataProvider
 
 		#endregion
 
-		private static string GetGenericName(string name)
+		private static string GetGenericName(string name, out int genericParameterCount)
 		{
 			var start = name.LastIndexOf('`');
+			genericParameterCount = 0;
 
 			if (start > -1)
 			{
+				var count = name.Substring(start + 1);
+				genericParameterCount = Convert.ToInt32(count);
 				name = name.Remove(start);
 			}
 

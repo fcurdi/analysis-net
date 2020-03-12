@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using MetadataGenerator.Metadata;
@@ -30,6 +31,8 @@ namespace MetadataGenerator.Generators.Methods.Body
             {
                 controlFlowGenerator.MarkCurrentLabel();
 
+                var currentLabel = instruction.Label.ToUpper();
+                var generatedLabel = instructionEncoder.CurrentLabelString().ToUpper();
                 if (instruction.Offset != instructionEncoder.Offset) throw new Exception();
 
                 switch (instruction)
@@ -153,7 +156,11 @@ namespace MetadataGenerator.Generators.Methods.Body
                     case BranchInstruction branchInstruction:
                     {
                         SRM.ILOpCode opCode;
-                        var isShortForm = Convert.ToInt32(branchInstruction.Target.Substring(2), 16) < 256;
+                        var nextInstructionOffset =
+                            Convert.ToInt32(body.Instructions[body.Instructions.IndexOf(instruction) + 1].Label.Substring(2), 16);
+                        var currentInstructionOffset = Convert.ToInt32(branchInstruction.Label.Substring(2), 16);
+                        // short forms are 1 byte opcode + 1 byte target. normal forms are 1 byte opcode + 4 byte target
+                        var isShortForm = nextInstructionOffset - currentInstructionOffset == 2;
                         switch (branchInstruction.Operation)
                         {
                             case BranchOperation.False:
@@ -502,71 +509,81 @@ namespace MetadataGenerator.Generators.Methods.Body
                         instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(loadFieldInstruction.Field));
                         break;
                     case LoadArrayElementInstruction loadArrayElementInstruction:
-                        switch (loadArrayElementInstruction.Operation)
+                    {
+                        if (loadArrayElementInstruction.Method != null)
                         {
-                            case LoadArrayElementOperation.Content:
-                                if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.IntPtr))
-                                {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i);
-                                }
-                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int8))
-                                {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i1);
-                                }
-                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.UInt8))
-                                {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_u1);
-                                }
-                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int16))
-                                {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i2);
-                                }
-                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.UInt16))
-                                {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_u2);
-                                }
-                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int32))
-                                {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i4);
-                                }
-                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.UInt32))
-                                {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_u4);
-                                }
-                                else if (loadArrayElementInstruction.Array.ElementsType.IsOneOf(PlatformTypes.Int64, PlatformTypes.UInt64))
-                                {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i8);
-                                }
-                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Float32))
-                                {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_r4);
-                                }
-                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Float64))
-                                {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_r8);
-                                }
-                                else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Object))
-                                {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_ref);
-                                }
-                                else
-                                {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelem);
+                            instructionEncoder.Call(metadataContainer.metadataResolver.HandleOf(loadArrayElementInstruction.Method));
+                        }
+                        else
+                        {
+                            switch (loadArrayElementInstruction.Operation)
+                            {
+                                case LoadArrayElementOperation.Content:
+                                    if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.IntPtr))
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i);
+                                    }
+                                    else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int8))
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i1);
+                                    }
+                                    else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.UInt8))
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_u1);
+                                    }
+                                    else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int16))
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i2);
+                                    }
+                                    else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.UInt16))
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_u2);
+                                    }
+                                    else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int32))
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i4);
+                                    }
+                                    else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.UInt32))
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_u4);
+                                    }
+                                    else if (loadArrayElementInstruction.Array.ElementsType.IsOneOf(PlatformTypes.Int64, PlatformTypes.UInt64))
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i8);
+                                    }
+                                    else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Float32))
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_r4);
+                                    }
+                                    else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Float64))
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_r8);
+                                    }
+                                    else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Object))
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_ref);
+                                    }
+                                    else
+                                    {
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Ldelem);
+                                        instructionEncoder.Token(
+                                            metadataContainer.metadataResolver.HandleOf(loadArrayElementInstruction.Array.ElementsType));
+                                    }
+
+                                    break;
+                                case LoadArrayElementOperation.Address:
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldelema);
                                     instructionEncoder.Token(
                                         metadataContainer.metadataResolver.HandleOf(loadArrayElementInstruction.Array.ElementsType));
-                                }
+                                    break;
 
-                                break;
-                            case LoadArrayElementOperation.Address:
-                                instructionEncoder.OpCode(SRM.ILOpCode.Ldelema);
-                                instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(loadArrayElementInstruction.Array.ElementsType));
-                                break;
-
-                            default:
-                                throw new UnhandledCase();
+                                default:
+                                    throw new UnhandledCase();
+                            }
                         }
 
                         break;
+                    }
                     case LoadMethodAddressInstruction loadMethodAddressInstruction:
                         instructionEncoder.OpCode(SRM.ILOpCode.Ldftn);
                         instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(loadMethodAddressInstruction.Method));
@@ -579,15 +596,19 @@ namespace MetadataGenerator.Generators.Methods.Body
                         }
                         else
                         {
-                            throw new Exception("newarr only handles one dimension and zero based arrays");
+                            var method = metadataContainer.metadataResolver.HandleOf(createArrayInstruction.Constructor);
+                            instructionEncoder.OpCode(SRM.ILOpCode.Newobj);
+                            instructionEncoder.Token(method);
                         }
 
                         break;
                     case CreateObjectInstruction createObjectInstruction:
+                    {
                         var method = metadataContainer.metadataResolver.HandleOf(createObjectInstruction.Constructor);
                         instructionEncoder.OpCode(SRM.ILOpCode.Newobj);
                         instructionEncoder.Token(method);
                         break;
+                    }
                     case StoreInstruction storeInstruction:
                         if (storeInstruction.Target.IsParameter)
                         {
@@ -595,6 +616,8 @@ namespace MetadataGenerator.Generators.Methods.Body
                         }
                         else
                         {
+                            // FIXME el prolema es que la variable a guardar "i" esta dos veces en la lista de locals. Pero en la DLL tmb o sea que no es un error.
+                            // FIXME como se cual referencio? Quiza haya que agregar esta info cuando leo las variables
                             instructionEncoder.StoreLocal(body.LocalVariables.IndexOf(storeInstruction.Target));
                         }
 
@@ -624,7 +647,11 @@ namespace MetadataGenerator.Generators.Methods.Body
                         instructionEncoder.CallIndirect((SRM.StandaloneSignatureHandle) methodSignature);
                         break;
                     case StoreArrayElementInstruction storeArrayElementInstruction:
-                        if (storeArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int8))
+                        if (storeArrayElementInstruction.Method != null)
+                        {
+                            instructionEncoder.Call(metadataContainer.metadataResolver.HandleOf(storeArrayElementInstruction.Method));
+                        }
+                        else if (storeArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int8))
                         {
                             instructionEncoder.OpCode(SRM.ILOpCode.Stelem_i1);
                         }
@@ -768,6 +795,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                 }
             }
 
+//            controlFlowGenerator.MarkAllUnmarkedLabels();
             return instructionEncoder;
         }
     }

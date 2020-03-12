@@ -174,6 +174,17 @@ namespace MetadataProvider
 		public virtual IType GetGenericInstantiation(IType genericType, ImmutableArray<IType> genericArguments)
 		{
 			var result = genericType as IBasicType;
+			// FIXME malisimo? no deja de estar el cast arriba de Itype a ibasictype
+			switch (result)
+			{
+				case BasicType basicType:
+					basicType.GenericParameterCount = genericArguments.Length;
+					break;
+				case TypeDefinition typeDefinition:
+					typeDefinition.GenericParameterCount = genericArguments.Length;
+					break;
+			}
+
 			result = result.Instantiate(genericArguments);
 			return result;
 		}
