@@ -63,13 +63,13 @@ namespace MetadataGenerator.Generators
 
             metadataContainer.metadataBuilder.AddPropertyMap(typeDefinitionHandle, propertyDefinitionHandles.FirstOr(nextPropertyDefinitionHandle));
 
-/*            foreach (var interfaze in type.Interfaces)
+            foreach (var interfaze in type.Interfaces)
             {
                 metadataBuilder.AddInterfaceImplementation(
                     type: typeDefinitionHandle,
                     implementedInterface: metadataContainer.metadataResolver.HandleOf(interfaze));
             }
-*/
+
             // generate class generic parameters (Class<T>)
             foreach (var genericParameter in type.GenericParameters)
             {

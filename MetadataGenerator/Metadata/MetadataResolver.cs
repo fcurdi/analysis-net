@@ -211,7 +211,7 @@ namespace MetadataGenerator.Metadata
             {
                 var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
                 var key = new KeyValuePair<object, SRM.BlobHandle>(
-                    $"{method.ContainingType.ContainingAssembly.Name}.{method.ContainingType.ContainingNamespace}.{method.ContainingType.Name}.{method.Name}",
+                    $"{method.ContainingType.ContainingAssembly.Name}.{method.ContainingType.ContainingNamespace}.{method.ContainingType.GenericName}.{method.Name}",
                     blobHandle
                 );
                 if (!memberReferences.TryGetValue(key, out var methodReferenceHandle))
@@ -231,7 +231,7 @@ namespace MetadataGenerator.Metadata
         {
             var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
             var key = new KeyValuePair<object, SRM.BlobHandle>(
-                $"{field.ContainingType.ContainingAssembly.Name}.{field.ContainingType.ContainingNamespace}.{field.ContainingType.Name}.{field.Name}",
+                $"{field.ContainingType.ContainingAssembly.Name}.{field.ContainingType.ContainingNamespace}.{field.ContainingType.GenericName}.{field.Name}",
                 blobHandle
             );
             if (!memberReferences.TryGetValue(key, out var memberReferenceHandle))

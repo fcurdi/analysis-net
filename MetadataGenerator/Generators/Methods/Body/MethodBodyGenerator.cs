@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using MetadataGenerator.Metadata;
@@ -30,9 +29,6 @@ namespace MetadataGenerator.Generators.Methods.Body
             foreach (var instruction in body.Instructions)
             {
                 controlFlowGenerator.MarkCurrentLabel();
-
-                var currentLabel = instruction.Label.ToUpper();
-                var generatedLabel = instructionEncoder.CurrentLabelString().ToUpper();
                 if (instruction.Offset != instructionEncoder.Offset) throw new Exception();
 
                 switch (instruction)
@@ -424,30 +420,37 @@ namespace MetadataGenerator.Generators.Methods.Body
                         switch (loadInstruction.Operation)
                         {
                             case LoadOperation.Address:
-                                var operandVariable = (IVariable) loadInstruction.Operand;
-                                if (operandVariable.IsParameter)
+                            {
+                                var variable = (LocalVariable) loadInstruction.Operand;
+                                var index = variable.Index.Value;
+                                if (variable.IsParameter)
                                 {
-                                    instructionEncoder.LoadArgumentAddress(body.Parameters.IndexOf(operandVariable));
+                                    instructionEncoder.LoadArgumentAddress(index);
                                 }
                                 else
                                 {
-                                    instructionEncoder.LoadLocalAddress(body.LocalVariables.IndexOf(operandVariable));
+                                    instructionEncoder.LoadLocalAddress(index);
                                 }
 
                                 break;
+                            }
                             case LoadOperation.Content:
-                                operandVariable = (IVariable) loadInstruction.Operand;
-                                if (operandVariable.IsParameter)
+                            {
+                                var variable = (LocalVariable) loadInstruction.Operand;
+                                var index = variable.Index.Value;
+                                if (variable.IsParameter)
                                 {
-                                    instructionEncoder.LoadArgument(body.Parameters.IndexOf(operandVariable));
+                                    instructionEncoder.LoadArgument(index);
                                 }
                                 else
                                 {
-                                    instructionEncoder.LoadLocal(body.LocalVariables.IndexOf(operandVariable));
+                                    instructionEncoder.LoadLocal(index);
                                 }
 
                                 break;
+                            }
                             case LoadOperation.Value:
+                            {
                                 if (((Constant) loadInstruction.Operand).Value == null)
                                 {
                                     instructionEncoder.OpCode(SRM.ILOpCode.Ldnull);
@@ -488,6 +491,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 else throw new UnhandledCase();
 
                                 break;
+                            }
                             default:
                                 throw new UnhandledCase();
                         }
@@ -610,18 +614,19 @@ namespace MetadataGenerator.Generators.Methods.Body
                         break;
                     }
                     case StoreInstruction storeInstruction:
+                    {
+                        var index = ((LocalVariable) storeInstruction.Target).Index.Value;
                         if (storeInstruction.Target.IsParameter)
                         {
-                            instructionEncoder.StoreArgument(body.Parameters.IndexOf(storeInstruction.Target));
+                            instructionEncoder.StoreArgument(index);
                         }
                         else
                         {
-                            // FIXME el prolema es que la variable a guardar "i" esta dos veces en la lista de locals. Pero en la DLL tmb o sea que no es un error.
-                            // FIXME como se cual referencio? Quiza haya que agregar esta info cuando leo las variables
-                            instructionEncoder.StoreLocal(body.LocalVariables.IndexOf(storeInstruction.Target));
+                            instructionEncoder.StoreLocal(index);
                         }
 
                         break;
+                    }
                     case StoreFieldInstruction storeFieldInstruction:
                         instructionEncoder.OpCode(storeFieldInstruction.Field.IsStatic ? SRM.ILOpCode.Stsfld : SRM.ILOpCode.Stfld);
                         instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(storeFieldInstruction.Field));

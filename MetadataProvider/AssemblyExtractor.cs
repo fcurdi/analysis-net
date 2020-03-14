@@ -638,7 +638,11 @@ namespace MetadataProvider
 					type = signatureTypeProvider.GetByReferenceType(type);
 				}
 
-				var v = new LocalVariable("this", true) { Type = type };
+				var v = new LocalVariable("this", true)
+				{
+					Type = type,
+					Index = parameters.Count
+				};
 				parameters.Add(v);
 			}
 
@@ -646,7 +650,8 @@ namespace MetadataProvider
 			{
 				var v = new LocalVariable(parameter.Name, true)
 				{
-					Type = parameter.Type
+					Type = parameter.Type,
+					Index = parameters.Count
 				};
 
 				parameters.Add(v);
@@ -665,7 +670,8 @@ namespace MetadataProvider
 				var type = types[i];
 				var v = new LocalVariable(name)
 				{
-					Type = type
+					Type = type,
+					Index = i
 				};
 
 				variables.Add(v);
@@ -1634,7 +1640,11 @@ namespace MetadataProvider
 			var parameterIndex = GetOperand<int>(op);
 			var dest = currentMethod.Body.Parameters[parameterIndex];
 
-			var instruction = new StoreInstruction(op.Offset, dest);
+			var instruction = new StoreInstruction(op.Offset, dest)
+//			{
+//				TargetIndex =  parameterIndex
+//			}
+				;
 			return instruction;
 		}
 
@@ -1643,7 +1653,11 @@ namespace MetadataProvider
 			var localIndex = GetOperand<int>(op);
 			var dest = currentMethod.Body.LocalVariables[localIndex];
 
-			var instruction = new StoreInstruction(op.Offset, dest);
+			var instruction = new StoreInstruction(op.Offset, dest)
+	//		{
+	//			TargetIndex =  localIndex
+	//		}
+	;
 			return instruction;
 		}
 
