@@ -800,7 +800,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                 }
             }
 
-//            controlFlowGenerator.MarkAllUnmarkedLabels();
             return instructionEncoder;
         }
     }

@@ -65,10 +65,6 @@ namespace MetadataGenerator.Generators
 
             foreach (var interfaze in type.Interfaces)
             {
-                /*metadataBuilder.AddInterfaceImplementation(
-                    type: typeDefinitionHandle,
-                    implementedInterface: metadataContainer.metadataResolver.HandleOf(interfaze));
-                */
                 metadataContainer.RegisterInterfaceImplementation(typeDefinitionHandle, metadataContainer.metadataResolver.HandleOf(interfaze));
             }
 

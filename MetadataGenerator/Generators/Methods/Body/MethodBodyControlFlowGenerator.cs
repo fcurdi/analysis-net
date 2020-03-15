@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using MetadataGenerator.Metadata;
 using Model;
 using Model.Bytecode;
@@ -26,10 +25,6 @@ namespace MetadataGenerator.Generators.Methods.Body
             {
                 labelHandle = instructionEncoder.DefineLabel();
                 labelHandles.Add(label, labelHandle);
-
-                // FIXME remove	
-                unmarkedLabels.Add(labelHandle);
-                //
             }
 
             return labelHandle;
@@ -52,10 +47,6 @@ namespace MetadataGenerator.Generators.Methods.Body
             if (labelHandles.TryGetValue(instructionEncoder.CurrentLabelString(), out var labelHandle))
             {
                 instructionEncoder.MarkLabel(labelHandle);
-
-                //FIXME remove	
-                unmarkedLabels.Remove(labelHandle);
-                //
             }
         }
 
@@ -87,19 +78,5 @@ namespace MetadataGenerator.Generators.Methods.Body
                 }
             }
         }
-
-        public readonly IList<ECMA335.LabelHandle> unmarkedLabels = new List<ECMA335.LabelHandle>();
-
-        [Obsolete("Use only to develop while there are still instructions not being generated correctly")]
-        public void MarkAllUnmarkedLabels()
-        {
-            foreach (var label in unmarkedLabels)
-            {
-                instructionEncoder.MarkLabel(label);
-            }
-        }
     }
-    
-    
-    
 }
