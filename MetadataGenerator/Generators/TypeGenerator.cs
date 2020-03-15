@@ -65,9 +65,11 @@ namespace MetadataGenerator.Generators
 
             foreach (var interfaze in type.Interfaces)
             {
-                metadataBuilder.AddInterfaceImplementation(
+                /*metadataBuilder.AddInterfaceImplementation(
                     type: typeDefinitionHandle,
                     implementedInterface: metadataContainer.metadataResolver.HandleOf(interfaze));
+                */
+                metadataContainer.RegisterInterfaceImplementation(typeDefinitionHandle, metadataContainer.metadataResolver.HandleOf(interfaze));
             }
 
             // generate class generic parameters (Class<T>)
