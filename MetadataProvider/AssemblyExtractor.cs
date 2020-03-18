@@ -64,9 +64,6 @@ namespace MetadataProvider
 				{
 					GenericParameterCount = genericParameterCount,
 					ContainingAssembly = assembly,
-					
-					
-					// Fixme esta me suena a que estan mal porque lo que estoy buscando puede no ser por donde iba definiendo con el extract no? o si? debugear a ver que es
 					ContainingNamespace =  currentNamespace
 				};
 				definedTypes.Add(handle, result);
@@ -1305,7 +1302,7 @@ namespace MetadataProvider
 			{
 				ContainingType = containingType,
 				GenericParameterCount = signature.GenericParameterCount,
-				IsStatic = !signature.Header.IsInstance // FIXME a la property le puse isInstance, deberia ser IsStatic por consistencia, arreglar en el PR y en mi codigo.
+				IsStatic = !signature.Header.IsInstance
 			};
 
 			method.Resolve(this.Host);
@@ -1646,11 +1643,7 @@ namespace MetadataProvider
 			var parameterIndex = GetOperand<int>(op);
 			var dest = currentMethod.Body.Parameters[parameterIndex];
 
-			var instruction = new StoreInstruction(op.Offset, dest)
-//			{
-//				TargetIndex =  parameterIndex
-//			}
-				;
+			var instruction = new StoreInstruction(op.Offset, dest);
 			return instruction;
 		}
 
@@ -1659,11 +1652,7 @@ namespace MetadataProvider
 			var localIndex = GetOperand<int>(op);
 			var dest = currentMethod.Body.LocalVariables[localIndex];
 
-			var instruction = new StoreInstruction(op.Offset, dest)
-	//		{
-	//			TargetIndex =  localIndex
-	//		}
-	;
+			var instruction = new StoreInstruction(op.Offset, dest);
 			return instruction;
 		}
 
