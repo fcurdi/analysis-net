@@ -15,7 +15,7 @@ namespace MetadataGenerator.Generators
 
             metadataBuilder.AddAssembly(
                 name: metadataBuilder.GetOrAddString(assembly.Name),
-                version: new Version(0, 0, 0, 1),
+                version: assembly.Version,
                 culture: default,
                 publicKey: default,
                 flags: SR.AssemblyFlags.PublicKey,

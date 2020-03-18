@@ -126,13 +126,19 @@ namespace MetadataProvider
 		{
 			var assemblydef = metadata.GetAssemblyDefinition();
 			var name = metadata.GetString(assemblydef.Name);
-			assembly = new Assembly(name, AssemblyKindFrom(reader.PEHeaders));
+			assembly = new Assembly(name, AssemblyKindFrom(reader.PEHeaders))
+			{
+				Version = assemblydef.Version
+			};
 
 			foreach (var handle in metadata.AssemblyReferences)
 			{
 				var referencedef = metadata.GetAssemblyReference(handle);
 				name = metadata.GetString(referencedef.Name);
-				var reference = new AssemblyReference(name);
+				var reference = new AssemblyReference(name)
+				{
+					Version = referencedef.Version
+				};
 
 				assembly.References.Add(reference);
 			}

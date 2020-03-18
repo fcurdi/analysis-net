@@ -386,7 +386,8 @@ namespace Console
 		
 		static void Main(string[] args)
 		{
-			var input = "../../../../C-Sharp-Algorithms/Algorithms/bin/Debug/netcoreapp2.0/Algorithms.dll";
+			// var input = "../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser.Test/bin/Debug/netcoreapp2.1/TinyCsvParser.Test.dll";
+			var input = "../../../../../../Desktop/netcoreapp2.1/TinyCsvParser.Test.dll";
 			DisassembleAndThenAssemble(input);
 
 			//RunSomeTests();
@@ -396,5 +397,6 @@ namespace Console
 			System.Console.WriteLine("Done!");
 			// System.Console.ReadKey();
 		}
+		
 	}
 }

@@ -45,7 +45,7 @@ namespace MetadataGenerator.Metadata
                 // TODO version,culture and others should be in the assemblyReference. Submit PR with this
                 assemblyReferences.Add(assemblyReference.Name, metadataContainer.metadataBuilder.AddAssemblyReference(
                     name: metadataContainer.metadataBuilder.GetOrAddString(assemblyReference.Name),
-                    version: new Version(4, 0, 0, 0),
+                    version: assemblyReference.Version,
                     culture: default,
                     publicKeyOrToken: default,
                     flags: AssemblyFlags.PublicKey,

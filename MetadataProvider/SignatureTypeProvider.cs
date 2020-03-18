@@ -78,7 +78,10 @@ namespace MetadataProvider
 						var assemblyHandle = (SRM.AssemblyReferenceHandle)typeref.ResolutionScope;
 						var assembly = reader.GetAssemblyReference(assemblyHandle);
 						name = reader.GetString(assembly.Name);
-						type.ContainingAssembly = new AssemblyReference(name);
+						type.ContainingAssembly = new AssemblyReference(name)
+						{
+							Version = assembly.Version
+						};
 						break;
 					}
 
