@@ -698,6 +698,7 @@ namespace Model.Types
 		public bool IsSealed { get; set; }
 		public bool BeforeFieldInit { get; set; }
 		public ISet<PropertyDefinition> PropertyDefinitions { get; private set; }
+		public int GenericParameterCount { get; set; }
 		public TypeDefinition(string name, TypeKind typeKind = TypeKind.Unknown, TypeDefinitionKind kind = TypeDefinitionKind.Unknown)
 		{
 			this.Name = name;
@@ -750,11 +751,6 @@ namespace Model.Types
 		#endregion
 
 		#region IGenericReference members
-
-		int IGenericReference.GenericParameterCount
-		{
-			get { return this.GenericParameters.Count; }
-		}
 
 		#endregion
 

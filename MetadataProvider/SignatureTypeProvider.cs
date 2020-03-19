@@ -78,7 +78,10 @@ namespace MetadataProvider
 						var assemblyHandle = (SRM.AssemblyReferenceHandle)typeref.ResolutionScope;
 						var assembly = reader.GetAssemblyReference(assemblyHandle);
 						name = reader.GetString(assembly.Name);
-						type.ContainingAssembly = new AssemblyReference(name);
+						type.ContainingAssembly = new AssemblyReference(name)
+						{
+							Version = assembly.Version
+						};
 						break;
 					}
 
@@ -174,6 +177,16 @@ namespace MetadataProvider
 		public virtual IType GetGenericInstantiation(IType genericType, ImmutableArray<IType> genericArguments)
 		{
 			var result = genericType as IBasicType;
+			switch (result)
+			{
+				case BasicType basicType:
+					basicType.GenericParameterCount = genericArguments.Length;
+					break;
+				case TypeDefinition typeDefinition:
+					typeDefinition.GenericParameterCount = genericArguments.Length;
+					break;
+			}
+
 			result = result.Instantiate(genericArguments);
 			return result;
 		}

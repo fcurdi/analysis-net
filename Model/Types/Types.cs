@@ -37,6 +37,9 @@ namespace Model.Types
 
 	public static class PlatformTypes
 	{
+		public static Boolean Includes(IType type) => platformTypes.FirstOrDefault(type.Equals) != null;
+
+
 		private static readonly ICollection<BasicType> platformTypes = new List<BasicType>();
 
 		public static readonly UnknownType Unknown = UnknownType.Value;
@@ -769,4 +772,73 @@ namespace Model.Types
 			return result;
 		}
 	}
+	
+	#region ArrayTypeWrapper
+
+	public struct ArrayTypeWrapper : IBasicType
+	{
+		public ArrayType Type { get; }
+
+		public ArrayTypeWrapper(ArrayType type)
+		{
+			this.Type = type;
+		}
+
+		public IAssemblyReference ContainingAssembly
+		{
+			get { return null; }
+		}
+
+		public string ContainingNamespace
+		{
+			get { return string.Empty; }
+		}
+
+		public string Name
+		{
+			get { return "ArrayTypeWrapper"; }
+		}
+
+		public string GenericName
+		{
+			get { return this.Name; }
+		}
+
+		public IList<IType> GenericArguments
+		{
+			get { return null; }
+		}
+
+		public IBasicType GenericType
+		{
+			get { return null; }
+		}
+
+		public TypeDefinition ResolvedType
+		{
+			get { return null; }
+		}
+
+		public TypeKind TypeKind
+		{
+			get { return TypeKind.ReferenceType; }
+		}
+
+		public ISet<CustomAttribute> Attributes
+		{
+			get { return null; }
+		}
+
+		public int GenericParameterCount
+		{
+			get { return 0; }
+		}
+
+		public IBasicType ContainingType
+		{
+			get { return null; }
+		}
+	}
+
+	#endregion
 }
