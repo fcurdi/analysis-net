@@ -397,7 +397,66 @@ namespace Model.Types
 			return result;
 		}
 	}
+	public class PropertyDefinition : ITypeMemberDefinition
+	{
+		public PropertyDefinition(string name, IType propType)
+		{
+			PropertyType = propType;
+			Name = name;
+			Attributes = new HashSet<CustomAttribute>();
+		}
+ 
+		public ISet<CustomAttribute> Attributes { get; private set; }
+		public IType PropertyType { get; set; }
+		public string Name { get; set; }
+		public MethodDefinition Getter { get; set; }
+		public MethodDefinition Setter { get; set; }
+		public TypeDefinition ContainingType { get; set; }
+		IBasicType ITypeMemberReference.ContainingType
+		{
+			get { return this.ContainingType; }
+		}
+		public bool IsInstanceProperty { get; set; }
+		public bool MatchReference(ITypeMemberReference member)
+		{
+			if (member is PropertyDefinition)
+				return member.Equals(this);
 
+			return false;
+		}
+		public override bool Equals(object obj)
+		{
+			if (obj is PropertyDefinition propertyDef)
+			{
+				bool hasSetter = (propertyDef.Setter != null) == (this.Setter != null);
+				bool hasGetter = (propertyDef.Getter != null) == (this.Getter != null);
+				return  propertyDef.Name.Equals(this.Name) &&
+					propertyDef.PropertyType.Equals(this.PropertyType) &&
+					hasSetter && hasGetter &&
+					(propertyDef.Getter == null || propertyDef.Getter.Equals(this.Getter)) &&
+					(propertyDef.Setter == null || propertyDef.Setter.Equals(this.Setter)) &&
+					(propertyDef.ContainingType.Equals(this.ContainingType));
+			}
+			return false;
+		}
+		public override string ToString()
+		{
+			StringBuilder stringBuilder = new StringBuilder();
+			stringBuilder.AppendLine("Property definition");
+			stringBuilder.AppendLine(String.Format("Name: {0}", Name));
+			stringBuilder.AppendLine(String.Format("Property type: {0}", PropertyType));
+			stringBuilder.AppendLine(String.Format("Containing type: {0}", ContainingType));
+			if (Getter != null)
+			stringBuilder.AppendLine(String.Format("Getter: {0}", Getter.ToSignatureString()));
+			if (Setter != null)
+			stringBuilder.AppendLine(String.Format("Setter: {0}", Setter.ToSignatureString()));
+			return stringBuilder.ToString();
+		}
+		public override int GetHashCode()
+		{
+			return this.Name.GetHashCode();
+		}
+	}
 	public class MethodDefinition : ITypeMemberDefinition, IMethodReference, IGenericDefinition
 	{
 		public VisibilityKind Visibility { get; set; }
@@ -623,7 +682,9 @@ namespace Model.Types
 		public IList<MethodDefinition> Methods { get; private set; }
 		public IList<TypeDefinition> Types { get; private set; }
 		public IBasicType UnderlayingType { get; set; }
-
+		public ISet<PropertyDefinition> PropertyDefinitions { get; private set; }
+		
+		public int GenericParameterCount { get; set; }
 		public TypeDefinition(string name, TypeKind typeKind = TypeKind.Unknown, TypeDefinitionKind kind = TypeDefinitionKind.Unknown)
 		{
 			this.Name = name;
@@ -635,6 +696,7 @@ namespace Model.Types
 			this.Fields = new List<FieldDefinition>();
 			this.Methods = new List<MethodDefinition>();
 			this.Types = new List<TypeDefinition>();
+			this.PropertyDefinitions = new HashSet<PropertyDefinition>();
 		}
 
 		public string GenericName
@@ -675,11 +737,6 @@ namespace Model.Types
 		#endregion
 
 		#region IGenericReference members
-
-		int IGenericReference.GenericParameterCount
-		{
-			get { return this.GenericParameters.Count; }
-		}
 
 		#endregion
 

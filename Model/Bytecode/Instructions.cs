@@ -245,6 +245,8 @@ namespace Model.Bytecode
 		public ArrayType Type { get; set; }
 		public bool WithLowerBound { get; set; }
 
+		public IMethodReference Constructor { get; set; }
+
 		public CreateArrayInstruction(uint label, ArrayType type)
 			: base(label)
 		{
@@ -266,6 +268,8 @@ namespace Model.Bytecode
 	public class LoadArrayElementInstruction : Instruction
     {
 		public LoadArrayElementOperation Operation { get; set; }
+
+		public IMethodReference Method { get; set; }
 		public ArrayType Array { get; set; }
 
         public LoadArrayElementInstruction(uint label, LoadArrayElementOperation operation, ArrayType array)
@@ -290,6 +294,8 @@ namespace Model.Bytecode
 	public class StoreArrayElementInstruction : Instruction
 	{
 		public ArrayType Array { get; set; }
+		
+		public IMethodReference Method { get; set; }
 
 		public StoreArrayElementInstruction(uint label, ArrayType array)
 			: base(label)
