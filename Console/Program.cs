@@ -386,7 +386,10 @@ namespace Console
 		
 		static void Main(string[] args)
 		{
-			var input = args[0].Equals("dll") ? @"../../../Examples/bin/Debug/Examples.dll" : @"../../../ExamplesEXE/bin/Debug/ExamplesEXE.exe";
+			// var input = "../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser.Test/bin/Debug/netcoreapp2.1/TinyCsvParser.Test.dll";
+			// var input = "../../../../../../Desktop/netcoreapp2.1/TinyCsvParser.Test.dll";
+			// var input = "../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser/bin/Debug/netcoreapp2.1/TinyCsvParser.dll";
+			var input = "../../../../C-Sharp-Algorithms/Algorithms/bin/Debug/netcoreapp2.0/Algorithms.dll";
 			DisassembleAndThenAssemble(input);
 
 			//RunSomeTests();

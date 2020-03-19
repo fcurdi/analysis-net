@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Reflection;
 using MetadataGenerator.Generators.Fields;
 using MetadataGenerator.Generators.Methods;
+using MetadataGenerator.Generators.Methods.Body;
 using Model.Types;
 using static System.Linq.Enumerable;
 using Assembly = Model.Assembly;
@@ -19,8 +20,8 @@ namespace MetadataGenerator.Metadata
         private readonly IDictionary<string, SRM.AssemblyReferenceHandle> assemblyReferences = new Dictionary<string, SRM.AssemblyReferenceHandle>();
         private readonly IDictionary<string, SRM.TypeReferenceHandle> typeReferences = new Dictionary<string, SRM.TypeReferenceHandle>();
 
-        private readonly IDictionary<KeyValuePair<string, SRM.BlobHandle>, SRM.MemberReferenceHandle> memberReferences =
-            new Dictionary<KeyValuePair<string, SRM.BlobHandle>, SRM.MemberReferenceHandle>();
+        private readonly IDictionary<KeyValuePair<object, SRM.BlobHandle>, SRM.MemberReferenceHandle> memberReferences =
+            new Dictionary<KeyValuePair<object, SRM.BlobHandle>, SRM.MemberReferenceHandle>();
 
         private readonly IDictionary<SRM.BlobHandle, SRM.TypeSpecificationHandle> typeSpecificationReferences =
             new Dictionary<SRM.BlobHandle, SRM.TypeSpecificationHandle>();
@@ -44,7 +45,7 @@ namespace MetadataGenerator.Metadata
                 // TODO version,culture and others should be in the assemblyReference. Submit PR with this
                 assemblyReferences.Add(assemblyReference.Name, metadataContainer.metadataBuilder.AddAssemblyReference(
                     name: metadataContainer.metadataBuilder.GetOrAddString(assemblyReference.Name),
-                    version: new Version(4, 0, 0, 0),
+                    version: assemblyReference.Version,
                     culture: default,
                     publicKeyOrToken: default,
                     flags: AssemblyFlags.PublicKey,
@@ -109,9 +110,21 @@ namespace MetadataGenerator.Metadata
                 SRM.EntityHandle resolutionScope;
                 if (type.ContainingType == null) // if defined in the namespace then search there
                 {
-                    resolutionScope = type.ContainingAssembly.Name.Equals(assembly.Name)
-                        ? default
-                        : assemblyReferences[type.ContainingAssembly.Name];
+                    try
+                    {
+                        resolutionScope = type.ContainingAssembly.Name.Equals(assembly.Name)
+                            ? default
+                            : assemblyReferences[type.ContainingAssembly.Name];
+                    }
+                    // FIXME mmmmmm
+                    catch (KeyNotFoundException)
+                    {
+                        if (PlatformTypes.Includes(type))
+                        {
+                            resolutionScope = assemblyReferences["System.Runtime"];
+                        }
+                        else throw;
+                    }
                 }
                 else
                 {
@@ -177,11 +190,28 @@ namespace MetadataGenerator.Metadata
             {
                 return GetOrAddMethodSpecificationFor(method, signature);
             }
+            else if (method.ContainingType is ArrayTypeWrapper arrayTypeWrapper)
+            {
+                var parentHandle = GetOrAddTypeSpecificationFor(arrayTypeWrapper.Type);
+                var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
+                // FIXME sera suficiente? Hay que revisar todas las keys que uso en estos metodos a ver si tienen sentido
+                var key = new KeyValuePair<object, SRM.BlobHandle>(parentHandle, blobHandle);
+                if (!memberReferences.TryGetValue(key, out var methodReferenceHandle))
+                {
+                    methodReferenceHandle = metadataContainer.metadataBuilder.AddMemberReference(
+                        parent: parentHandle,
+                        name: metadataContainer.metadataBuilder.GetOrAddString(method.Name),
+                        signature: blobHandle);
+                    memberReferences.Add(key, methodReferenceHandle);
+                }
+
+                return methodReferenceHandle;
+            }
             else
             {
                 var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
-                var key = new KeyValuePair<string, SRM.BlobHandle>(
-                    $"{method.ContainingType.ContainingAssembly.Name}.{method.ContainingType.ContainingNamespace}.{method.ContainingType}.{method.Name}",
+                var key = new KeyValuePair<object, SRM.BlobHandle>(
+                    $"{method.ContainingType.ContainingAssembly.Name}.{method.ContainingType.ContainingNamespace}.{method.ContainingType.GenericName}.{method.Name}",
                     blobHandle
                 );
                 if (!memberReferences.TryGetValue(key, out var methodReferenceHandle))
@@ -200,8 +230,8 @@ namespace MetadataGenerator.Metadata
         private SRM.MemberReferenceHandle GetOrAddFieldReference(IFieldReference field, SRM.BlobBuilder signature)
         {
             var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
-            var key = new KeyValuePair<string, SRM.BlobHandle>(
-                $"{field.ContainingType.ContainingAssembly.Name}.{field.ContainingType.ContainingNamespace}.{field.ContainingType.Name}.{field.Name}",
+            var key = new KeyValuePair<object, SRM.BlobHandle>(
+                $"{field.ContainingType.ContainingAssembly.Name}.{field.ContainingType.ContainingNamespace}.{field.ContainingType.GenericName}.{field.Name}",
                 blobHandle
             );
             if (!memberReferences.TryGetValue(key, out var memberReferenceHandle))
@@ -317,6 +347,8 @@ namespace MetadataGenerator.Metadata
                             case GenericParameterKind.Method:
                                 encoder.GenericMethodTypeParameter(genericParameter.Index);
                                 break;
+                            default:
+                                throw new UnhandledCase();
                         }
 
                         break;
