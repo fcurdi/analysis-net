@@ -63,7 +63,7 @@ namespace MetadataProvider
 				result = new TypeDefinition(name)
 				{
 					ContainingAssembly = assembly,
-					ContainingNamespace =  currentNamespace
+					ContainingNamespace = new Namespace(metadata.GetString(typedef.Namespace))
 				};
 				
 				foreach (var genericParameterHandle in typedef.GetGenericParameters())
@@ -221,7 +221,8 @@ namespace MetadataProvider
 			}
 
 			type.BeforeFieldInit = typedef.Attributes.HasFlag(SR.TypeAttributes.BeforeFieldInit);
-
+			type.ContainingAssembly = assembly;
+			type.ContainingNamespace = currentNamespace;
 			currentType = type;
 
 			foreach (var genericParameter in type.GenericParameters)
