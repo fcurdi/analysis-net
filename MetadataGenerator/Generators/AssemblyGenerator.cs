@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection.Metadata.Ecma335;
 using MetadataGenerator.Metadata;
 using Model;
 using SR = System.Reflection;
@@ -23,12 +24,25 @@ namespace MetadataGenerator.Generators
             );
 
             var moduleName = $"{assembly.Name}.{(assembly.Kind == AssemblyKind.EXE ? "exe" : "dll")}";
-            metadataBuilder.AddModule(
+            metadataContainer.ModuleHandle = metadataBuilder.AddModule(
                 generation: 0,
                 moduleName: metadataBuilder.GetOrAddString(moduleName),
                 mvid: metadataBuilder.GetOrAddGuid(Guid.NewGuid()),
                 encId: default,
                 encBaseId: default);
+            
+            /*
+             *  CLI defines a special class, named <Module>, that does not have a base type and does not implement any interfaces.
+             * (This class is a toplevel class; i.e., it is not nested.). Used as owner of global members (methods, fields).
+            */
+            metadataBuilder.AddTypeDefinition(
+                attributes: default,
+                @namespace: default,
+                name: metadataBuilder.GetOrAddString("<Module>"),
+                baseType: default,
+                fieldList: MetadataTokens.FieldDefinitionHandle(1),
+                methodList: MetadataTokens.MethodDefinitionHandle(1));
+
 
             foreach (var namezpace in assembly.RootNamespace.Namespaces)
             {

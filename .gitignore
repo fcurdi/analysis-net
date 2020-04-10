@@ -6,3 +6,4 @@ obj
 /packages
 .DS_Store
 .idea
+TestResult.xml

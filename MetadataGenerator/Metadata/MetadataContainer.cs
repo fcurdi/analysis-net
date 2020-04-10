@@ -15,17 +15,28 @@ namespace MetadataGenerator.Metadata
         public readonly MetadataResolver metadataResolver;
         public readonly ECMA335.MethodBodyStreamEncoder methodBodyStream;
         private SRM.MethodDefinitionHandle? mainMethodHandle;
+        private SRM.ModuleDefinitionHandle? moduleHandle;
         private readonly ISet<GenericParamRow> genericParameterRows = new HashSet<GenericParamRow>();
         private readonly ISet<NestedTypeRow> nestedTypeRows = new HashSet<NestedTypeRow>();
         private readonly ISet<InterfaceImplementationRow> interfaceImplementationRows = new HashSet<InterfaceImplementationRow>();
 
-        public SRM.MethodDefinitionHandle? MainMethodHandle
+        public SRM.MethodDefinitionHandle MainMethodHandle
         {
-            get => mainMethodHandle;
+            get => mainMethodHandle ?? throw new Exception("Main method handle was not set");
             set
             {
                 if (mainMethodHandle != null) throw new Exception("Assembly has more than one main method");
                 mainMethodHandle = value;
+            }
+        }
+
+        public SRM.ModuleDefinitionHandle ModuleHandle
+        {
+            get => moduleHandle ?? throw new Exception("Module handle was not set");
+            set
+            {
+                if (moduleHandle != null) throw new Exception("Multiple modules not supported");
+                moduleHandle = value;
             }
         }
 

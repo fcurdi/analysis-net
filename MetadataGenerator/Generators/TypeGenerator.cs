@@ -2,6 +2,7 @@
 using System.Linq;
 using MetadataGenerator.Generators.Fields;
 using MetadataGenerator.Generators.Methods;
+using MetadataGenerator.Generators.Methods.Body;
 using MetadataGenerator.Metadata;
 using Model.Types;
 using static MetadataGenerator.Metadata.AttributesProvider;
@@ -95,16 +96,27 @@ namespace MetadataGenerator.Generators
          *     - For a normal generic type, arity is the number of type parameters declared on the type.
          *     - For a nested generic type, arity is the number of newly introduced type parameters.
          */
-        private static string TypeNameOf(TypeDefinition type)
+        public static string TypeNameOf(IBasicType type)
         {
             var typeName = type.Name;
             if (type.IsGenericType())
             {
                 if (type.ContainingType != null)
                 {
-                    var containingTypeGenericParameters = type.ContainingType.GenericParameters.Select(p => p.Name).ToList();
+                    IList<string> GenericParametersNamesOf(IBasicType iBasicType)
+                    {
+                        switch (iBasicType)
+                        {
+                            case BasicType bt: return bt.GenericArguments.Select(elem => ((IBasicType) elem).Name).ToList();
+                            case TypeDefinition td: return td.GenericParameters.Select(elem => elem.Name).ToList();
+                            default: throw new UnhandledCase();
+                        }
+                    }
+
+                    var containingTypeGenericParameters = GenericParametersNamesOf(type.ContainingType);
                     var newlyIntroducedGenericParametersCount =
-                        type.GenericParameters.Count(parameter => !containingTypeGenericParameters.Contains(parameter.Name));
+                        GenericParametersNamesOf(type).Count(parameter => !containingTypeGenericParameters.Contains(parameter));
+
                     if (newlyIntroducedGenericParametersCount > 0)
                     {
                         typeName = $"{typeName}`{newlyIntroducedGenericParametersCount}";
@@ -112,7 +124,7 @@ namespace MetadataGenerator.Generators
                 }
                 else
                 {
-                    typeName = $"{typeName}`{type.GenericParameters.Count}";
+                    typeName = $"{typeName}`{type.GenericParameterCount}";
                 }
             }
 

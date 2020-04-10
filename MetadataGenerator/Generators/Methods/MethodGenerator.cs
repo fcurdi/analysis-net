@@ -43,9 +43,15 @@ namespace MetadataGenerator.Generators.Methods
                     maxStack: maxStack);
             }
 
+            var methodImplementationAttributes =
+                SR.MethodImplAttributes.IL |
+                (!method.HasBody && !method.IsAbstract // FIXME Could also be PinvokeImpl or InternalCall in some special cases 
+                    ? SR.MethodImplAttributes.Runtime
+                    : SR.MethodImplAttributes.Managed);
+
             var methodDefinitionHandle = metadataContainer.metadataBuilder.AddMethodDefinition(
                 attributes: GetMethodAttributesFor(method),
-                implAttributes: SR.MethodImplAttributes.IL | SR.MethodImplAttributes.Managed,
+                implAttributes: methodImplementationAttributes,
                 name: metadataContainer.metadataBuilder.GetOrAddString(method.Name),
                 signature: metadataContainer.metadataBuilder.GetOrAddBlob(methodSignature),
                 bodyOffset: methodBodyOffset,

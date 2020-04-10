@@ -35,14 +35,6 @@ namespace MetadataGenerator.Generators.Methods
                 {
                     firstParameterHandle = parameterHandle;
                 }
-
-                /* TODO add custom attributes (ex: varargs), see ECMA under custom attributes
-                metadataContainer.metadataBuilder.AddCustomAttribute(
-                    parameter handle,
-                    some handle,
-                    value
-                )
-                */
             }
 
             return firstParameterHandle;

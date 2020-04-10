@@ -5,12 +5,17 @@ using System.Reflection;
 using MetadataGenerator.Generators.Fields;
 using MetadataGenerator.Generators.Methods;
 using MetadataGenerator.Generators.Methods.Body;
+using Model;
 using Model.Types;
 using static System.Linq.Enumerable;
+using static MetadataGenerator.Generators.TypeGenerator;
 using Assembly = Model.Assembly;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
+// TODO revisar si esas keys que pongo en los getOrAdd (al ser mas precisas) estan funcionando o hacen que siempre se agregue uno nuevo
+// TODO para esto comparar sin guardar ninguna cuanto da el conteo de las tablas y guardando despues.
+// TODO ver si conviene usar blobhandle, byteArray de la signature  u otro. Evaluarlo tabla por tabla, quiza algunas andan bien y otras no
 namespace MetadataGenerator.Metadata
 {
     internal class MetadataResolver
@@ -20,14 +25,14 @@ namespace MetadataGenerator.Metadata
         private readonly IDictionary<string, SRM.AssemblyReferenceHandle> assemblyReferences = new Dictionary<string, SRM.AssemblyReferenceHandle>();
         private readonly IDictionary<string, SRM.TypeReferenceHandle> typeReferences = new Dictionary<string, SRM.TypeReferenceHandle>();
 
-        private readonly IDictionary<KeyValuePair<object, SRM.BlobHandle>, SRM.MemberReferenceHandle> memberReferences =
-            new Dictionary<KeyValuePair<object, SRM.BlobHandle>, SRM.MemberReferenceHandle>();
+        private readonly IDictionary<Tuple<object, SRM.BlobHandle>, SRM.MemberReferenceHandle> memberReferences =
+            new Dictionary<Tuple<object, SRM.BlobHandle>, SRM.MemberReferenceHandle>();
 
-        private readonly IDictionary<SRM.BlobHandle, SRM.TypeSpecificationHandle> typeSpecificationReferences =
-            new Dictionary<SRM.BlobHandle, SRM.TypeSpecificationHandle>();
+        private readonly IDictionary<Tuple<string, SRM.BlobHandle>, SRM.TypeSpecificationHandle> typeSpecificationReferences =
+            new Dictionary<Tuple<string, SRM.BlobHandle>, SRM.TypeSpecificationHandle>();
 
-        private readonly IDictionary<SRM.BlobHandle, SRM.MethodSpecificationHandle> methodSpecificationReferences =
-            new Dictionary<SRM.BlobHandle, SRM.MethodSpecificationHandle>();
+        private readonly IDictionary<Tuple<string, byte[]>, SRM.MethodSpecificationHandle> methodSpecificationReferences =
+            new Dictionary<Tuple<string, byte[]>, SRM.MethodSpecificationHandle>();
 
         private readonly IDictionary<SRM.BlobHandle, SRM.StandaloneSignatureHandle> standaloneSignatureReferences =
             new Dictionary<SRM.BlobHandle, SRM.StandaloneSignatureHandle>();
@@ -42,7 +47,7 @@ namespace MetadataGenerator.Metadata
 
             foreach (var assemblyReference in assembly.References)
             {
-                // TODO version,culture and others should be in the assemblyReference. Submit PR with this
+                // TODO culture and others should be in the assemblyReference. Submit PR with this
                 assemblyReferences.Add(assemblyReference.Name, metadataContainer.metadataBuilder.AddAssemblyReference(
                     name: metadataContainer.metadataBuilder.GetOrAddString(assemblyReference.Name),
                     version: assemblyReference.Version,
@@ -95,36 +100,16 @@ namespace MetadataGenerator.Metadata
         {
             if (type.IsGenericInstantiation()) return GetOrAddTypeSpecificationFor(type);
 
-            var typeName = type.Name;
-
-            // FIXME partial logic. See TypeGenerator.TypeNameOf. Needs to be unified with that
-            if (type.IsGenericType())
-            {
-                typeName = $"{type.Name}`{type.GenericParameterCount}";
-            }
-
-            var key =
-                $"{type.ContainingAssembly.Name}.{type.ContainingNamespace}.{(type.ContainingType != null ? (type.ContainingType.Name + ".") : "")}{typeName}";
+            var typeName = TypeNameOf(type);
+            var key = type.GetFullName();
             if (!typeReferences.TryGetValue(key, out var typeReference))
             {
                 SRM.EntityHandle resolutionScope;
                 if (type.ContainingType == null) // if defined in the namespace then search there
                 {
-                    try
-                    {
-                        resolutionScope = type.ContainingAssembly.Name.Equals(assembly.Name)
-                            ? default
-                            : assemblyReferences[type.ContainingAssembly.Name];
-                    }
-                    // FIXME mmmmmm
-                    catch (KeyNotFoundException)
-                    {
-                        if (PlatformTypes.Includes(type))
-                        {
-                            resolutionScope = assemblyReferences["System.Runtime"];
-                        }
-                        else throw;
-                    }
+                    resolutionScope = type.ContainingAssembly.Name.Equals(assembly.Name)
+                        ? metadataContainer.ModuleHandle
+                        : (SRM.EntityHandle) assemblyReferences[type.ContainingAssembly.Name];
                 }
                 else
                 {
@@ -148,10 +133,11 @@ namespace MetadataGenerator.Metadata
             var encoder = new ECMA335.BlobEncoder(signature).TypeSpecificationSignature();
             Encode(type, encoder);
             var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
-            if (!typeSpecificationReferences.TryGetValue(blobHandle, out var typeSpecification))
+            var key = new Tuple<string, SRM.BlobHandle>(type.GetFullName(), blobHandle);
+            if (!typeSpecificationReferences.TryGetValue(key, out var typeSpecification))
             {
                 typeSpecification = metadataContainer.metadataBuilder.AddTypeSpecification(blobHandle);
-                typeSpecificationReferences.Add(blobHandle, typeSpecification);
+                typeSpecificationReferences.Add(key, typeSpecification);
             }
 
             return typeSpecification;
@@ -159,14 +145,18 @@ namespace MetadataGenerator.Metadata
 
         private SRM.MethodSpecificationHandle GetOrAddMethodSpecificationFor(IMethodReference method, SRM.BlobBuilder signature)
         {
-            var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
-            if (!methodSpecificationReferences.TryGetValue(blobHandle, out var methodSpecification))
+            var genericMethodSignature = methodSignatureGenerator.GenerateSignatureOf(method.GenericMethod);
+            var key = new Tuple<string, byte[]>(
+                $"{method.GenericMethod.ContainingType.GetFullName()}.{method.GenericName}",
+                genericMethodSignature.ToArray()
+            );
+            if (!methodSpecificationReferences.TryGetValue(key, out var methodSpecification))
             {
                 methodSpecification = metadataContainer.metadataBuilder.AddMethodSpecification(
-                    GetOrAddMethodReference(method.GenericMethod, methodSignatureGenerator.GenerateSignatureOf(method.GenericMethod)),
-                    blobHandle
+                    GetOrAddMethodReference(method.GenericMethod, genericMethodSignature),
+                    metadataContainer.metadataBuilder.GetOrAddBlob(signature)
                 );
-                methodSpecificationReferences.Add(blobHandle, methodSpecification);
+                methodSpecificationReferences.Add(key, methodSpecification);
             }
 
             return methodSpecification;
@@ -194,8 +184,7 @@ namespace MetadataGenerator.Metadata
             {
                 var parentHandle = GetOrAddTypeSpecificationFor(arrayTypeWrapper.Type);
                 var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
-                // FIXME sera suficiente? Hay que revisar todas las keys que uso en estos metodos a ver si tienen sentido
-                var key = new KeyValuePair<object, SRM.BlobHandle>(parentHandle, blobHandle);
+                var key = new Tuple<object, SRM.BlobHandle>(parentHandle, blobHandle);
                 if (!memberReferences.TryGetValue(key, out var methodReferenceHandle))
                 {
                     methodReferenceHandle = metadataContainer.metadataBuilder.AddMemberReference(
@@ -210,8 +199,8 @@ namespace MetadataGenerator.Metadata
             else
             {
                 var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
-                var key = new KeyValuePair<object, SRM.BlobHandle>(
-                    $"{method.ContainingType.ContainingAssembly.Name}.{method.ContainingType.ContainingNamespace}.{method.ContainingType.GenericName}.{method.Name}",
+                var key = new Tuple<object, SRM.BlobHandle>(
+                    $"{method.ContainingType.GetFullName()}.{method.GenericName}",
                     blobHandle
                 );
                 if (!memberReferences.TryGetValue(key, out var methodReferenceHandle))
@@ -230,8 +219,8 @@ namespace MetadataGenerator.Metadata
         private SRM.MemberReferenceHandle GetOrAddFieldReference(IFieldReference field, SRM.BlobBuilder signature)
         {
             var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
-            var key = new KeyValuePair<object, SRM.BlobHandle>(
-                $"{field.ContainingType.ContainingAssembly.Name}.{field.ContainingType.ContainingNamespace}.{field.ContainingType.GenericName}.{field.Name}",
+            var key = new Tuple<object, SRM.BlobHandle>(
+                $"{field.ContainingType.GetFullName()}.{field.Name}",
                 blobHandle
             );
             if (!memberReferences.TryGetValue(key, out var memberReferenceHandle))
@@ -272,23 +261,23 @@ namespace MetadataGenerator.Metadata
             {
                 switch (type)
                 {
-                    case IBasicType basicType:
+                    case IBasicType iBasicType:
                     {
                         var isValueType = type.TypeKind == TypeKind.ValueType;
-                        if (basicType.IsGenericInstantiation())
+                        if (iBasicType.IsGenericInstantiation())
                         {
                             var genericInstantiation = encoder.GenericInstantiation(
-                                GetOrAddTypeReference(basicType.GenericType),
-                                basicType.GenericArguments.Count,
+                                GetOrAddTypeReference(iBasicType.GenericType),
+                                iBasicType.GenericArguments.Count,
                                 isValueType);
-                            foreach (var genericArg in basicType.GenericArguments)
+                            foreach (var genericArg in iBasicType.GenericArguments)
                             {
                                 Encode(genericArg, genericInstantiation.AddArgument());
                             }
                         }
                         else
                         {
-                            encoder.Type(GetOrAddTypeReference(basicType), isValueType);
+                            encoder.Type(GetOrAddTypeReference(iBasicType), isValueType);
                         }
 
                         break;

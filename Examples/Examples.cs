@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection.Metadata;
-using Accessibility;
 using Classes;
 using Hierarchy;
 using Nested.NestedNamespace.NestedNestedNamesace;
+using NUnit.Framework;
 using Structs;
 
 namespace Enums
@@ -362,10 +363,6 @@ namespace Hierarchy
     }
 
     public class ClassDerivedFromSystemClass : Exception
-    {
-    }
-
-    public class ClassDerivedFromAccessibilityClass : CAccPropServicesClass
     {
     }
 }
@@ -1032,5 +1029,53 @@ namespace MethodBody
                 Console.WriteLine("finally");
             }
         }*/
+    }
+}
+
+namespace Attributes
+{
+    [Flags]
+    public enum ColoursFlags
+    {
+        Red = 1,
+        Blue = 2,
+        Pink = 4,
+        Green = 8
+    }
+
+    [ExcludeFromCodeCoverage, Obsolete("no use")]
+    public class AnnotatedClass
+    {
+        [Obsolete] public int ObsoleteProperty { get; set; }
+        [Obsolete] public int obsoleteField;
+
+        [Obsolete("Method is obsolete", true)]
+        public void Method()
+        {
+        }
+    }
+}
+
+namespace Tests
+{
+    [TestFixture]
+    public class TestSuite
+    {
+        [SetUp]
+        public void SetUp()
+        {
+        }
+
+        [Test]
+        public void Test()
+        {
+            Assert.AreEqual(1, 1);
+        }
+
+        [Test]
+        public void AnotherTest()
+        {
+            Assert.AreEqual(1, 1);
+        }
     }
 }

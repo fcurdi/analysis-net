@@ -160,6 +160,10 @@ namespace Model
 				var pointerType = type as PointerType;
 				var targetType = GetFullName(pointerType.TargetType);
 				result = string.Format("{0}*", targetType);
+			} 
+			else if (type is IGenericParameterReference genericParameterReference)
+			{
+				result = genericParameterReference.Name;
 			}
 
 			return result;
