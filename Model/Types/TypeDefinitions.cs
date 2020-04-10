@@ -404,7 +404,7 @@ namespace Model.Types
 			return result;
 		}
 	}
-	public class PropertyDefinition : ITypeMemberDefinition
+	public class PropertyDefinition : ITypeMemberDefinition, IMetadataReference
 	{
 		public PropertyDefinition(string name, IType propType)
 		{
@@ -423,7 +423,7 @@ namespace Model.Types
 		{
 			get { return this.ContainingType; }
 		}
-		public bool IsInstanceProperty { get; set; }
+		public bool IsStatic { get; set; }
 		public bool MatchReference(ITypeMemberReference member)
 		{
 			if (member is PropertyDefinition)
@@ -698,7 +698,7 @@ namespace Model.Types
 		public bool IsSealed { get; set; }
 		public bool BeforeFieldInit { get; set; }
 		public ISet<PropertyDefinition> PropertyDefinitions { get; private set; }
-		public int GenericParameterCount { get; set; }
+		public int GenericParameterCount => GenericParameters.Count;
 		public TypeDefinition(string name, TypeKind typeKind = TypeKind.Unknown, TypeDefinitionKind kind = TypeDefinitionKind.Unknown)
 		{
 			this.Name = name;
