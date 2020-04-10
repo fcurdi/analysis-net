@@ -204,8 +204,6 @@ namespace MetadataProvider
 			}
 
 			type.ContainingType = currentType;
-			type.ContainingAssembly = assembly;
-			type.ContainingNamespace = currentNamespace;
 			if (typedef.Attributes.HasFlag(SR.TypeAttributes.Abstract))
 			{
 				if (typedef.Attributes.HasFlag(SR.TypeAttributes.Sealed))
