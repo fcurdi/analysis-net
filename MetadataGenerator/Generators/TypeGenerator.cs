@@ -46,10 +46,6 @@ namespace MetadataGenerator.Generators
                 methodDefToHandle.Add(method, methodHandle);
             }
 
-            var propertyDefinitionHandles = type.PropertyDefinitions
-                .Select(property => propertyGenerator.Generate(property, methodDefToHandle))
-                .ToList();
-
             var nextFieldDefinitionHandle = ECMA335.MetadataTokens.FieldDefinitionHandle(metadataBuilder.NextRowFor(ECMA335.TableIndex.Field));
             var nextMethodDefinitionHandle = ECMA335.MetadataTokens.MethodDefinitionHandle(metadataBuilder.NextRowFor(ECMA335.TableIndex.MethodDef));
             var nextPropertyDefinitionHandle =
@@ -62,7 +58,14 @@ namespace MetadataGenerator.Generators
                 fieldList: fieldDefinitionHandles.FirstOr(nextFieldDefinitionHandle),
                 methodList: methodDefinitionHandles.FirstOr(nextMethodDefinitionHandle));
 
-            metadataContainer.metadataBuilder.AddPropertyMap(typeDefinitionHandle, propertyDefinitionHandles.FirstOr(nextPropertyDefinitionHandle));
+            var firstPropertyDefinitionHandle = type.PropertyDefinitions
+                .Select(property => propertyGenerator.Generate(property, methodDefToHandle))
+                .FirstOrDefault();
+
+            if (!firstPropertyDefinitionHandle.IsNil)
+            {
+                metadataContainer.metadataBuilder.AddPropertyMap(typeDefinitionHandle, firstPropertyDefinitionHandle);
+            }
 
             foreach (var interfaze in type.Interfaces)
             {
