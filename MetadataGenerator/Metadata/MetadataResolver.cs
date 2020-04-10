@@ -230,8 +230,6 @@ namespace MetadataGenerator.Metadata
                     name: metadataContainer.metadataBuilder.GetOrAddString(field.Name),
                     signature: blobHandle);
                 memberReferences.Add(key, memberReferenceHandle);
-
-                return memberReferenceHandle;
             }
 
             return memberReferenceHandle;

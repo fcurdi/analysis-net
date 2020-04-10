@@ -22,7 +22,7 @@ namespace MetadataGenerator.Generators
         {
             var signature = new SRM.BlobBuilder();
             new ECMA335.BlobEncoder(signature)
-                .PropertySignature(isInstanceProperty: property.IsInstanceProperty)
+                .PropertySignature(isInstanceProperty: !property.IsStatic)
                 .Parameters(
                     parameterCount: 0,
                     returnType: returnTypeEncoder => metadataContainer.metadataResolver.Encode(property.PropertyType, returnTypeEncoder.Type()),
