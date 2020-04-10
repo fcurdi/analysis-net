@@ -58,14 +58,19 @@ namespace MetadataProvider
 			{
 				var typedef = metadata.GetTypeDefinition(handle);
 				var name = metadata.GetString(typedef.Name);
-				name = GetGenericName(name, out var genericParameterCount);
+				name = GetGenericName(name);
 
 				result = new TypeDefinition(name)
 				{
-					GenericParameterCount = genericParameterCount,
 					ContainingAssembly = assembly,
 					ContainingNamespace =  currentNamespace
 				};
+				
+				foreach (var genericParameterHandle in typedef.GetGenericParameters())
+				{
+					ExtractGenericParameter(GenericParameterKind.Type, result, genericParameterHandle);
+				}
+				
 				definedTypes.Add(handle, result);
 			}
 
@@ -81,13 +86,14 @@ namespace MetadataProvider
 			{
 				var methoddef = metadata.GetMethodDefinition(handle);
 				var name = metadata.GetString(methoddef.Name);
-				name = GetGenericName(name, out _);
+				name = GetGenericName(name);
 
 				result = new MethodDefinition(name, null);
 				foreach (var genericParameterHandle in methoddef.GetGenericParameters())
 				{
 					ExtractGenericParameter(GenericParameterKind.Method, result, genericParameterHandle);
 				}
+				
 				definedMethods.Add(handle, result);
 			}
 
@@ -190,13 +196,11 @@ namespace MetadataProvider
 			}
 
 			type.ContainingType = currentType;
-			type.ContainingAssembly = assembly;
-			type.ContainingNamespace = currentNamespace;
 			currentType = type;
 
-			foreach (var handle in typedef.GetGenericParameters())
+			foreach (var genericParameter in type.GenericParameters)
 			{
-				ExtractGenericParameter(GenericParameterKind.Type, type, handle);
+				defGenericContext.TypeParameters.Add(genericParameter);
 			}
 
 			ExtractBaseType(typedef.BaseType);
@@ -396,19 +400,6 @@ namespace MetadataProvider
 				GenericContainer = genericContainer
 			};
 
-			if (parameterKind == GenericParameterKind.Type)
-			{
-				defGenericContext.TypeParameters.Add(genericParameter);
-			}
-			else if (parameterKind == GenericParameterKind.Method)
-			{
-				defGenericContext.MethodParameters.Add(genericParameter);
-			}
-			else
-			{
-				throw parameterKind.ToUnknownValueException();
-			}
-
 			genericContainer.GenericParameters.Add(genericParameter);
 		}
 
@@ -460,7 +451,7 @@ namespace MetadataProvider
 				Getter = !getter.IsNil ? GetDefinedMethod(getter) : default,
 				Setter = !setter.IsNil ? GetDefinedMethod(setter) : default,
 				ContainingType = currentType,
-				IsInstanceProperty = signature.Header.IsInstance
+				IsStatic = !signature.Header.IsInstance
 			};
 			currentType.PropertyDefinitions.Add(property);
 			BindGenericParameterReferences(GenericParameterKind.Type, currentType);
@@ -482,9 +473,9 @@ namespace MetadataProvider
 			currentType.Methods.Add(method);
 			currentMethod = method;
 
-			foreach (var handle in methoddef.GetGenericParameters())
+			foreach (var genericParameter in method.GenericParameters)
 			{
-				ExtractGenericParameter(GenericParameterKind.Method, method, handle);
+				defGenericContext.MethodParameters.Add(genericParameter);
 			}
 
 			var signature = methoddef.DecodeSignature(signatureTypeProvider, defGenericContext);
@@ -940,10 +931,16 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Ldfld:
+					instruction = ProcessLoadField(operation, false);
+					break;
 				case SRM.ILOpCode.Ldsfld:
+					instruction = ProcessLoadField(operation, true);
+					break;
 				case SRM.ILOpCode.Ldflda:
+					instruction = ProcessLoadField(operation, false);
+					break;
 				case SRM.ILOpCode.Ldsflda:
-					instruction = ProcessLoadField(operation);
+					instruction = ProcessLoadField(operation, true);
 					break;
 
 				case SRM.ILOpCode.Ldftn:
@@ -1058,8 +1055,10 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Stfld:
+					instruction = ProcessStoreField(operation, false);
+					break;
 				case SRM.ILOpCode.Stsfld:
-					instruction = ProcessStoreField(operation);
+					instruction = ProcessStoreField(operation, true);
 					break;
 
 				case SRM.ILOpCode.Stind_i:
@@ -1544,11 +1543,12 @@ namespace MetadataProvider
 			return instruction;
 		}
 
-		private IInstruction ProcessLoadField(ILInstruction op)
+		private IInstruction ProcessLoadField(ILInstruction op, bool isStatic)
 		{
 			var operation = OperationHelper.ToLoadFieldOperation(op.Opcode);
 			var field = GetOperand<IFieldReference>(op);
 
+			SetFieldStaticProperty(field, isStatic);
 			var instruction = new LoadFieldInstruction(op.Offset, operation, field);
 			return instruction;
 		}
@@ -1588,10 +1588,11 @@ namespace MetadataProvider
 			return instruction;
 		}
 
-		private IInstruction ProcessStoreField(ILInstruction op)
+		private IInstruction ProcessStoreField(ILInstruction op, bool isStatic)
 		{
 			var field = GetOperand<IFieldReference>(op);
-
+			
+			SetFieldStaticProperty(field, isStatic);
 			var instruction = new StoreFieldInstruction(op.Offset, field);
 			return instruction;
 		}
@@ -1615,11 +1616,7 @@ namespace MetadataProvider
 			var unsigned = OperationHelper.OperandsAreUnsigned(op.Opcode);
 			var type = GetOperand<IType>(op);
 
-			if (operation == ConvertOperation.Box && type.TypeKind == TypeKind.ValueType)
-			{
-				type = PlatformTypes.Object;
-			}
-			else if (operation == ConvertOperation.Conv)
+			if (operation == ConvertOperation.Conv)
 			{
 				type = OperationHelper.GetOperationType(op.Opcode);
 			}
@@ -1632,19 +1629,38 @@ namespace MetadataProvider
 
 		#endregion
 
-		private static string GetGenericName(string name, out int genericParameterCount)
+		private static string GetGenericName(string name)
 		{
 			var start = name.LastIndexOf('`');
-			genericParameterCount = 0;
-
+			
 			if (start > -1)
 			{
-				var count = name.Substring(start + 1);
-				genericParameterCount = Convert.ToInt32(count);
 				name = name.Remove(start);
 			}
 
 			return name;
+		}
+		
+		// FIXME
+		// Metadata static indicator for FieldReferences (!signatureHeader.IsInstance) appears to be incorrect when read. Maybe it is updated when
+		// it can resolve the reference. So field isStatic is ensured with the field operation kind (ex: stsfld => static, ldfld => not static)
+		private static void SetFieldStaticProperty(IFieldReference field, bool isStatic)
+		{
+			switch (field)
+			{
+				case FieldReference fieldReference:
+				{
+					fieldReference.IsStatic = isStatic;
+					break;
+				}
+				case FieldDefinition fieldDefinition:
+				{
+					fieldDefinition.IsStatic = isStatic;
+					break;
+				}
+				default: throw new Exception("case not handled");
+
+			}
 		}
 	}
 }
