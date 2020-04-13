@@ -48,8 +48,6 @@ namespace MetadataGenerator.Generators
 
             var nextFieldDefinitionHandle = ECMA335.MetadataTokens.FieldDefinitionHandle(metadataBuilder.NextRowFor(ECMA335.TableIndex.Field));
             var nextMethodDefinitionHandle = ECMA335.MetadataTokens.MethodDefinitionHandle(metadataBuilder.NextRowFor(ECMA335.TableIndex.MethodDef));
-            var nextPropertyDefinitionHandle =
-                ECMA335.MetadataTokens.PropertyDefinitionHandle(metadataBuilder.NextRowFor(ECMA335.TableIndex.Property));
             var typeDefinitionHandle = metadataBuilder.AddTypeDefinition(
                 attributes: GetTypeAttributesFor(type),
                 @namespace: metadataBuilder.GetOrAddString(type.ContainingNamespace.FullName),

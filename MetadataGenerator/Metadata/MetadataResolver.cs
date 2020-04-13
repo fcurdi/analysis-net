@@ -100,7 +100,6 @@ namespace MetadataGenerator.Metadata
         {
             if (type.IsGenericInstantiation()) return GetOrAddTypeSpecificationFor(type);
 
-            var typeName = TypeNameOf(type);
             var key = type.GetFullName();
             if (!typeReferences.TryGetValue(key, out var typeReference))
             {
@@ -120,7 +119,7 @@ namespace MetadataGenerator.Metadata
                 typeReference = metadataContainer.metadataBuilder.AddTypeReference(
                     resolutionScope: resolutionScope,
                     @namespace: metadataContainer.metadataBuilder.GetOrAddString(type.ContainingNamespace),
-                    name: metadataContainer.metadataBuilder.GetOrAddString(typeName));
+                    name: metadataContainer.metadataBuilder.GetOrAddString(TypeNameOf(type)));
                 typeReferences.Add(key, typeReference);
             }
 

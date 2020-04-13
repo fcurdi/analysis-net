@@ -19,14 +19,14 @@ namespace MetadataGenerator.Generators
 
         public void Generate(Namespace namezpace)
         {
-            foreach (var nestedNamespace in namezpace.Namespaces)
-            {
-                Generate(nestedNamespace);
-            }
-
             foreach (var type in namezpace.Types)
             {
                 GenerateTypes(type);
+            }
+
+            foreach (var nestedNamespace in namezpace.Namespaces)
+            {
+                Generate(nestedNamespace);
             }
         }
 
