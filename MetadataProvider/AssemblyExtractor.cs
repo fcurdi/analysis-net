@@ -131,7 +131,9 @@ namespace MetadataProvider
 			var name = metadata.GetString(assemblydef.Name);
 			assembly = new Assembly(name, AssemblyKindFrom(reader.PEHeaders))
 			{
-				Version = assemblydef.Version
+				Version = assemblydef.Version,
+				Culture = metadata.GetString(assemblydef.Culture),
+				PublicKey = metadata.GetBlobBytes(assemblydef.PublicKey)
 			};
 
 			foreach (var handle in metadata.AssemblyReferences)
@@ -140,7 +142,9 @@ namespace MetadataProvider
 				name = metadata.GetString(referencedef.Name);
 				var reference = new AssemblyReference(name)
 				{
-					Version = referencedef.Version
+					Version = referencedef.Version,
+					Culture = metadata.GetString(referencedef.Culture),
+					PublicKey = metadata.GetBlobBytes(referencedef.PublicKeyOrToken)
 				};
 
 				assembly.References.Add(reference);
