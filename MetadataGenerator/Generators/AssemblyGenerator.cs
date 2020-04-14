@@ -16,8 +16,8 @@ namespace MetadataGenerator.Generators
             metadataBuilder.AddAssembly(
                 name: metadataBuilder.GetOrAddString(assembly.Name),
                 version: assembly.Version,
-                culture: default,
-                publicKey: default,
+                culture: metadataContainer.metadataBuilder.GetOrAddString(assembly.Culture),
+                publicKey: metadataContainer.metadataBuilder.GetOrAddBlob(assembly.PublicKey),
                 flags: SR.AssemblyFlags.PublicKey,
                 hashAlgorithm: SR.AssemblyHashAlgorithm.Sha1
             );

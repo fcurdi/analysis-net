@@ -1,4 +1,4 @@
-// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
+﻿// Copyright (c) Edgardo Zoppi.  All Rights Reserved.  Licensed under the MIT License.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -386,11 +386,11 @@ namespace Console
 		
 		static void Main(string[] args)
 		{
-			var input = "../../../Examples/bin/Debug/Examples.dll";
+			// var input = "../../../Examples/bin/Debug/Examples.dll";
 			// var input = "../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser.Test/bin/Debug/net45/TinyCsvParser.Test.dll";
 			// var input = "../../../../TinyCsvParser/TinyCsvParser/SelectedTests/bin/Debug/net45/SelectedTests.dll";
 			// var input = "../../../../DSA/DSA/DSA-Selected-Tests/bin/Debug/net45/DSA-Selected-Tests.dll";
-			//  var input = "../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser/bin/Debug/net45/TinyCsvParser.dll";
+			var input = "../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser/bin/Debug/net45/TinyCsvParser.dll";
 			// var input = "../../../../C-Sharp-Algorithms/Algorithms/bin/Debug/netcoreapp2.0/Algorithms.dll";
 			DisassembleAndThenAssemble(input);
 

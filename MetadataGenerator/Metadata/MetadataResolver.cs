@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Reflection;
 using MetadataGenerator.Generators.Fields;
 using MetadataGenerator.Generators.Methods;
 using MetadataGenerator.Generators.Methods.Body;
@@ -9,7 +8,6 @@ using Model;
 using Model.Types;
 using static System.Linq.Enumerable;
 using static MetadataGenerator.Generators.TypeGenerator;
-using Assembly = Model.Assembly;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
@@ -47,13 +45,12 @@ namespace MetadataGenerator.Metadata
 
             foreach (var assemblyReference in assembly.References)
             {
-                // TODO culture and others should be in the assemblyReference. Submit PR with this
                 assemblyReferences.Add(assemblyReference.Name, metadataContainer.metadataBuilder.AddAssemblyReference(
                     name: metadataContainer.metadataBuilder.GetOrAddString(assemblyReference.Name),
                     version: assemblyReference.Version,
-                    culture: default,
-                    publicKeyOrToken: default,
-                    flags: AssemblyFlags.PublicKey,
+                    culture: metadataContainer.metadataBuilder.GetOrAddString(assemblyReference.Culture),
+                    publicKeyOrToken: metadataContainer.metadataBuilder.GetOrAddBlob(assemblyReference.PublicKey),
+                    flags: default,
                     hashValue: default)
                 );
             }

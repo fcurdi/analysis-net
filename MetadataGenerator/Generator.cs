@@ -28,7 +28,8 @@ namespace MetadataGenerator
                     header: peHeaderBuilder,
                     metadataRootBuilder: new ECMA335.MetadataRootBuilder(metadataContainer.metadataBuilder),
                     ilStream: metadataContainer.methodBodyStream.Builder,
-                    entryPoint: assembly.Kind.Equals(AssemblyKind.EXE) ? metadataContainer.MainMethodHandle : default
+                    entryPoint: assembly.Kind.Equals(AssemblyKind.EXE) ? metadataContainer.MainMethodHandle : default,
+                    flags: SRPE.CorFlags.ILOnly | SRPE.CorFlags.StrongNameSigned
                 ).Serialize(peBlob);
                 peBlob.WriteContentTo(peStream);
             }
