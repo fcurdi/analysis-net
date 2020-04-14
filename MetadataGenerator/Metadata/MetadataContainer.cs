@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Model;
 using Model.Types;
 using Assembly = Model.Assembly;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
@@ -58,19 +59,28 @@ namespace MetadataGenerator.Metadata
                 parent,
                 GenericParameterAttributes.None,
                 metadataBuilder.GetOrAddString(genericParameter.Name),
-                genericParameter.Index));
+                genericParameter.Index,
+                genericParameter.Constraints.Select(type => metadataResolver.HandleOf(type)).ToSet()
+            ));
 
         public void GenerateGenericParameters() =>
             genericParameterRows
                 .OrderBy(row => ECMA335.CodedIndex.TypeOrMethodDef(row.parent))
                 .ThenBy(row => row.index)
                 .ToList()
-                .ForEach(row => metadataBuilder.AddGenericParameter(
-                    row.parent,
-                    row.attributes,
-                    row.name,
-                    row.index
-                ));
+                .ForEach(row =>
+                {
+                    var genericParameterHandle = metadataBuilder.AddGenericParameter(
+                        row.parent,
+                        row.attributes,
+                        row.name,
+                        row.index
+                    );
+                    foreach (var constraint in row.constraints)
+                    {
+                        metadataBuilder.AddGenericParameterConstraint(genericParameterHandle, constraint);
+                    }
+                });
 
         public void RegisterNestedType(SRM.TypeDefinitionHandle type, SRM.TypeDefinitionHandle enclosingType) =>
             nestedTypeRows.Add(new NestedTypeRow(type, enclosingType));
@@ -92,6 +102,8 @@ namespace MetadataGenerator.Metadata
                 .ForEach(row => metadataBuilder.AddInterfaceImplementation(row.type, row.implementedInterface));
 
         #region Rows
+
+        // FIXME hacen falta los equality members? Deberian mirar todos los campos?
 
         private class InterfaceImplementationRow
         {
@@ -138,13 +150,20 @@ namespace MetadataGenerator.Metadata
             public readonly GenericParameterAttributes attributes;
             public readonly SRM.StringHandle name;
             public readonly ushort index;
+            public readonly ISet<SRM.EntityHandle> constraints;
 
-            public GenericParamRow(SRM.EntityHandle parent, GenericParameterAttributes attributes, SRM.StringHandle name, ushort index)
+            public GenericParamRow(
+                SRM.EntityHandle parent,
+                GenericParameterAttributes attributes,
+                SRM.StringHandle name,
+                ushort index,
+                ISet<SRM.EntityHandle> constraints)
             {
                 this.parent = parent;
                 this.attributes = attributes;
                 this.name = name;
                 this.index = index;
+                this.constraints = constraints;
             }
 
             public override bool Equals(object obj)
@@ -152,8 +171,9 @@ namespace MetadataGenerator.Metadata
                 if (ReferenceEquals(null, obj)) return false;
                 if (ReferenceEquals(this, obj)) return true;
                 if (obj.GetType() != this.GetType()) return false;
-                var other = (GenericParamRow) obj;
-                return parent.Equals(other.parent) && attributes == other.attributes && name.Equals(other.name) && index == other.index;
+                GenericParamRow other = (GenericParamRow) obj;
+                return parent.Equals(other.parent) && attributes == other.attributes && name.Equals(other.name) && index == other.index &&
+                       Equals(constraints, other.constraints);
             }
 
             public override int GetHashCode()
@@ -164,6 +184,7 @@ namespace MetadataGenerator.Metadata
                     hashCode = (hashCode * 397) ^ (int) attributes;
                     hashCode = (hashCode * 397) ^ name.GetHashCode();
                     hashCode = (hashCode * 397) ^ index.GetHashCode();
+                    hashCode = (hashCode * 397) ^ (constraints != null ? constraints.GetHashCode() : 0);
                     return hashCode;
                 }
             }

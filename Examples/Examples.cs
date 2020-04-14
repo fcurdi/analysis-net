@@ -455,15 +455,13 @@ namespace PointersAndReferences
 
 namespace Generics
 {
-    public class Generic<C, D> where D : Exception // FIXME generic constraint not in the model
+    public class Generic<C, D, E> where D : Exception where E : EmptyClass
     {
         public C genericClassTypeField;
         public Dictionary<string, Exception> genericField;
 
         public IList<IList<Exception>> listOfListField;
 
-        // FIXME the assigment is done in the .ctor with a stfld instruction but i'm generating a stsfld instruction. That's because somehow the field that i Receives is static
-        // FIXME when in reality it is not. Maybe a fault in the model?
         public readonly List<string> stringList = new List<string> {"holas"};
 
         public IList<Exception> GetExceptionsList(List<string> _)
@@ -481,7 +479,7 @@ namespace Generics
             Console.WriteLine(t.ToString());
         }
 
-        public void MethodWithGenericConstraint<T>(T t) where T : Enum // FIXME generic constraint not in the model
+        public void MethodWithGenericConstraint<T>(T t) where T : Enum
         {
         }
 
