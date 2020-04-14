@@ -13,12 +13,16 @@ namespace Model
 	{
 		string Name { get; }
 		Version Version { get; }
+		string Culture { get; }
+		byte[] PublicKey { get; }
 	}
 
 	public class AssemblyReference : IAssemblyReference
 	{
 		public string Name { get; private set; }
 		public Version Version { get; set; }
+		public string Culture { get; set; }
+		public byte[] PublicKey { get; set; }
 
 		public AssemblyReference(string name)
 		{
@@ -52,6 +56,8 @@ namespace Model
 		public IList<IAssemblyReference> References { get; private set; }
 		public Namespace RootNamespace { get; set; }
 		public Version Version { get; set; }
+		public string Culture { get; set; }
+		public byte[] PublicKey { get; set; }
 		public Assembly(string name)
 		{
 			this.Name = name;
