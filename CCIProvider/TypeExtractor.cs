@@ -7,7 +7,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Microsoft.Cci.MutableCodeModel;
+using AssemblyReference = Model.AssemblyReference;
 using Cci = Microsoft.Cci;
+using CustomAttribute = Model.Types.CustomAttribute;
+using FieldDefinition = Model.Types.FieldDefinition;
+using FieldReference = Model.Types.FieldReference;
+using GenericParameter = Model.Types.GenericParameter;
+using MethodBody = Model.Types.MethodBody;
+using MethodDefinition = Model.Types.MethodDefinition;
+using MethodReference = Model.Types.MethodReference;
 
 namespace CCIProvider
 {
@@ -810,7 +819,22 @@ namespace CCIProvider
 				var index = (ushort)i;
 				var name = parameterdef.Name.Value;
 				var typeKind = GetGenericParameterTypeKind(parameterdef);
-				var parameter = new GenericParameter(GenericParameterKind.Type, index, name, typeKind);
+				var variance = GenericParameterVariance.NONE;
+				switch (parameterdef.Variance)
+				{
+					case Cci.TypeParameterVariance.Contravariant:
+						variance = GenericParameterVariance.CONTRAVARIANT;
+						break;
+					case Cci.TypeParameterVariance.Covariant:
+						variance = GenericParameterVariance.COVARIANT;
+						break;
+				}
+
+				var parameter = new GenericParameter(GenericParameterKind.Type, index, name, typeKind)
+				{
+					Variance = variance,
+					DefaultConstructorConstraint = parameterdef.MustHaveDefaultConstructor
+				};
 
 				ExtractAttributes(parameter.Attributes, parameterdef.Attributes);
 
