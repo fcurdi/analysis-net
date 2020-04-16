@@ -37,9 +37,6 @@ namespace Model.Types
 
 	public static class PlatformTypes
 	{
-		public static Boolean Includes(IType type) => platformTypes.FirstOrDefault(type.Equals) != null;
-
-
 		private static readonly ICollection<BasicType> platformTypes = new List<BasicType>();
 
 		public static readonly UnknownType Unknown = UnknownType.Value;
