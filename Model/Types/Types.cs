@@ -37,9 +37,6 @@ namespace Model.Types
 
 	public static class PlatformTypes
 	{
-		public static Boolean Includes(IType type) => platformTypes.FirstOrDefault(type.Equals) != null;
-
-
 		private static readonly ICollection<BasicType> platformTypes = new List<BasicType>();
 
 		public static readonly UnknownType Unknown = UnknownType.Value;
@@ -538,11 +535,20 @@ namespace Model.Types
 			return string.Format("{0}{1}", prefix, index);
 		}
 	}
+	
+	public enum GenericParameterVariance
+	{
+		COVARIANT,
+		CONTRAVARIANT,
+		NONE
+	}
 
 	public class GenericParameter : IGenericParameterReference
 	{
 		public ISet<CustomAttribute> Attributes { get; private set; }
         public ISet<IType> Constraints { get; private set; }
+        public bool DefaultConstructorConstraint { get; set; }
+        public GenericParameterVariance Variance { get; set; }
         public TypeKind TypeKind { get; set; }
 		public IGenericDefinition GenericContainer { get; set; }
 		public GenericParameterKind Kind { get; set; }

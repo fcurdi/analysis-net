@@ -810,7 +810,22 @@ namespace CCIProvider
 				var index = (ushort)i;
 				var name = parameterdef.Name.Value;
 				var typeKind = GetGenericParameterTypeKind(parameterdef);
-				var parameter = new GenericParameter(GenericParameterKind.Type, index, name, typeKind);
+				var variance = GenericParameterVariance.NONE;
+				switch (parameterdef.Variance)
+				{
+					case Cci.TypeParameterVariance.Contravariant:
+						variance = GenericParameterVariance.CONTRAVARIANT;
+						break;
+					case Cci.TypeParameterVariance.Covariant:
+						variance = GenericParameterVariance.COVARIANT;
+						break;
+				}
+
+				var parameter = new GenericParameter(GenericParameterKind.Type, index, name, typeKind)
+				{
+					Variance = variance,
+					DefaultConstructorConstraint = parameterdef.MustHaveDefaultConstructor
+				};
 
 				ExtractAttributes(parameter.Attributes, parameterdef.Attributes);
 

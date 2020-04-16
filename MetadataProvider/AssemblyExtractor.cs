@@ -425,10 +425,23 @@ namespace MetadataProvider
 				typeKind = TypeKind.ValueType;
 			}
 
+			var variance = GenericParameterVariance.NONE;
+			if (genericParameterdef.Attributes.HasFlag(SR.GenericParameterAttributes.Contravariant))
+			{
+				variance = GenericParameterVariance.CONTRAVARIANT;
+			}
+
+			if (genericParameterdef.Attributes.HasFlag(SR.GenericParameterAttributes.Covariant))
+			{
+				variance = GenericParameterVariance.COVARIANT;
+			}
+
 			var name = metadata.GetString(genericParameterdef.Name);
 			var genericParameter = new GenericParameter(parameterKind, (ushort)genericParameterdef.Index, name, typeKind)
 			{
-				GenericContainer = genericContainer
+				GenericContainer = genericContainer,
+				Variance = variance,
+				DefaultConstructorConstraint =  genericParameterdef.Attributes.HasFlag(SR.GenericParameterAttributes.DefaultConstructorConstraint)
 			};
 
 			genericContainer.GenericParameters.Add(genericParameter);
