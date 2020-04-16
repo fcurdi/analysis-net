@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Reflection.Metadata;
 using Classes;
 using Hierarchy;
+using Interfaces;
 using Nested.NestedNamespace.NestedNestedNamesace;
 using NUnit.Framework;
 using Structs;
@@ -455,7 +456,14 @@ namespace PointersAndReferences
 
 namespace Generics
 {
-    public class Generic<C, D, E> where D : Exception where E : EmptyClass
+    public class Generic<C, D, E, F, G, H>
+        where D : class
+        where E : Exception
+        where F : struct
+        where G : struct, ISampleInterface
+        where H : class, new()
+    // where I : unmanaged FIXME framework read not implemented
+    // where J : D FIXME framework read is not working
     {
         public C genericClassTypeField;
         public Dictionary<string, Exception> genericField;

@@ -145,6 +145,39 @@ namespace MetadataGenerator.Metadata
             return attributes;
         }
 
+        public static GenericParameterAttributes GetGenericParameterAttributesFor(GenericParameter genericParameter)
+        {
+            /*  GenericParameterAttributes attributes = GenericParameterAttributes.None;
+              if (genericParameter.RequiresDefaultConstructor)
+              {
+                  attributes |= GenericParameterAttributes.DefaultConstructorConstraint;
+              }
+  
+              switch (genericParameter.Variance)
+              {
+                  case GenericParameterVariance.COVARIANT:
+                      attributes |= GenericParameterAttributes.Covariant;
+                      break;
+                  case GenericParameterVariance.CONTRAVARIANT:
+                      attributes |= GenericParameterAttributes.Contravariant;
+                      break;
+              }
+  
+              switch (genericParameter.TypeKind)
+              {
+                  case TypeKind.ValueType:
+                      attributes |= GenericParameterAttributes.NotNullableValueTypeConstraint;
+                      break;
+                  case TypeKind.ReferenceType:
+                      attributes |= GenericParameterAttributes.ReferenceTypeConstraint;
+                      break;
+              }
+  
+              return attributes;
+              */
+            return GenericParameterAttributes.None;
+        }
+
         private static TypeAttributes VisibilityAttributesFor(TypeDefinition typeDefinition)
         {
             if (typeDefinition.ContainingType != null)

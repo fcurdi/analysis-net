@@ -7,6 +7,7 @@ using Model.Types;
 using Assembly = Model.Assembly;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
+using static MetadataGenerator.Metadata.AttributesProvider;
 
 namespace MetadataGenerator.Metadata
 {
@@ -57,7 +58,7 @@ namespace MetadataGenerator.Metadata
         private void DoRegisterGenericParameter(SRM.EntityHandle parent, GenericParameter genericParameter) =>
             genericParameterRows.Add(new GenericParamRow(
                 parent,
-                GenericParameterAttributes.None,
+                GetGenericParameterAttributesFor(genericParameter),
                 metadataBuilder.GetOrAddString(genericParameter.Name),
                 genericParameter.Index,
                 genericParameter.Constraints.Select(type => metadataResolver.HandleOf(type)).ToSet()
