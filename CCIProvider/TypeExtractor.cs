@@ -818,7 +818,8 @@ namespace CCIProvider
 				definingType.GenericParameters.Add(parameter);
 
 				defGenericContext.TypeParameters.Add(parameter);
-			}
+                parameter.Constraints.AddRange(parameterdef.Constraints.Select(cciTypeRef => ExtractType(cciTypeRef)));
+            }
 		}
 
 		private static IList<Cci.IGenericTypeParameter> GetAllGenericTypeParameters(Cci.ITypeDefinition typedef)

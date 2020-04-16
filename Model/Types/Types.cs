@@ -542,7 +542,8 @@ namespace Model.Types
 	public class GenericParameter : IGenericParameterReference
 	{
 		public ISet<CustomAttribute> Attributes { get; private set; }
-		public TypeKind TypeKind { get; set; }
+        public ISet<IType> Constraints { get; private set; }
+        public TypeKind TypeKind { get; set; }
 		public IGenericDefinition GenericContainer { get; set; }
 		public GenericParameterKind Kind { get; set; }
 		public ushort Index { get; set; }
@@ -555,7 +556,8 @@ namespace Model.Types
 			this.Name = name;
 			this.TypeKind = typeKind;
 			this.Attributes = new HashSet<CustomAttribute>();
-		}
+            this.Constraints = new HashSet<IType>();
+        }
 
 		#region IGenericParameterReference members
 

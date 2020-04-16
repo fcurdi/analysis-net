@@ -407,7 +407,11 @@ namespace MetadataProvider
 			};
 
 			genericContainer.GenericParameters.Add(genericParameter);
-		}
+            var constraints = genericParameterdef.GetConstraints().Select(
+                constraint => signatureTypeProvider.GetTypeFromHandle(metadata, defGenericContext, metadata.GetGenericParameterConstraint(constraint).Type
+            ));
+            genericParameter.Constraints.AddRange(constraints);
+        }
 
 		private void ExtractField(SRM.FieldDefinitionHandle handle)
 		{
