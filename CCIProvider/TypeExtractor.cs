@@ -7,16 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Microsoft.Cci.MutableCodeModel;
-using AssemblyReference = Model.AssemblyReference;
 using Cci = Microsoft.Cci;
-using CustomAttribute = Model.Types.CustomAttribute;
-using FieldDefinition = Model.Types.FieldDefinition;
-using FieldReference = Model.Types.FieldReference;
-using GenericParameter = Model.Types.GenericParameter;
-using MethodBody = Model.Types.MethodBody;
-using MethodDefinition = Model.Types.MethodDefinition;
-using MethodReference = Model.Types.MethodReference;
 
 namespace CCIProvider
 {
