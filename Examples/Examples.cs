@@ -314,6 +314,27 @@ namespace Interfaces
             return 0;
         }
     }
+
+    public interface InterfaceWithMethodM1
+    {
+        void M1();
+    }
+
+    public interface AnotherInterfaceWithMethodM1
+    {
+        void M1();
+    }
+
+    public class ClassWithMultipleMethodsWithSameName : InterfaceWithMethodM1, AnotherInterfaceWithMethodM1
+    {
+        void InterfaceWithMethodM1.M1()
+        {
+        }
+
+        void AnotherInterfaceWithMethodM1.M1()
+        {
+        }
+    }
 }
 
 namespace Delegates
@@ -358,7 +379,7 @@ namespace Hierarchy
 
     public class DerivedClass : BaseClass
     {
-        public sealed override void CanImplement()
+        public override void CanImplement()
         {
         }
     }
@@ -456,14 +477,16 @@ namespace PointersAndReferences
 
 namespace Generics
 {
-    public class Generic<C, D, E, F, G, H>
+    public class Generic<C, D, E, F, G, H, I, J>
         where D : class
         where E : Exception
         where F : struct
         where G : struct, ISampleInterface
         where H : class, new()
-    // where I : unmanaged FIXME framework read not implemented
-    // where J : D FIXME framework read is not working
+        where I : List<int>
+        where J : List<D>
+    // where K : unmanaged FIXME framework read not implemented
+    // where L : D FIXME framework read is not working
     {
         public C genericClassTypeField;
         public Dictionary<string, Exception> genericField;
@@ -491,7 +514,7 @@ namespace Generics
         {
         }
 
-        public E ReceivesAndReturnsGenericType<T, E, F>(T t, E e)
+        public E ReceivesAndReturnsGenericType<T, E, F>(T t, E e) where E : List<T>
         {
             return e;
         }

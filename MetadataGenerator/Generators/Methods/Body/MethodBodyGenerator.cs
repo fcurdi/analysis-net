@@ -632,13 +632,18 @@ namespace MetadataGenerator.Generators.Methods.Body
                         instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(storeFieldInstruction.Field));
                         break;
                     case SwitchInstruction switchInstruction:
+                    {
+                        var nextInstructionOffset =
+                            Convert.ToInt32(body.Instructions[body.Instructions.IndexOf(instruction) + 1].Label.Substring(2), 16);
                         instructionEncoder.OpCode(SRM.ILOpCode.Switch);
                         instructionEncoder.Token(switchInstruction.Targets.Count);
                         switchInstruction.Targets
-                            .Select(label => int.Parse(label.Substring(2), NumberStyles.HexNumber))
+                            .Select(label => Convert.ToInt32(label.Substring(2), 16))
+                            .Select(targetOffset => targetOffset - nextInstructionOffset)
                             .ToList()
                             .ForEach(instructionEncoder.Token);
                         break;
+                    }
                     case SizeofInstruction sizeofInstruction:
                         instructionEncoder.OpCode(SRM.ILOpCode.Sizeof);
                         instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(sizeofInstruction.MeasuredType));

@@ -14,6 +14,7 @@ using SRM = System.Reflection.Metadata;
 // TODO revisar si esas keys que pongo en los getOrAdd (al ser mas precisas) estan funcionando o hacen que siempre se agregue uno nuevo
 // TODO para esto comparar sin guardar ninguna cuanto da el conteo de las tablas y guardando despues.
 // TODO ver si conviene usar blobhandle, byteArray de la signature  u otro. Evaluarlo tabla por tabla, quiza algunas andan bien y otras no
+// TODO mas alla de la eficiencia, algunas tablas no admiten duplicados por lo que si no rompe por eso es que algunas esta usando.
 namespace MetadataGenerator.Metadata
 {
     internal class MetadataResolver
@@ -23,8 +24,8 @@ namespace MetadataGenerator.Metadata
         private readonly IDictionary<string, SRM.AssemblyReferenceHandle> assemblyReferences = new Dictionary<string, SRM.AssemblyReferenceHandle>();
         private readonly IDictionary<string, SRM.TypeReferenceHandle> typeReferences = new Dictionary<string, SRM.TypeReferenceHandle>();
 
-        private readonly IDictionary<Tuple<object, SRM.BlobHandle>, SRM.MemberReferenceHandle> memberReferences =
-            new Dictionary<Tuple<object, SRM.BlobHandle>, SRM.MemberReferenceHandle>();
+        private readonly IDictionary<Tuple<object, byte[]>, SRM.MemberReferenceHandle> memberReferences =
+            new Dictionary<Tuple<object, byte[]>, SRM.MemberReferenceHandle>();
 
         private readonly IDictionary<Tuple<string, SRM.BlobHandle>, SRM.TypeSpecificationHandle> typeSpecificationReferences =
             new Dictionary<Tuple<string, SRM.BlobHandle>, SRM.TypeSpecificationHandle>();
@@ -180,7 +181,7 @@ namespace MetadataGenerator.Metadata
             {
                 var parentHandle = GetOrAddTypeSpecificationFor(arrayTypeWrapper.Type);
                 var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
-                var key = new Tuple<object, SRM.BlobHandle>(parentHandle, blobHandle);
+                var key = new Tuple<object, byte[]>(parentHandle, signature.ToArray());
                 if (!memberReferences.TryGetValue(key, out var methodReferenceHandle))
                 {
                     methodReferenceHandle = metadataContainer.metadataBuilder.AddMemberReference(
@@ -195,9 +196,9 @@ namespace MetadataGenerator.Metadata
             else
             {
                 var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
-                var key = new Tuple<object, SRM.BlobHandle>(
+                var key = new Tuple<object, byte[]>(
                     $"{method.ContainingType.GetFullName()}.{method.GenericName}",
-                    blobHandle
+                    signature.ToArray()
                 );
                 if (!memberReferences.TryGetValue(key, out var methodReferenceHandle))
                 {
@@ -215,9 +216,9 @@ namespace MetadataGenerator.Metadata
         private SRM.MemberReferenceHandle GetOrAddFieldReference(IFieldReference field, SRM.BlobBuilder signature)
         {
             var blobHandle = metadataContainer.metadataBuilder.GetOrAddBlob(signature);
-            var key = new Tuple<object, SRM.BlobHandle>(
+            var key = new Tuple<object, byte[]>(
                 $"{field.ContainingType.GetFullName()}.{field.Name}",
-                blobHandle
+                signature.ToArray()
             );
             if (!memberReferences.TryGetValue(key, out var memberReferenceHandle))
             {
