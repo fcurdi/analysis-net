@@ -386,12 +386,11 @@ namespace Console
 		
 		static void Main(string[] args)
 		{
-			// var input = "../../../Examples/bin/Debug/Examples.dll";
+			//var input = "../../../Examples/bin/Debug/Examples.dll";
+			// var input = "../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser/bin/Debug/net45/TinyCsvParser.dll";
 			// var input = "../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser.Test/bin/Debug/net45/TinyCsvParser.Test.dll";
-			// var input = "../../../../TinyCsvParser/TinyCsvParser/SelectedTests/bin/Debug/net45/SelectedTests.dll";
-			// var input = "../../../../DSA/DSA/DSA-Selected-Tests/bin/Debug/net45/DSA-Selected-Tests.dll";
-			var input = "../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser/bin/Debug/net45/TinyCsvParser.dll";
-			// var input = "../../../../C-Sharp-Algorithms/Algorithms/bin/Debug/netcoreapp2.0/Algorithms.dll";
+			var input = "../../../../DSA/DSA/DSA/bin/Debug/net45/DSA.dll";
+			//var input = "../../../../C-Sharp-Algorithms/Algorithms/bin/Debug/netcoreapp2.0/Algorithms.dll";
 			DisassembleAndThenAssemble(input);
 
 			//RunSomeTests();

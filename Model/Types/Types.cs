@@ -855,6 +855,8 @@ namespace Model.Types
 					return genericParameterReference.GenericContainer.GenericParameterCount;
 				case ArrayType arrayType:
 					return GenericParameterCountOf(arrayType.ElementsType);
+				case ManagedPointerType managedPointerType:
+					return GenericParameterCountOf(managedPointerType.TargetType);
 				case PointerType pointerType:
 					return GenericParameterCountOf(pointerType.TargetType);
 				default:

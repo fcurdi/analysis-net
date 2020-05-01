@@ -33,11 +33,19 @@ namespace MetadataGenerator.Generators
             var metadataBuilder = metadataContainer.metadataBuilder;
             var fieldDefinitionHandles = type.Fields.Select(field => fieldGenerator.Generate(field)).ToList();
             var methodDefToHandle = new Dictionary<MethodDefinition, SRM.MethodDefinitionHandle>();
+            var methodOverrides = new List<MethodOverride>();
 
             foreach (var method in type.Methods)
             {
                 var methodHandle = methodGenerator.Generate(method);
                 methodDefinitionHandles.Add(methodHandle);
+                if (method.OverridenMethod != null)
+                {
+                    methodOverrides.Add(new MethodOverride(
+                        methodHandle,
+                        metadataContainer.metadataResolver.HandleOf(method.OverridenMethod)));
+                }
+
                 if (method.Name.Equals("Main"))
                 {
                     metadataContainer.MainMethodHandle = methodHandle;
@@ -86,6 +94,15 @@ namespace MetadataGenerator.Generators
                 }
             }
 
+            foreach (var methodOverride in methodOverrides)
+            {
+                metadataContainer.metadataBuilder.AddMethodImplementation(
+                    typeDefinitionHandle,
+                    methodOverride.methodImplementation,
+                    methodOverride.overridenMethod
+                );
+            }
+
             return typeDefinitionHandle;
         }
 
@@ -130,6 +147,18 @@ namespace MetadataGenerator.Generators
             }
 
             return typeName;
+        }
+    }
+
+    internal class MethodOverride
+    {
+        public readonly SRM.MethodDefinitionHandle methodImplementation;
+        public readonly SRM.EntityHandle overridenMethod;
+
+        public MethodOverride(SRM.MethodDefinitionHandle methodImplementation, SRM.EntityHandle overridenMethod)
+        {
+            this.methodImplementation = methodImplementation;
+            this.overridenMethod = overridenMethod;
         }
     }
 }
