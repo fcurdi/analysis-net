@@ -802,12 +802,27 @@ namespace Model.Types
 
 		public int GenericParameterCount
 		{
-			get { return 0; }
+			get { return GenericParameterCountOf(Type); }
 		}
 
 		public IBasicType ContainingType
 		{
 			get { return null; }
+		}
+		
+		private int GenericParameterCountOf(IType type)
+		{
+			switch (Type.ElementsType)
+			{
+				case IGenericParameterReference genericParameterReference:
+					return genericParameterReference.GenericContainer.GenericParameterCount;
+				case ArrayType arrayType:
+					return GenericParameterCountOf(arrayType.ElementsType);
+				case PointerType pointerType:
+					return GenericParameterCountOf(pointerType.TargetType);
+				default:
+					return 0;
+			}
 		}
 	}
 

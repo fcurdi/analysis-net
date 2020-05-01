@@ -231,9 +231,10 @@ namespace MetadataProvider
 				type.UnderlayingType = valueField.Type as IBasicType;
 			}
 
+			var methodOverrides = MethodOverridesOf(typedef);
 			foreach (var handle in typedef.GetMethods())
 			{
-				ExtractMethod(handle);
+				ExtractMethod(handle, methodOverrides);
 			}
 
 			defGenericContext.TypeParameters.Clear();
@@ -420,10 +421,18 @@ namespace MetadataProvider
 			};
 
 			genericContainer.GenericParameters.Add(genericParameter);
-            var constraints = genericParameterdef.GetConstraints().Select(
-                constraint => signatureTypeProvider.GetTypeFromHandle(metadata, defGenericContext, metadata.GetGenericParameterConstraint(constraint).Type
-            ));
-            genericParameter.Constraints.AddRange(constraints);
+			var typeConstraints = genericParameterdef.GetConstraints().Select(
+				constraint =>
+				{
+					refGenericContext.MethodParameters.Clear();
+					refGenericContext.TypeParameters.Clear();
+					CreateGenericParameterReferences(parameterKind, genericContainer.GenericParameterCount);
+					var constraints = signatureTypeProvider.GetTypeFromHandle(metadata, refGenericContext,
+						metadata.GetGenericParameterConstraint(constraint).Type);
+					BindGenericParameterReferences(parameterKind, genericContainer);
+					return constraints;
+				});
+			genericParameter.Constraints.AddRange(typeConstraints);
         }
 
 		private void ExtractField(SRM.FieldDefinitionHandle handle)
@@ -480,7 +489,7 @@ namespace MetadataProvider
 			BindGenericParameterReferences(GenericParameterKind.Type, currentType);
 		}
 
-		private void ExtractMethod(SRM.MethodDefinitionHandle methoddefHandle)
+		private void ExtractMethod(SRM.MethodDefinitionHandle methoddefHandle, IList<MethodOverride> methodOverrides)
 		{
 			var methoddef = metadata.GetMethodDefinition(methoddefHandle);
 			var method = GetDefinedMethod(methoddefHandle);
@@ -511,6 +520,12 @@ namespace MetadataProvider
 
             ExtractLocalVariablesNames(methoddefHandle);
             ExtractMethodBody(methoddef.RelativeVirtualAddress);
+            
+            var methodOverride = methodOverrides.FirstOrDefault(m => method.MatchSignature(m.newMethodImplementation));
+            if (methodOverride != null)
+            {
+	            method.OverridenMethod = methodOverride.overridenMethod;
+            }
 
 			defGenericContext.MethodParameters.Clear();
 			currentMethod = null;
@@ -1258,11 +1273,20 @@ namespace MetadataProvider
 			BindGenericParameterReferences(GenericParameterKind.Type, containingType);
 			return field;
 		}
+		
+		private IMethodReference GetMethodReference(SRM.MemberReference member) => 
+			GetMethodReference(member.Name, member.Parent, member.DecodeMethodSignature);
 
-		private IMethodReference GetMethodReference(SRM.MemberReference member)
+		private IMethodReference GetMethodReference(SRM.MethodDefinition methodDefinition) => 
+			GetMethodReference(methodDefinition.Name, methodDefinition.GetDeclaringType(), methodDefinition.DecodeSignature);
+
+		private IMethodReference GetMethodReference(
+			SRM.StringHandle methodName,
+			SRM.EntityHandle parent,
+			Func<SignatureTypeProvider, GenericContext, SRM.MethodSignature<IType>> decodeSignature)
 		{
-			var name = metadata.GetString(member.Name);
-			var type = signatureTypeProvider.GetTypeFromHandle(metadata, defGenericContext, member.Parent);
+			var name = metadata.GetString(methodName);
+			var type = signatureTypeProvider.GetTypeFromHandle(metadata, defGenericContext, parent);
 
 			if (type is ArrayType)
 			{
@@ -1272,7 +1296,7 @@ namespace MetadataProvider
 			var containingType = (IBasicType)type;
 
 			CreateGenericParameterReferences(GenericParameterKind.Type, containingType.GenericParameterCount);
-			var signature = member.DecodeMethodSignature(signatureTypeProvider, refGenericContext);
+			var signature = decodeSignature(signatureTypeProvider, refGenericContext);
 
 			var method = new MethodReference(name, signature.ReturnType)
 			{
@@ -1664,9 +1688,8 @@ namespace MetadataProvider
 			return name;
 		}
 		
-		// FIXME
-		// Metadata static indicator for FieldReferences (!signatureHeader.IsInstance) appears to be incorrect when read. Maybe it is updated when
-		// it can resolve the reference. So field isStatic is ensured with the field operation kind (ex: stsfld => static, ldfld => not static)
+		// Metadata static indicator for FieldReferences (!signatureHeader.IsInstance) appears to be incorrect when read.
+		// So field isStatic is ensured with the field operation kind (ex: stsfld => static, ldfld => not static)
 		private static void SetFieldStaticProperty(IFieldReference field, bool isStatic)
 		{
 			switch (field)
@@ -1684,6 +1707,64 @@ namespace MetadataProvider
 				default: throw new Exception("case not handled");
 
 			}
+		}
+		
+		private IList<MethodOverride> MethodOverridesOf(SRM.TypeDefinition typedef) =>
+			typedef
+				.GetMethodImplementations()
+				.Select(handle => metadata.GetMethodImplementation(handle))
+				.Select(methodImplementation =>
+				{
+					IMethodReference newMethodImplementation;
+					switch (methodImplementation.MethodBody.Kind)
+					{
+						case SRM.HandleKind.MethodDefinition:
+						{
+							newMethodImplementation = GetMethodReference((SRM.MethodDefinitionHandle) methodImplementation.MethodBody);
+							break;
+						}
+						case SRM.HandleKind.MemberReference:
+						{
+							newMethodImplementation = GetMethodReference((SRM.MemberReferenceHandle) methodImplementation.MethodBody);
+							break;
+						}
+						default:
+							throw new Exception("Unexpected handle kind");
+					}
+
+					IMethodReference overridenMethod;
+					switch (methodImplementation.MethodDeclaration.Kind)
+					{
+						case SRM.HandleKind.MethodDefinition:
+						{
+							overridenMethod = GetMethodReference(
+								metadata.GetMethodDefinition((SRM.MethodDefinitionHandle) methodImplementation.MethodDeclaration));
+							break;
+						}
+						case SRM.HandleKind.MemberReference:
+						{
+							overridenMethod = GetMethodReference(
+								metadata.GetMemberReference((SRM.MemberReferenceHandle) methodImplementation.MethodDeclaration));
+							break;
+						}
+						default:
+							throw new Exception("Unexpected handle kind");
+					}
+
+					return new MethodOverride(newMethodImplementation, overridenMethod);
+				})
+				.ToList();
+	}
+
+	internal class MethodOverride
+	{
+		public readonly IMethodReference newMethodImplementation;
+		public readonly IMethodReference overridenMethod;
+
+		public MethodOverride(IMethodReference newMethodImplementation, IMethodReference overridenMethod)
+		{
+			this.newMethodImplementation = newMethodImplementation;
+			this.overridenMethod = overridenMethod;
 		}
 	}
 }

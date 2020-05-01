@@ -246,7 +246,7 @@ namespace Model
 				ContainingAssembly = type.ContainingAssembly,
 				ContainingNamespace = type.ContainingNamespace,
 				ContainingType = type.ContainingType,
-				GenericParameterCount = type.GenericParameterCount,
+				GenericParameterCount = genericArguments.Count(),
 				GenericType = type
 			};
 
@@ -356,6 +356,53 @@ namespace Model
 					var fullName = basicType.GetFullName();
 					result = delegateTypes.Any(name => fullName.StartsWith(name));
 				}
+			}
+
+			return result;
+		}
+
+		public static bool MatchSignature(this IMethodReference method, IMethodReference anotherMethod)
+		{
+			var result = method.Name == anotherMethod.Name &&
+			             method.IsStatic == anotherMethod.IsStatic &&
+			             method.GenericParameterCount == anotherMethod.GenericParameterCount &&
+			             method.ReturnType.Equals(anotherMethod.ReturnType) &&
+			             method.MatchParameters(anotherMethod);
+			return result;
+		}
+
+		public static bool MatchParameters(this IMethodReference method, IMethodReference anotherMethod)
+		{
+			var result = false;
+
+			if (method.Parameters.Count == anotherMethod.Parameters.Count)
+			{
+				result = true;
+
+				for (var i = 0; i < method.Parameters.Count && result; ++i)
+				{
+					var parameterdef = method.Parameters[i];
+					var parameterref = anotherMethod.Parameters[i];
+
+					result = parameterdef.MatchReference(parameterref);
+				}
+			}
+
+			return result;
+		}
+
+		public static bool MatchReference(this IMethodParameterReference parameter, IMethodParameterReference anotherParameter)
+		{
+			var result = false;
+
+			if (anotherParameter is MethodParameter)
+			{
+				result = parameter.Equals(anotherParameter);
+			}
+			else
+			{
+				result = parameter.Kind == anotherParameter.Kind &&
+				         parameter.Type.Equals(anotherParameter.Type);
 			}
 
 			return result;
