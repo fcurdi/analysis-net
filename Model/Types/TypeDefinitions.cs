@@ -248,23 +248,6 @@ namespace Model.Types
 			get { return this.DefaultValue != null; }
 		}
 
-		public bool MatchReference(IMethodParameterReference parameter)
-		{
-			var result = false;
-
-			if (parameter is MethodParameter)
-			{
-				result = this.Equals(parameter);
-			}
-			else
-			{
-				result = this.Kind == parameter.Kind &&
-						 this.Type.Equals(parameter.Type);
-			}
-
-			return result;
-		}
-
 		public override string ToString()
 		{
 			string kind;
@@ -483,7 +466,8 @@ namespace Model.Types
 		public bool SpecialName { get; set; }
 		public bool RuntimeSpecialName { get; set; }
 		public MethodBody Body { get; set; }
-
+		public IMethodReference OverridenMethod { get; set; }
+		
 		public MethodDefinition(string name, IType returnType)
 		{
 			this.Name = name;
@@ -575,36 +559,6 @@ namespace Model.Types
 
 				result = this.ContainingType.MatchReference(method.ContainingType) &&
 						 this.MatchSignature(method);
-			}
-
-			return result;
-		}
-
-		public bool MatchSignature(IMethodReference method)
-		{
-			var result = this.Name == method.Name &&
-						 this.IsStatic == method.IsStatic &&
-						 this.GenericParameters.Count == method.GenericParameterCount &&
-						 this.ReturnType.Equals(method.ReturnType) &&
-						 this.MatchParameters(method);
-			return result;
-		}
-
-		public bool MatchParameters(IMethodReference method)
-		{
-			var result = false;
-
-			if (this.Parameters.Count == method.Parameters.Count)
-			{
-				result = true;
-
-				for (var i = 0; i < this.Parameters.Count && result; ++i)
-				{
-					var parameterdef = this.Parameters[i];
-					var parameterref = method.Parameters[i];
-
-					result = parameterdef.MatchReference(parameterref);
-				}
 			}
 
 			return result;
