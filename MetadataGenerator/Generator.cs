@@ -13,7 +13,7 @@ namespace MetadataGenerator
         public void Generate(Assembly assembly)
         {
             var extension = assembly.Kind == AssemblyKind.EXE ? "exe" : "dll";
-            var fileName = $"./{assembly.Name}(generated).{extension}";
+            var fileName = $"./{assembly.Name}.{extension}";
             Console.WriteLine($"Generating Console/bin/debug/{fileName.Substring(2)}");
             using (var peStream = File.OpenWrite(fileName))
             {
