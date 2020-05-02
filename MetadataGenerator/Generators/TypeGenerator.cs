@@ -66,6 +66,7 @@ namespace MetadataGenerator.Generators
 
             var firstPropertyDefinitionHandle = type.PropertyDefinitions
                 .Select(property => propertyGenerator.Generate(property, methodDefToHandle))
+                .ToList()
                 .FirstOrDefault();
 
             if (!firstPropertyDefinitionHandle.IsNil)
