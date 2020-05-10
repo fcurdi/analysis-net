@@ -288,18 +288,24 @@ namespace MetadataProvider
 			}
 
 			var layout = typedef.GetLayout();
-			if (!layout.IsDefault)
+			LayoutInformation layoutInformation;
+			if (layout.IsDefault)
 			{
-				var kind = typedef.Attributes.HasFlag(SR.TypeAttributes.SequentialLayout)
-					? LayoutKind.SequentialLayout
-					: LayoutKind.ExplicitLayout;
-				type.LayoutInformation = new LayoutInformation(kind)
+				var layoutKind = typedef.Attributes.HasFlag(SR.TypeAttributes.SequentialLayout) ? LayoutKind.SequentialLayout : LayoutKind.AutoLayout;
+				layoutInformation = new LayoutInformation(layoutKind);
+			}
+			else
+			{
+				var kind = typedef.Attributes.HasFlag(SR.TypeAttributes.SequentialLayout) ? LayoutKind.SequentialLayout : LayoutKind.ExplicitLayout;
+				layoutInformation = new LayoutInformation(kind)
 				{
 					PackingSize = layout.PackingSize,
 					ClassSize = layout.Size
 				};
 			}
-			
+
+			type.LayoutInformation = layoutInformation;
+
 			currentType = currentType.ContainingType;
 		}
 
