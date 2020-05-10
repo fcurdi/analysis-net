@@ -287,6 +287,19 @@ namespace MetadataProvider
 				ExtractType(handle);
 			}
 
+			var layout = typedef.GetLayout();
+			if (!layout.IsDefault)
+			{
+				var kind = typedef.Attributes.HasFlag(SR.TypeAttributes.SequentialLayout)
+					? LayoutKind.SequentialLayout
+					: LayoutKind.ExplicitLayout;
+				type.LayoutInformation = new LayoutInformation(kind)
+				{
+					PackingSize = layout.PackingSize,
+					ClassSize = layout.Size
+				};
+			}
+			
 			currentType = currentType.ContainingType;
 		}
 

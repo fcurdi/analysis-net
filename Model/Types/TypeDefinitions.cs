@@ -605,19 +605,21 @@ namespace Model.Types
 		Internal = 4,
 		Public = 8
 	}
+
 	public enum LayoutKind
 	{
-		Unknown,
-		AutoLayout,    // Class fields are auto-laid out
-		SequentialLayout,  // Class fields are laid out sequentially
-		ExplicitLayout,	// Layout is supplied explicitly
+		AutoLayout,
+		SequentialLayout,
+		ExplicitLayout
 	}
+
 	public class LayoutInformation
 	{
 		public LayoutKind Kind { get; set; }
-		public short PackingSize { get; set; }
+		public int PackingSize { get; set; }
 		public int ClassSize { get; set; }
-		public LayoutInformation(LayoutKind kind = LayoutKind.Unknown)
+
+		public LayoutInformation(LayoutKind kind = LayoutKind.AutoLayout)
 		{
 			Kind = kind;
 			PackingSize = -1;
