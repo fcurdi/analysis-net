@@ -116,7 +116,7 @@ namespace Model.Types
 		public bool IsLiteral { get; set; }
 		public bool SpecialName { get; set; }
 		public bool RuntimeSpecialName { get; set; }
-
+		public bool SpecifiesRelativeVirtualAddress { get; set; }
 		public FieldDefinition(string name, IType type)
 		{
 			this.Name = name;
