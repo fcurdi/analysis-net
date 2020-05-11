@@ -630,6 +630,28 @@ namespace Model.Types
 		Public = 8
 	}
 
+	public enum LayoutKind
+	{
+		AutoLayout,
+		SequentialLayout,
+		ExplicitLayout
+	}
+
+	public class LayoutInformation
+	{
+		public LayoutKind Kind { get; set; }
+		public int PackingSize { get; set; }
+		public int ClassSize { get; set; }
+
+		public LayoutInformation(LayoutKind kind = LayoutKind.AutoLayout)
+		{
+			Kind = kind;
+			PackingSize = -1;
+			ClassSize = -1;
+		}
+
+		public bool SpecifiesSizes() => PackingSize != -1 && ClassSize != -1;
+	}
 	public class TypeDefinition : IBasicType, IGenericDefinition, ITypeMemberDefinition, ITypeDefinitionContainer
 	{
 		public TypeKind TypeKind { get; set; }
@@ -653,6 +675,7 @@ namespace Model.Types
 		public bool BeforeFieldInit { get; set; }
 		public ISet<PropertyDefinition> PropertyDefinitions { get; private set; }
 		public int GenericParameterCount => GenericParameters.Count;
+		public LayoutInformation LayoutInformation { get; set; }
 		public TypeDefinition(string name, TypeKind typeKind = TypeKind.Unknown, TypeDefinitionKind kind = TypeDefinitionKind.Unknown)
 		{
 			this.Name = name;
@@ -665,6 +688,7 @@ namespace Model.Types
 			this.Methods = new List<MethodDefinition>();
 			this.Types = new List<TypeDefinition>();
 			this.PropertyDefinitions = new HashSet<PropertyDefinition>();
+			this.LayoutInformation = new LayoutInformation();
 		}
 
 		public string GenericName

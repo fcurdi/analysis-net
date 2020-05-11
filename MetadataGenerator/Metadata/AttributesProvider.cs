@@ -31,7 +31,7 @@ namespace MetadataGenerator.Metadata
         {
             return TypeAttributes.Class |
                    VisibilityAttributesFor(typeDefinition) |
-                   TypeAttributes.SequentialLayout |
+                   LayoutAttributesFor(typeDefinition.LayoutInformation) |
                    TypeAttributes.Sealed |
                    (typeDefinition.BeforeFieldInit ? TypeAttributes.BeforeFieldInit : 0);
         }
@@ -50,6 +50,7 @@ namespace MetadataGenerator.Metadata
                    (typeDefinition.IsAbstract ? TypeAttributes.Abstract : 0) |
                    (typeDefinition.IsSealed ? TypeAttributes.Sealed : 0) |
                    (typeDefinition.IsStatic ? TypeAttributes.Abstract | TypeAttributes.Sealed : 0) |
+                   LayoutAttributesFor(typeDefinition.LayoutInformation) |
                    VisibilityAttributesFor(typeDefinition);
         }
 
@@ -189,6 +190,16 @@ namespace MetadataGenerator.Metadata
                 return VisibilityKind.Public.Equals(typeDefinition.Visibility)
                     ? TypeAttributes.Public
                     : TypeAttributes.NotPublic;
+            }
+        }
+        
+        private static TypeAttributes LayoutAttributesFor(LayoutInformation layoutInformation)
+        {
+            switch (layoutInformation.Kind)
+            {
+                case LayoutKind.SequentialLayout: return TypeAttributes.SequentialLayout;
+                case LayoutKind.ExplicitLayout: return TypeAttributes.ExplicitLayout;
+                default: return TypeAttributes.AutoLayout;
             }
         }
     }

@@ -104,6 +104,14 @@ namespace MetadataGenerator.Generators
                 );
             }
 
+            if (type.LayoutInformation.SpecifiesSizes())
+            {
+                metadataContainer.metadataBuilder.AddTypeLayout(
+                    typeDefinitionHandle,
+                    (ushort) type.LayoutInformation.PackingSize,
+                    (uint) type.LayoutInformation.ClassSize);
+            }
+
             return typeDefinitionHandle;
         }
 
