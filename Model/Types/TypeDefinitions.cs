@@ -625,6 +625,8 @@ namespace Model.Types
 			PackingSize = -1;
 			ClassSize = -1;
 		}
+
+		public bool SpecifiesSizes() => PackingSize != -1 && ClassSize != -1;
 	}
 	public class TypeDefinition : IBasicType, IGenericDefinition, ITypeMemberDefinition, ITypeDefinitionContainer
 	{
