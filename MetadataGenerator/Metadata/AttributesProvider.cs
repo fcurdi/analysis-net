@@ -66,7 +66,12 @@ namespace MetadataGenerator.Metadata
                 (field.IsLiteral ? FieldAttributes.Literal : 0) |
                 (field.IsReadonly ? FieldAttributes.InitOnly : 0) |
                 (field.SpecialName ? FieldAttributes.SpecialName : 0) |
-                (field.RuntimeSpecialName ? FieldAttributes.RTSpecialName : 0);
+                (field.RuntimeSpecialName ? FieldAttributes.RTSpecialName : 0) |
+                (field.SpecifiesRelativeVirtualAddress
+                    ? FieldAttributes.HasFieldRVA
+                    : field.Value != null
+                        ? FieldAttributes.HasDefault
+                        : 0);
             switch (field.Visibility)
             {
                 case VisibilityKind.Public:

@@ -1,4 +1,5 @@
-﻿using MetadataGenerator.Metadata;
+﻿using System.Reflection.PortableExecutable;
+using MetadataGenerator.Metadata;
 using Model.Types;
 using static MetadataGenerator.Metadata.AttributesProvider;
 using SRM = System.Reflection.Metadata;
@@ -24,7 +25,14 @@ namespace MetadataGenerator.Generators.Fields
                 name: metadataContainer.metadataBuilder.GetOrAddString(field.Name),
                 signature: metadataContainer.metadataBuilder.GetOrAddBlob(fieldSignature));
 
-            if (field.Value != null)
+            if (field.SpecifiesRelativeVirtualAddress)
+            {
+                var offset = metadataContainer.mappedFieldData.Count;
+                metadataContainer.mappedFieldData.WriteBytes((byte[]) field.Value.Value);
+                metadataContainer.mappedFieldData.Align(ManagedPEBuilder.MappedFieldDataAlignment);
+                metadataContainer.metadataBuilder.AddFieldRelativeVirtualAddress(fieldDefinitionHandle, offset);
+            }
+            else if (field.Value != null)
             {
                 metadataContainer.metadataBuilder.AddConstant(fieldDefinitionHandle, field.Value.Value);
             }

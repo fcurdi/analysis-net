@@ -16,6 +16,7 @@ namespace MetadataGenerator.Metadata
         public readonly ECMA335.MetadataBuilder metadataBuilder;
         public readonly MetadataResolver metadataResolver;
         public readonly ECMA335.MethodBodyStreamEncoder methodBodyStream;
+        public readonly SRM.BlobBuilder mappedFieldData;
         private SRM.MethodDefinitionHandle? mainMethodHandle;
         private SRM.ModuleDefinitionHandle? moduleHandle;
         private readonly ISet<GenericParamRow> genericParameterRows = new HashSet<GenericParamRow>();
@@ -47,6 +48,7 @@ namespace MetadataGenerator.Metadata
             metadataBuilder = new ECMA335.MetadataBuilder();
             methodBodyStream = new ECMA335.MethodBodyStreamEncoder(new SRM.BlobBuilder());
             metadataResolver = new MetadataResolver(this, assembly);
+            mappedFieldData = new SRM.BlobBuilder();
         }
 
         public void RegisterGenericParameter(SRM.TypeDefinitionHandle parent, GenericParameter genericParameter) =>
