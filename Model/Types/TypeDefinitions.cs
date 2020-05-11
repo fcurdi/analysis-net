@@ -112,7 +112,7 @@ namespace Model.Types
 		public Constant Value { get; set; }
 
 		public bool IsStatic { get; set; }
-
+		public bool SpecifiesRelativeVirtualAddress { get; set; }
 		public FieldDefinition(string name, IType type)
 		{
 			this.Name = name;

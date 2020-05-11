@@ -472,6 +472,17 @@ namespace MetadataProvider
 			field.Visibility = GetVisibilityKind(fielddef.Attributes);
 			field.Value = ExtractFieldDefaultValue(fielddef);
 
+			field.SpecifiesRelativeVirtualAddress = fielddef.Attributes.HasFlag(SR.FieldAttributes.HasFieldRVA);
+			if (field.SpecifiesRelativeVirtualAddress)
+			{
+				var fieldDataReader = reader.GetSectionData(fielddef.GetRelativeVirtualAddress()).GetReader();
+				var fieldData = fieldDataReader.ReadBytes(fieldDataReader.Length); 
+				field.Value = new Constant(fieldData)
+				{
+					Type = new ArrayType(PlatformTypes.Byte)
+				};
+			}
+			
 			currentType.Fields.Add(field);
 		}
 
