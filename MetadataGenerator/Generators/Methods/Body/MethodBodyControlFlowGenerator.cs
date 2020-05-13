@@ -72,6 +72,8 @@ namespace MetadataGenerator.Generators.Methods.Body
                             metadataContainer.metadataResolver.HandleOf(catchType));
                         break;
                     case ExceptionHandlerBlockKind.Fault:
+                        controlFlowBuilder.AddFaultRegion(tryStart, tryEnd, handlerStart, handlerEnd);
+                        break;
                     case ExceptionHandlerBlockKind.Finally:
                         controlFlowBuilder.AddFinallyRegion(tryStart, tryEnd, handlerStart, handlerEnd);
                         break;
