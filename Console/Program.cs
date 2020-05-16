@@ -389,8 +389,10 @@ namespace Console
 			// var input = "../../../Examples/bin/Debug/Examples.dll";
 			// var input = "../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser/bin/Debug/net45/TinyCsvParser.dll";
 			// var input = "../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser.Test/bin/Debug/net45/TinyCsvParser.Test.dll";
-			 var input = "../../../../DSA/DSA/DSA/bin/Debug/net45/DSA.dll";
+			 // var input = "../../../../DSA/DSA/DSA/bin/Debug/net45/DSA.dll";
 			// var input = "../../../../DSA/DSA/DSAUnitTests/bin/Debug/net45/DSAUnitTests.dll";
+			//var input = "../../../../Fleck/src/Fleck.Tests/bin/Debug/net45/Fleck.dll";
+			var input = "../../../../Fleck/src/Fleck.Tests/bin/Debug/net45/Fleck.Tests.dll";
 			 
 			DisassembleAndThenAssemble(input);
 

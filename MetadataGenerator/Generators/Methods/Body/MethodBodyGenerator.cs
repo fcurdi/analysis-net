@@ -589,7 +589,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                         break;
                     }
                     case LoadMethodAddressInstruction loadMethodAddressInstruction:
-                        instructionEncoder.OpCode(SRM.ILOpCode.Ldftn);
+                        instructionEncoder.OpCode(loadMethodAddressInstruction.Method.IsVirtual ? SRM.ILOpCode.Ldvirtftn : SRM.ILOpCode.Ldftn);
                         instructionEncoder.Token(metadataContainer.metadataResolver.HandleOf(loadMethodAddressInstruction.Method));
                         break;
                     case CreateArrayInstruction createArrayInstruction:
