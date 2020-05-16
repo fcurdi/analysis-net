@@ -1050,8 +1050,10 @@ namespace MetadataProvider
 					break;
 
 				case SRM.ILOpCode.Ldftn:
+					instruction = ProcessLoadMethodAddress(operation, false);
+					break;
 				case SRM.ILOpCode.Ldvirtftn:
-					instruction = ProcessLoadMethodAddress(operation);
+					instruction = ProcessLoadMethodAddress(operation, true);
 					break;
 
 				case SRM.ILOpCode.Ldc_i4:
@@ -1697,10 +1699,24 @@ namespace MetadataProvider
 			return instruction;
 		}
 
-		private IInstruction ProcessLoadMethodAddress(ILInstruction op)
+		private IInstruction ProcessLoadMethodAddress(ILInstruction op, bool isVirtual)
 		{
 			var operation = OperationHelper.ToLoadMethodAddressOperation(op.Opcode);
 			var method = GetOperand<IMethodReference>(op);
+			switch (method)
+			{
+				case MethodDefinition methodDefinition:
+				{
+					methodDefinition.IsVirtual = isVirtual;
+					break;
+				}
+				case MethodReference methodReference:
+				{
+					methodReference.IsVirtual = isVirtual;
+					break;
+				}
+				default: throw new Exception("case not handled");
+			}
 
 			var instruction = new LoadMethodAddressInstruction(op.Offset, operation, method);
 			return instruction;

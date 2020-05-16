@@ -276,6 +276,7 @@ namespace Model.Types
 		IMethodReference GenericMethod { get; }
 		MethodDefinition ResolvedMethod { get; }
 		bool IsStatic { get; }
+		bool IsVirtual { get; }
 	}
 
 	public class MethodReference : IMethodReference
@@ -292,6 +293,7 @@ namespace Model.Types
 		public IList<IMethodParameterReference> Parameters { get; private set; }
 		public IMethodReference GenericMethod { get; set; }
 		public bool IsStatic { get; set; }
+		public bool IsVirtual { get; set; }
 
 		public MethodReference(string name, IType returnType)
 		{
