@@ -22,9 +22,10 @@ namespace MetadataGenerator.Metadata
 
         private static TypeAttributes DelegateTypeAttributes(TypeDefinition typeDefinition)
         {
-            return TypeAttributes.Class
-                   | TypeAttributes.Sealed
-                   | VisibilityAttributesFor(typeDefinition);
+            return TypeAttributes.Class |
+                   TypeAttributes.Sealed |
+                   (typeDefinition.Serializable ? TypeAttributes.Serializable : 0) |
+                   VisibilityAttributesFor(typeDefinition);
         }
 
         private static TypeAttributes StructTypeAttributes(TypeDefinition typeDefinition)
@@ -32,6 +33,7 @@ namespace MetadataGenerator.Metadata
             return TypeAttributes.Class |
                    VisibilityAttributesFor(typeDefinition) |
                    LayoutAttributesFor(typeDefinition.LayoutInformation) |
+                   (typeDefinition.Serializable ? TypeAttributes.Serializable : 0) |
                    TypeAttributes.Sealed |
                    (typeDefinition.BeforeFieldInit ? TypeAttributes.BeforeFieldInit : 0);
         }
@@ -40,6 +42,7 @@ namespace MetadataGenerator.Metadata
         {
             return TypeAttributes.Class |
                    VisibilityAttributesFor(typeDefinition) |
+                   (typeDefinition.Serializable ? TypeAttributes.Serializable : 0) |
                    TypeAttributes.Sealed;
         }
 
@@ -50,6 +53,7 @@ namespace MetadataGenerator.Metadata
                    (typeDefinition.IsAbstract ? TypeAttributes.Abstract : 0) |
                    (typeDefinition.IsSealed ? TypeAttributes.Sealed : 0) |
                    (typeDefinition.IsStatic ? TypeAttributes.Abstract | TypeAttributes.Sealed : 0) |
+                   (typeDefinition.Serializable ? TypeAttributes.Serializable : 0) |
                    LayoutAttributesFor(typeDefinition.LayoutInformation) |
                    VisibilityAttributesFor(typeDefinition);
         }
