@@ -675,6 +675,7 @@ namespace Model.Types
 		public bool IsAbstract { get; set; }
 		public bool IsSealed { get; set; }
 		public bool BeforeFieldInit { get; set; }
+		public bool Serializable { get; set; }
 		public ISet<PropertyDefinition> PropertyDefinitions { get; private set; }
 		public int GenericParameterCount => GenericParameters.Count;
 		public LayoutInformation LayoutInformation { get; set; }

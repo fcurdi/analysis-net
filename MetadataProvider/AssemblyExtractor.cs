@@ -225,8 +225,10 @@ namespace MetadataProvider
 			}
 
 			type.BeforeFieldInit = typedef.Attributes.HasFlag(SR.TypeAttributes.BeforeFieldInit);
+			type.Serializable = typedef.Attributes.HasFlag(SR.TypeAttributes.Serializable);
 			type.ContainingAssembly = assembly;
 			type.ContainingNamespace = currentNamespace;
+
 			currentType = type;
 
 			foreach (var genericParameter in type.GenericParameters)
