@@ -263,6 +263,7 @@ namespace MetadataProvider
 			}
 
 			type.BeforeFieldInit = typedef.Attributes.HasFlag(SR.TypeAttributes.BeforeFieldInit);
+			type.Serializable = typedef.Attributes.HasFlag(SR.TypeAttributes.Serializable);
 
 			currentType = type;
 

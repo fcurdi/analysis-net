@@ -635,6 +635,7 @@ namespace Model.Types
 		public bool IsAbstract { get; set; }
 		public bool IsSealed { get; set; }
 		public bool BeforeFieldInit { get; set; }
+		public bool Serializable { get; set; }
 
 		public TypeDefinition(string name, TypeKind typeKind = TypeKind.Unknown, TypeDefinitionKind kind = TypeDefinitionKind.Unknown)
 		{
