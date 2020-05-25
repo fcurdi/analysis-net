@@ -81,6 +81,8 @@ namespace Model.Types
 
 		public static readonly BasicType Task = New("mscorlib", "System.Threading.Tasks", "Task", TypeKind.ReferenceType);
 		public static readonly BasicType GenericTask = New("mscorlib", "System.Threading.Tasks", "Task", TypeKind.ReferenceType, 1);
+		
+		public static readonly BasicType Type = New("mscorlib", "System", "Type", TypeKind.ReferenceType);
 
 		public static void Resolve(Host host)
 		{

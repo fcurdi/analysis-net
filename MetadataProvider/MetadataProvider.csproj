@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyExtractor.cs" />
+    <Compile Include="CustomAttributeTypeProvider.cs" />
     <Compile Include="ILReader.cs" />
     <Compile Include="Loader.cs" />
     <Compile Include="OperationHelper.cs" />

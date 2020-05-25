@@ -28,6 +28,7 @@ namespace MetadataProvider
 		private TypeDefinition currentType;
 		private MethodDefinition currentMethod;
         private IDictionary<int, string> currentMethodLocalVariablesNames;
+        private readonly CustomAttributeTypeProvider customAttributeTypeProvider;
 
         public AssemblyExtractor(Host host, SRPE.PEReader reader, SRM.MetadataReaderProvider pdbProvider = null)
 		{
@@ -40,6 +41,7 @@ namespace MetadataProvider
 			this.defGenericContext = new GenericContext();
 			this.refGenericContext = new GenericContext();
 			this.signatureTypeProvider = new SignatureTypeProvider(this);
+			this.customAttributeTypeProvider = new CustomAttributeTypeProvider(signatureTypeProvider);
 
             if (pdbProvider != null)
             {
@@ -248,6 +250,8 @@ namespace MetadataProvider
 			{
 				ExtractType(handle);
 			}
+			
+			ExtractAttributes(type, typedef.GetCustomAttributes());
 
 			currentType = currentType.ContainingType;
 		}
@@ -445,6 +449,8 @@ namespace MetadataProvider
 			field.IsStatic = fielddef.Attributes.HasFlag(SR.FieldAttributes.Static);
 			field.Visibility = GetVisibilityKind(fielddef.Attributes);
 			field.Value = ExtractFieldDefaultValue(fielddef);
+			
+			ExtractAttributes(field, fielddef.GetCustomAttributes());
 
 			currentType.Fields.Add(field);
 		}
@@ -487,6 +493,7 @@ namespace MetadataProvider
 			};
 			currentType.PropertyDefinitions.Add(property);
 			BindGenericParameterReferences(GenericParameterKind.Type, currentType);
+			ExtractAttributes(property, propertyDef.GetCustomAttributes());
 		}
 
 		private void ExtractMethod(SRM.MethodDefinitionHandle methoddefHandle, IList<MethodOverride> methodOverrides)
@@ -526,6 +533,8 @@ namespace MetadataProvider
             {
 	            method.OverridenMethod = methodOverride.overridenMethod;
             }
+            
+            ExtractAttributes(method, methoddef.GetCustomAttributes());
 
 			defGenericContext.MethodParameters.Clear();
 			currentMethod = null;
@@ -1686,6 +1695,31 @@ namespace MetadataProvider
 			}
 
 			return name;
+		}
+
+		private void ExtractAttributes(IMetadataReference owner, SRM.CustomAttributeHandleCollection customAttributeHandleCollection)
+		{
+			foreach (var customAttributeHandle in customAttributeHandleCollection)
+			{
+				var customAttribute = metadata.GetCustomAttribute(customAttributeHandle);
+				var attribute = new CustomAttribute
+				{
+					Constructor = GetMethodReference(customAttribute.Constructor),
+				};
+				var arguments = customAttribute.DecodeValue(customAttributeTypeProvider);
+
+				foreach (var fixedArgument in arguments.FixedArguments)
+				{
+					attribute.Arguments.Add(new Constant(fixedArgument.Value)
+					{
+						Type = fixedArgument.Type
+					});
+				}
+
+				// TODO named arguments
+
+				owner.Attributes.Add(attribute);
+			}
 		}
 		
 		// Metadata static indicator for FieldReferences (!signatureHeader.IsInstance) appears to be incorrect when read.
