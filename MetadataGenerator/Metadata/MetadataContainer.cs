@@ -4,19 +4,19 @@ using System.Linq;
 using System.Reflection;
 using Model;
 using Model.Types;
-using Assembly = Model.Assembly;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 using static MetadataGenerator.Metadata.AttributesProvider;
+using Assembly = Model.Assembly;
 
 namespace MetadataGenerator.Metadata
 {
     internal class MetadataContainer
     {
-        public readonly ECMA335.MetadataBuilder metadataBuilder;
-        public readonly MetadataResolver metadataResolver;
-        public readonly ECMA335.MethodBodyStreamEncoder methodBodyStream;
-        public readonly SRM.BlobBuilder mappedFieldData;
+        public readonly ECMA335.MetadataBuilder MetadataBuilder;
+        public readonly MetadataResolver MetadataResolver;
+        public readonly ECMA335.MethodBodyStreamEncoder MethodBodyStream;
+        public readonly SRM.BlobBuilder MappedFieldData;
         private SRM.MethodDefinitionHandle? mainMethodHandle;
         private SRM.ModuleDefinitionHandle? moduleHandle;
         private readonly ISet<GenericParamRow> genericParameterRows = new HashSet<GenericParamRow>();
@@ -45,10 +45,10 @@ namespace MetadataGenerator.Metadata
 
         public MetadataContainer(Assembly assembly)
         {
-            metadataBuilder = new ECMA335.MetadataBuilder();
-            methodBodyStream = new ECMA335.MethodBodyStreamEncoder(new SRM.BlobBuilder());
-            metadataResolver = new MetadataResolver(this, assembly);
-            mappedFieldData = new SRM.BlobBuilder();
+            MetadataBuilder = new ECMA335.MetadataBuilder();
+            MethodBodyStream = new ECMA335.MethodBodyStreamEncoder(new SRM.BlobBuilder());
+            MetadataResolver = new MetadataResolver(this, assembly);
+            MappedFieldData = new SRM.BlobBuilder();
         }
 
         public void RegisterGenericParameter(SRM.TypeDefinitionHandle parent, GenericParameter genericParameter) =>
@@ -61,27 +61,27 @@ namespace MetadataGenerator.Metadata
             genericParameterRows.Add(new GenericParamRow(
                 parent,
                 GetGenericParameterAttributesFor(genericParameter),
-                metadataBuilder.GetOrAddString(genericParameter.Name),
+                MetadataBuilder.GetOrAddString(genericParameter.Name),
                 genericParameter.Index,
-                genericParameter.Constraints.Select(type => metadataResolver.HandleOf(type)).ToSet()
+                genericParameter.Constraints.Select(type => MetadataResolver.HandleOf(type)).ToSet()
             ));
 
         public void GenerateGenericParameters() =>
             genericParameterRows
-                .OrderBy(row => ECMA335.CodedIndex.TypeOrMethodDef(row.parent))
-                .ThenBy(row => row.index)
+                .OrderBy(row => ECMA335.CodedIndex.TypeOrMethodDef(row.Parent))
+                .ThenBy(row => row.Index)
                 .ToList()
                 .ForEach(row =>
                 {
-                    var genericParameterHandle = metadataBuilder.AddGenericParameter(
-                        row.parent,
-                        row.attributes,
-                        row.name,
-                        row.index
+                    var genericParameterHandle = MetadataBuilder.AddGenericParameter(
+                        row.Parent,
+                        row.Attributes,
+                        row.Name,
+                        row.Index
                     );
-                    foreach (var constraint in row.constraints)
+                    foreach (var constraint in row.Constraints)
                     {
-                        metadataBuilder.AddGenericParameterConstraint(genericParameterHandle, constraint);
+                        MetadataBuilder.AddGenericParameterConstraint(genericParameterHandle, constraint);
                     }
                 });
 
@@ -90,19 +90,19 @@ namespace MetadataGenerator.Metadata
 
         public void GenerateNestedTypes() =>
             nestedTypeRows
-                .OrderBy(row => ECMA335.CodedIndex.TypeDefOrRef(row.type))
+                .OrderBy(row => ECMA335.CodedIndex.TypeDefOrRef(row.Type))
                 .ToList()
-                .ForEach(row => metadataBuilder.AddNestedType(row.type, row.enclosingType));
+                .ForEach(row => MetadataBuilder.AddNestedType(row.Type, row.EnclosingType));
 
         public void RegisterInterfaceImplementation(SRM.TypeDefinitionHandle type, SRM.EntityHandle implementedInterface) =>
             interfaceImplementationRows.Add(new InterfaceImplementationRow(type, implementedInterface));
 
         public void GenerateInterfaceImplementations() =>
             interfaceImplementationRows
-                .OrderBy(row => ECMA335.CodedIndex.TypeDefOrRef(row.type))
-                .ThenBy(row => ECMA335.CodedIndex.TypeDefOrRefOrSpec(row.implementedInterface))
+                .OrderBy(row => ECMA335.CodedIndex.TypeDefOrRef(row.Type))
+                .ThenBy(row => ECMA335.CodedIndex.TypeDefOrRefOrSpec(row.ImplementedInterface))
                 .ToList()
-                .ForEach(row => metadataBuilder.AddInterfaceImplementation(row.type, row.implementedInterface));
+                .ForEach(row => MetadataBuilder.AddInterfaceImplementation(row.Type, row.ImplementedInterface));
 
         #region Rows
 
@@ -110,13 +110,13 @@ namespace MetadataGenerator.Metadata
 
         private class InterfaceImplementationRow
         {
-            public readonly SRM.TypeDefinitionHandle type;
-            public readonly SRM.EntityHandle implementedInterface;
+            public readonly SRM.TypeDefinitionHandle Type;
+            public readonly SRM.EntityHandle ImplementedInterface;
 
             public InterfaceImplementationRow(SRM.TypeDefinitionHandle type, SRM.EntityHandle implementedInterface)
             {
-                this.type = type;
-                this.implementedInterface = implementedInterface;
+                Type = type;
+                ImplementedInterface = implementedInterface;
             }
 
             public override bool Equals(object obj)
@@ -125,14 +125,14 @@ namespace MetadataGenerator.Metadata
                 if (ReferenceEquals(this, obj)) return true;
                 if (obj.GetType() != this.GetType()) return false;
                 var other = (InterfaceImplementationRow) obj;
-                return type.Equals(other.type) && implementedInterface.Equals(other.implementedInterface);
+                return Type.Equals(other.Type) && ImplementedInterface.Equals(other.ImplementedInterface);
             }
 
             public override int GetHashCode()
             {
                 unchecked
                 {
-                    return (type.GetHashCode() * 397) ^ implementedInterface.GetHashCode();
+                    return (Type.GetHashCode() * 397) ^ ImplementedInterface.GetHashCode();
                 }
             }
 
@@ -149,11 +149,11 @@ namespace MetadataGenerator.Metadata
 
         private class GenericParamRow
         {
-            public readonly SRM.EntityHandle parent;
-            public readonly GenericParameterAttributes attributes;
-            public readonly SRM.StringHandle name;
-            public readonly ushort index;
-            public readonly ISet<SRM.EntityHandle> constraints;
+            public readonly SRM.EntityHandle Parent;
+            public readonly GenericParameterAttributes Attributes;
+            public readonly SRM.StringHandle Name;
+            public readonly ushort Index;
+            public readonly ISet<SRM.EntityHandle> Constraints;
 
             public GenericParamRow(
                 SRM.EntityHandle parent,
@@ -162,11 +162,11 @@ namespace MetadataGenerator.Metadata
                 ushort index,
                 ISet<SRM.EntityHandle> constraints)
             {
-                this.parent = parent;
-                this.attributes = attributes;
-                this.name = name;
-                this.index = index;
-                this.constraints = constraints;
+                Parent = parent;
+                Attributes = attributes;
+                Name = name;
+                Index = index;
+                Constraints = constraints;
             }
 
             public override bool Equals(object obj)
@@ -175,19 +175,19 @@ namespace MetadataGenerator.Metadata
                 if (ReferenceEquals(this, obj)) return true;
                 if (obj.GetType() != this.GetType()) return false;
                 GenericParamRow other = (GenericParamRow) obj;
-                return parent.Equals(other.parent) && attributes == other.attributes && name.Equals(other.name) && index == other.index &&
-                       Equals(constraints, other.constraints);
+                return Parent.Equals(other.Parent) && Attributes == other.Attributes && Name.Equals(other.Name) && Index == other.Index &&
+                       Equals(Constraints, other.Constraints);
             }
 
             public override int GetHashCode()
             {
                 unchecked
                 {
-                    var hashCode = parent.GetHashCode();
-                    hashCode = (hashCode * 397) ^ (int) attributes;
-                    hashCode = (hashCode * 397) ^ name.GetHashCode();
-                    hashCode = (hashCode * 397) ^ index.GetHashCode();
-                    hashCode = (hashCode * 397) ^ (constraints != null ? constraints.GetHashCode() : 0);
+                    var hashCode = Parent.GetHashCode();
+                    hashCode = (hashCode * 397) ^ (int) Attributes;
+                    hashCode = (hashCode * 397) ^ Name.GetHashCode();
+                    hashCode = (hashCode * 397) ^ Index.GetHashCode();
+                    hashCode = (hashCode * 397) ^ (Constraints != null ? Constraints.GetHashCode() : 0);
                     return hashCode;
                 }
             }
@@ -205,13 +205,13 @@ namespace MetadataGenerator.Metadata
 
         private class NestedTypeRow
         {
-            public readonly SRM.TypeDefinitionHandle type;
-            public readonly SRM.TypeDefinitionHandle enclosingType;
+            public readonly SRM.TypeDefinitionHandle Type;
+            public readonly SRM.TypeDefinitionHandle EnclosingType;
 
             public NestedTypeRow(SRM.TypeDefinitionHandle type, SRM.TypeDefinitionHandle enclosingType)
             {
-                this.type = type;
-                this.enclosingType = enclosingType;
+                Type = type;
+                EnclosingType = enclosingType;
             }
 
             public override bool Equals(object obj)
@@ -220,14 +220,14 @@ namespace MetadataGenerator.Metadata
                 if (ReferenceEquals(this, obj)) return true;
                 if (obj.GetType() != this.GetType()) return false;
                 var other = (NestedTypeRow) obj;
-                return type.Equals(other.type) && enclosingType.Equals(other.enclosingType);
+                return Type.Equals(other.Type) && EnclosingType.Equals(other.EnclosingType);
             }
 
             public override int GetHashCode()
             {
                 unchecked
                 {
-                    return (type.GetHashCode() * 397) ^ enclosingType.GetHashCode();
+                    return (Type.GetHashCode() * 397) ^ EnclosingType.GetHashCode();
                 }
             }
 

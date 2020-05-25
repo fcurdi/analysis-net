@@ -22,21 +22,21 @@ namespace MetadataGenerator.Generators.Fields
         public SRM.FieldDefinitionHandle Generate(FieldDefinition field)
         {
             var fieldSignature = fieldSignatureGenerator.GenerateSignatureOf(field);
-            var fieldDefinitionHandle = metadataContainer.metadataBuilder.AddFieldDefinition(
+            var fieldDefinitionHandle = metadataContainer.MetadataBuilder.AddFieldDefinition(
                 attributes: GetFieldAttributesFor(field),
-                name: metadataContainer.metadataBuilder.GetOrAddString(field.Name),
-                signature: metadataContainer.metadataBuilder.GetOrAddBlob(fieldSignature));
+                name: metadataContainer.MetadataBuilder.GetOrAddString(field.Name),
+                signature: metadataContainer.MetadataBuilder.GetOrAddBlob(fieldSignature));
 
             if (field.SpecifiesRelativeVirtualAddress)
             {
-                var offset = metadataContainer.mappedFieldData.Count;
-                metadataContainer.mappedFieldData.WriteBytes((byte[]) field.Value.Value);
-                metadataContainer.mappedFieldData.Align(ManagedPEBuilder.MappedFieldDataAlignment);
-                metadataContainer.metadataBuilder.AddFieldRelativeVirtualAddress(fieldDefinitionHandle, offset);
+                var offset = metadataContainer.MappedFieldData.Count;
+                metadataContainer.MappedFieldData.WriteBytes((byte[]) field.Value.Value);
+                metadataContainer.MappedFieldData.Align(ManagedPEBuilder.MappedFieldDataAlignment);
+                metadataContainer.MetadataBuilder.AddFieldRelativeVirtualAddress(fieldDefinitionHandle, offset);
             }
             else if (field.Value != null)
             {
-                metadataContainer.metadataBuilder.AddConstant(fieldDefinitionHandle, field.Value.Value);
+                metadataContainer.MetadataBuilder.AddConstant(fieldDefinitionHandle, field.Value.Value);
             }
 
             foreach (var customAttribute in field.Attributes)

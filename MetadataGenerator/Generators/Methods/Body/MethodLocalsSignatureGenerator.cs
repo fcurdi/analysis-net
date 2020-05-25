@@ -25,10 +25,10 @@ namespace MetadataGenerator.Generators.Methods.Body
                 foreach (var localVariable in localVariables)
                 {
                     // TODO pinned is achieved by the fixed keyword and this is not in the model
-                    metadataContainer.metadataResolver.Encode(localVariable.Type, encoder.AddVariable().Type(isPinned: false));
+                    metadataContainer.MetadataResolver.Encode(localVariable.Type, encoder.AddVariable().Type(isPinned: false));
                 }
 
-                localVariablesSignature = metadataContainer.metadataResolver.GetOrAddStandaloneSignature(signature);
+                localVariablesSignature = metadataContainer.MetadataResolver.GetOrAddStandaloneSignature(signature);
             }
 
             return localVariablesSignature;

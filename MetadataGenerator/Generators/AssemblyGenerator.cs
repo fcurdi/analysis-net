@@ -11,13 +11,13 @@ namespace MetadataGenerator.Generators
         {
             var metadataContainer = new MetadataContainer(assembly);
             var namespaceGenerator = new NamespaceGenerator(metadataContainer);
-            var metadataBuilder = metadataContainer.metadataBuilder;
+            var metadataBuilder = metadataContainer.MetadataBuilder;
 
             metadataBuilder.AddAssembly(
                 name: metadataBuilder.GetOrAddString(assembly.Name),
                 version: assembly.Version,
-                culture: metadataContainer.metadataBuilder.GetOrAddString(assembly.Culture),
-                publicKey: metadataContainer.metadataBuilder.GetOrAddBlob(assembly.PublicKey),
+                culture: metadataContainer.MetadataBuilder.GetOrAddString(assembly.Culture),
+                publicKey: metadataContainer.MetadataBuilder.GetOrAddBlob(assembly.PublicKey),
                 flags: SR.AssemblyFlags.PublicKey,
                 hashAlgorithm: SR.AssemblyHashAlgorithm.Sha1
             );

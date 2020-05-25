@@ -30,7 +30,7 @@ namespace MetadataGenerator.Generators.Methods
         public SRM.MethodDefinitionHandle Generate(MethodDefinition method)
         {
             var parameters = methodParametersGenerator.Generate(method.Parameters)
-                             ?? ECMA335.MetadataTokens.ParameterHandle(metadataContainer.metadataBuilder.NextRowFor(ECMA335.TableIndex.Param));
+                             ?? ECMA335.MetadataTokens.ParameterHandle(metadataContainer.MetadataBuilder.NextRowFor(ECMA335.TableIndex.Param));
             var methodSignature = methodSignatureGenerator.GenerateSignatureOf(method);
 
             var methodBodyOffset = -1;
@@ -39,7 +39,7 @@ namespace MetadataGenerator.Generators.Methods
                 // FIXME maxStack should be computed from instructions. When a dll is read, the maxStack will be available (Model) but if code is generated 
                 // programatically then the maxStack is gonna be missing
                 var maxStack = method.Body.MaxStack;
-                methodBodyOffset = metadataContainer.methodBodyStream.AddMethodBody(
+                methodBodyOffset = metadataContainer.MethodBodyStream.AddMethodBody(
                     instructionEncoder: methodBodyGenerator.Generate(method.Body),
                     localVariablesSignature: methodLocalsSignatureGenerator.GenerateSignatureFor(method.Body.LocalVariables),
                     maxStack: maxStack);
@@ -51,11 +51,11 @@ namespace MetadataGenerator.Generators.Methods
                     ? SR.MethodImplAttributes.Runtime
                     : SR.MethodImplAttributes.Managed);
 
-            var methodDefinitionHandle = metadataContainer.metadataBuilder.AddMethodDefinition(
+            var methodDefinitionHandle = metadataContainer.MetadataBuilder.AddMethodDefinition(
                 attributes: GetMethodAttributesFor(method),
                 implAttributes: methodImplementationAttributes,
-                name: metadataContainer.metadataBuilder.GetOrAddString(method.Name),
-                signature: metadataContainer.metadataBuilder.GetOrAddBlob(methodSignature),
+                name: metadataContainer.MetadataBuilder.GetOrAddString(method.Name),
+                signature: metadataContainer.MetadataBuilder.GetOrAddBlob(methodSignature),
                 bodyOffset: methodBodyOffset,
                 parameterList: parameters);
 

@@ -32,7 +32,7 @@ namespace MetadataGenerator.Generators
         public SRM.TypeDefinitionHandle Generate(TypeDefinition type)
         {
             var methodDefinitionHandles = new List<SRM.MethodDefinitionHandle>();
-            var metadataBuilder = metadataContainer.metadataBuilder;
+            var metadataBuilder = metadataContainer.MetadataBuilder;
             var fieldDefinitionHandles = type.Fields.Select(field => fieldGenerator.Generate(field)).ToList();
             var methodDefToHandle = new Dictionary<MethodDefinition, SRM.MethodDefinitionHandle>();
             var methodOverrides = new List<MethodOverride>();
@@ -45,7 +45,7 @@ namespace MetadataGenerator.Generators
                 {
                     methodOverrides.Add(new MethodOverride(
                         methodHandle,
-                        metadataContainer.metadataResolver.HandleOf(method.OverridenMethod)));
+                        metadataContainer.MetadataResolver.HandleOf(method.OverridenMethod)));
                 }
 
                 if (method.Name.Equals("Main"))
@@ -62,7 +62,7 @@ namespace MetadataGenerator.Generators
                 attributes: GetTypeAttributesFor(type),
                 @namespace: metadataBuilder.GetOrAddString(type.ContainingNamespace.FullName),
                 name: metadataBuilder.GetOrAddString(TypeNameOf(type)),
-                baseType: type.Base != null ? metadataContainer.metadataResolver.HandleOf(type.Base) : default,
+                baseType: type.Base != null ? metadataContainer.MetadataResolver.HandleOf(type.Base) : default,
                 fieldList: fieldDefinitionHandles.FirstOr(nextFieldDefinitionHandle),
                 methodList: methodDefinitionHandles.FirstOr(nextMethodDefinitionHandle));
 
@@ -73,12 +73,12 @@ namespace MetadataGenerator.Generators
 
             if (!firstPropertyDefinitionHandle.IsNil)
             {
-                metadataContainer.metadataBuilder.AddPropertyMap(typeDefinitionHandle, firstPropertyDefinitionHandle);
+                metadataContainer.MetadataBuilder.AddPropertyMap(typeDefinitionHandle, firstPropertyDefinitionHandle);
             }
 
             foreach (var interfaze in type.Interfaces)
             {
-                metadataContainer.RegisterInterfaceImplementation(typeDefinitionHandle, metadataContainer.metadataResolver.HandleOf(interfaze));
+                metadataContainer.RegisterInterfaceImplementation(typeDefinitionHandle, metadataContainer.MetadataResolver.HandleOf(interfaze));
             }
 
             // generate class generic parameters (Class<T>)
@@ -99,7 +99,7 @@ namespace MetadataGenerator.Generators
 
             foreach (var methodOverride in methodOverrides)
             {
-                metadataContainer.metadataBuilder.AddMethodImplementation(
+                metadataContainer.MetadataBuilder.AddMethodImplementation(
                     typeDefinitionHandle,
                     methodOverride.methodImplementation,
                     methodOverride.overridenMethod
@@ -108,7 +108,7 @@ namespace MetadataGenerator.Generators
 
             if (type.LayoutInformation.SpecifiesSizes())
             {
-                metadataContainer.metadataBuilder.AddTypeLayout(
+                metadataContainer.MetadataBuilder.AddTypeLayout(
                     typeDefinitionHandle,
                     (ushort) type.LayoutInformation.PackingSize,
                     (uint) type.LayoutInformation.ClassSize);

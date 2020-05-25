@@ -24,7 +24,7 @@ namespace MetadataGenerator.Generators.Methods
                 var encoder = new ECMA335.BlobEncoder(signature).MethodSpecificationSignature(method.GenericArguments.Count);
                 foreach (var genericArg in method.GenericArguments)
                 {
-                    metadataContainer.metadataResolver.Encode(genericArg, encoder.AddArgument());
+                    metadataContainer.MetadataResolver.Encode(genericArg, encoder.AddArgument());
                 }
 
                 return signature;
@@ -60,7 +60,7 @@ namespace MetadataGenerator.Generators.Methods
                         {
                             // TODO isByRef param. ref in return type is not in the model
                             var encoder = returnTypeEncoder.Type();
-                            metadataContainer.metadataResolver.Encode(returnType, encoder);
+                            metadataContainer.MetadataResolver.Encode(returnType, encoder);
                         }
                     },
                     parametersEncoder =>
@@ -76,7 +76,7 @@ namespace MetadataGenerator.Generators.Methods
                             }
 
                             var encoder = parametersEncoder.AddParameter().Type(isByRef);
-                            metadataContainer.metadataResolver.Encode(type, encoder);
+                            metadataContainer.MetadataResolver.Encode(type, encoder);
                         }
                     });
             return methodSignature;

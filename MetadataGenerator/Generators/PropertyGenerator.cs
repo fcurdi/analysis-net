@@ -27,17 +27,17 @@ namespace MetadataGenerator.Generators
                 .PropertySignature(isInstanceProperty: !property.IsStatic)
                 .Parameters(
                     parameterCount: 0,
-                    returnType: returnTypeEncoder => metadataContainer.metadataResolver.Encode(property.PropertyType, returnTypeEncoder.Type()),
+                    returnType: returnTypeEncoder => metadataContainer.MetadataResolver.Encode(property.PropertyType, returnTypeEncoder.Type()),
                     parameters: parametersEncoder => { });
 
-            var propertyDefinitionHandle = metadataContainer.metadataBuilder.AddProperty(
+            var propertyDefinitionHandle = metadataContainer.MetadataBuilder.AddProperty(
                 attributes: SR.PropertyAttributes.None,
-                name: metadataContainer.metadataBuilder.GetOrAddString(property.Name),
-                signature: metadataContainer.metadataBuilder.GetOrAddBlob(signature));
+                name: metadataContainer.MetadataBuilder.GetOrAddString(property.Name),
+                signature: metadataContainer.MetadataBuilder.GetOrAddBlob(signature));
 
             if (property.Getter != null)
             {
-                metadataContainer.metadataBuilder.AddMethodSemantics(
+                metadataContainer.MetadataBuilder.AddMethodSemantics(
                     propertyDefinitionHandle,
                     SR.MethodSemanticsAttributes.Getter,
                     methodDefHandleOf[property.Getter]);
@@ -45,7 +45,7 @@ namespace MetadataGenerator.Generators
 
             if (property.Setter != null)
             {
-                metadataContainer.metadataBuilder.AddMethodSemantics(
+                metadataContainer.MetadataBuilder.AddMethodSemantics(
                     propertyDefinitionHandle,
                     SR.MethodSemanticsAttributes.Setter,
                     methodDefHandleOf[property.Setter]);

@@ -26,9 +26,9 @@ namespace MetadataGenerator
                 var peBlob = new SRM.BlobBuilder();
                 new SRPE.ManagedPEBuilder(
                     header: peHeaderBuilder,
-                    metadataRootBuilder: new ECMA335.MetadataRootBuilder(metadataContainer.metadataBuilder),
-                    ilStream: metadataContainer.methodBodyStream.Builder,
-                    mappedFieldData: metadataContainer.mappedFieldData,
+                    metadataRootBuilder: new ECMA335.MetadataRootBuilder(metadataContainer.MetadataBuilder),
+                    ilStream: metadataContainer.MethodBodyStream.Builder,
+                    mappedFieldData: metadataContainer.MappedFieldData,
                     entryPoint: assembly.Kind.Equals(AssemblyKind.EXE) ? metadataContainer.MainMethodHandle : default,
                     flags: SRPE.CorFlags.ILOnly | SRPE.CorFlags.StrongNameSigned
                 ).Serialize(peBlob);

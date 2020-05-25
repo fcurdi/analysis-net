@@ -48,10 +48,10 @@ namespace MetadataGenerator.Generators
                         namedArgumentsEncoder.Count(0);
                     });
 
-            metadataContainer.metadataBuilder.AddCustomAttribute(
+            metadataContainer.MetadataBuilder.AddCustomAttribute(
                 owner,
-                metadataContainer.metadataResolver.HandleOf(customAttribute.Constructor),
-                metadataContainer.metadataBuilder.GetOrAddBlob(customAttributeEncodedValue));
+                metadataContainer.MetadataResolver.HandleOf(customAttribute.Constructor),
+                metadataContainer.MetadataBuilder.GetOrAddBlob(customAttributeEncodedValue));
         }
 
         /*

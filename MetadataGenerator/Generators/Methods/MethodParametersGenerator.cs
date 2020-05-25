@@ -22,13 +22,13 @@ namespace MetadataGenerator.Generators.Methods
             SRM.ParameterHandle? firstParameterHandle = null;
             foreach (var parameter in methodParameters)
             {
-                var parameterHandle = metadataContainer.metadataBuilder.AddParameter(
+                var parameterHandle = metadataContainer.MetadataBuilder.AddParameter(
                     attributes: GetParameterAttributesFor(parameter),
-                    name: metadataContainer.metadataBuilder.GetOrAddString(parameter.Name),
+                    name: metadataContainer.MetadataBuilder.GetOrAddString(parameter.Name),
                     sequenceNumber: parameter.Index);
                 if (parameter.HasDefaultValue)
                 {
-                    metadataContainer.metadataBuilder.AddConstant(parameterHandle, parameter.DefaultValue.Value);
+                    metadataContainer.MetadataBuilder.AddConstant(parameterHandle, parameter.DefaultValue.Value);
                 }
 
                 if (!firstParameterHandle.HasValue)
