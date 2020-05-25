@@ -10,11 +10,13 @@ namespace MetadataGenerator.Generators.Fields
     {
         private readonly MetadataContainer metadataContainer;
         private readonly FieldSignatureGenerator fieldSignatureGenerator;
+        private readonly CustomAttributeGenerator customAttributeGenerator;
 
         public FieldGenerator(MetadataContainer metadataContainer)
         {
             this.metadataContainer = metadataContainer;
             fieldSignatureGenerator = new FieldSignatureGenerator(metadataContainer);
+            customAttributeGenerator = new CustomAttributeGenerator(metadataContainer);
         }
 
         public SRM.FieldDefinitionHandle Generate(FieldDefinition field)
@@ -35,6 +37,11 @@ namespace MetadataGenerator.Generators.Fields
             else if (field.Value != null)
             {
                 metadataContainer.metadataBuilder.AddConstant(fieldDefinitionHandle, field.Value.Value);
+            }
+
+            foreach (var customAttribute in field.Attributes)
+            {
+                customAttributeGenerator.Generate(fieldDefinitionHandle, customAttribute);
             }
 
             return fieldDefinitionHandle;

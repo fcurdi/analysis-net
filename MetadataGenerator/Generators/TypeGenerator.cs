@@ -18,6 +18,7 @@ namespace MetadataGenerator.Generators
         private readonly MethodGenerator methodGenerator;
         private readonly FieldGenerator fieldGenerator;
         private readonly PropertyGenerator propertyGenerator;
+        private readonly CustomAttributeGenerator customAttributeGenerator;
 
         public TypeGenerator(MetadataContainer metadataContainer)
         {
@@ -25,6 +26,7 @@ namespace MetadataGenerator.Generators
             methodGenerator = new MethodGenerator(metadataContainer);
             fieldGenerator = new FieldGenerator(metadataContainer);
             propertyGenerator = new PropertyGenerator(metadataContainer);
+            customAttributeGenerator = new CustomAttributeGenerator(metadataContainer);
         }
 
         public SRM.TypeDefinitionHandle Generate(TypeDefinition type)
@@ -110,6 +112,11 @@ namespace MetadataGenerator.Generators
                     typeDefinitionHandle,
                     (ushort) type.LayoutInformation.PackingSize,
                     (uint) type.LayoutInformation.ClassSize);
+            }
+
+            foreach (var customAttribute in type.Attributes)
+            {
+                customAttributeGenerator.Generate(typeDefinitionHandle, customAttribute);
             }
 
             return typeDefinitionHandle;

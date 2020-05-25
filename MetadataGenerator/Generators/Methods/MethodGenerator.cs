@@ -15,6 +15,7 @@ namespace MetadataGenerator.Generators.Methods
         private readonly MethodBodyGenerator methodBodyGenerator;
         private readonly MethodLocalsSignatureGenerator methodLocalsSignatureGenerator;
         private readonly MethodParametersGenerator methodParametersGenerator;
+        private readonly CustomAttributeGenerator customAttributeGenerator;
 
         public MethodGenerator(MetadataContainer metadataContainer)
         {
@@ -23,6 +24,7 @@ namespace MetadataGenerator.Generators.Methods
             methodBodyGenerator = new MethodBodyGenerator(metadataContainer);
             methodLocalsSignatureGenerator = new MethodLocalsSignatureGenerator(metadataContainer);
             methodParametersGenerator = new MethodParametersGenerator(metadataContainer);
+            customAttributeGenerator = new CustomAttributeGenerator(metadataContainer);
         }
 
         public SRM.MethodDefinitionHandle Generate(MethodDefinition method)
@@ -56,6 +58,11 @@ namespace MetadataGenerator.Generators.Methods
                 signature: metadataContainer.metadataBuilder.GetOrAddBlob(methodSignature),
                 bodyOffset: methodBodyOffset,
                 parameterList: parameters);
+
+            foreach (var customAttribute in method.Attributes)
+            {
+                customAttributeGenerator.Generate(methodDefinitionHandle, customAttribute);
+            }
 
             return methodDefinitionHandle;
         }

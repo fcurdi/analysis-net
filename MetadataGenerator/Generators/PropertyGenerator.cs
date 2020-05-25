@@ -10,10 +10,12 @@ namespace MetadataGenerator.Generators
     internal class PropertyGenerator
     {
         private readonly MetadataContainer metadataContainer;
+        private readonly CustomAttributeGenerator customAttributeGenerator;
 
         public PropertyGenerator(MetadataContainer metadataContainer)
         {
             this.metadataContainer = metadataContainer;
+            customAttributeGenerator = new CustomAttributeGenerator(metadataContainer);
         }
 
         public SRM.PropertyDefinitionHandle Generate(
@@ -47,6 +49,11 @@ namespace MetadataGenerator.Generators
                     propertyDefinitionHandle,
                     SR.MethodSemanticsAttributes.Setter,
                     methodDefHandleOf[property.Setter]);
+            }
+
+            foreach (var customAttribute in property.Attributes)
+            {
+                customAttributeGenerator.Generate(propertyDefinitionHandle, customAttribute);
             }
 
             return propertyDefinitionHandle;
