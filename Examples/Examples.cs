@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection.Metadata;
 using Classes;
+using Enums;
 using Hierarchy;
 using Interfaces;
 using Nested.NestedNamespace.NestedNestedNamesace;
@@ -1064,6 +1065,7 @@ namespace MethodBody
 namespace Attributes
 {
     [Flags]
+    [AnnotatedClass.AttributeWithObjectParam(DefaultEnum.CONSTANT1)]
     public enum ColoursFlags
     {
         Red = 1,
@@ -1072,15 +1074,55 @@ namespace Attributes
         Green = 8
     }
 
-    [ExcludeFromCodeCoverage, Obsolete("no use")]
+    [AttributeWithStringAndArrayParam("some.string", new[] {1, 2, 3, 4})]
+    [AttributeWithObjectArrayParam(new object[] {1, "some.string", DefaultEnum.CONSTANT1})]
+    [AttributeWithObjectParam(new[] {1, 2, 3})]
+    [AttributeWithTypeParam(typeof(EmptyClass))]
     public class AnnotatedClass
     {
-        [Obsolete] public int ObsoleteProperty { get; set; }
-        [Obsolete] public int obsoleteField;
+        [AttributeWithObjectParam(typeof(EmptyClass))]
+        public int property { get; set; }
 
-        [Obsolete("Method is obsolete", true)]
+        [Obsolete("field"), AttributeWithObjectParam(new[] {DefaultEnum.CONSTANT1, DefaultEnum.CONSTANT2})]
+        public int field;
+
+        [AttributeWithObjectParam(new object[] {1, "some.string", DefaultEnum.CONSTANT1})]
+        public string anotherFIeld;
+
+        [ExcludeFromCodeCoverage, Obsolete("Method is obsolete", true)]
+        [AttributeWithObjectParam("something")]
+        [AttributeWithTypeParam(typeof(Nested.ClassContainingNestedTypes.NestedClass))]
         public void Method()
         {
+        }
+
+        [AttributeUsage(AttributeTargets.All)]
+        public class AttributeWithObjectParam : Attribute
+        {
+            public AttributeWithObjectParam(object o)
+            {
+            }
+        }
+
+        public class AttributeWithStringAndArrayParam : Attribute
+        {
+            public AttributeWithStringAndArrayParam(string s, int[] values)
+            {
+            }
+        }
+
+        public class AttributeWithObjectArrayParam : Attribute
+        {
+            public AttributeWithObjectArrayParam(object[] args)
+            {
+            }
+        }
+
+        public class AttributeWithTypeParam : Attribute
+        {
+            public AttributeWithTypeParam(Type t)
+            {
+            }
         }
     }
 }
