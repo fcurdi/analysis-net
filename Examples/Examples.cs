@@ -1065,7 +1065,7 @@ namespace MethodBody
 namespace Attributes
 {
     [Flags]
-    [AnnotatedClass.AttributeWithObjectParam(DefaultEnum.CONSTANT1)]
+    [AttributeWithObjectParam(DefaultEnum.CONSTANT1)]
     public enum ColoursFlags
     {
         Red = 1,
@@ -1095,34 +1095,34 @@ namespace Attributes
         public void Method()
         {
         }
+    }
 
-        [AttributeUsage(AttributeTargets.All)]
-        public class AttributeWithObjectParam : Attribute
+    [AttributeUsage(AttributeTargets.All)]
+    public class AttributeWithObjectParam : Attribute
+    {
+        public AttributeWithObjectParam(object o)
         {
-            public AttributeWithObjectParam(object o)
-            {
-            }
         }
+    }
 
-        public class AttributeWithStringAndArrayParam : Attribute
+    public class AttributeWithStringAndArrayParam : Attribute
+    {
+        public AttributeWithStringAndArrayParam(string s, int[] values)
         {
-            public AttributeWithStringAndArrayParam(string s, int[] values)
-            {
-            }
         }
+    }
 
-        public class AttributeWithObjectArrayParam : Attribute
+    public class AttributeWithObjectArrayParam : Attribute
+    {
+        public AttributeWithObjectArrayParam(object[] args)
         {
-            public AttributeWithObjectArrayParam(object[] args)
-            {
-            }
         }
+    }
 
-        public class AttributeWithTypeParam : Attribute
+    public class AttributeWithTypeParam : Attribute
+    {
+        public AttributeWithTypeParam(Type t)
         {
-            public AttributeWithTypeParam(Type t)
-            {
-            }
         }
     }
 }
