@@ -415,15 +415,28 @@ namespace Console
 				}
 			};
 
-			foreach (var input in inputs)
+		/*	foreach (var input in inputs)
 			{
 				foreach (var file in input)
 				{
 					DisassembleAndThenAssemble(file);
 				}
 			}
+*/
+		var host = new Host();
 
-			//RunSomeTests();
+		PlatformTypes.Resolve(host);
+
+		var loader = new MetadataProvider.Loader(host);
+		var assembly = loader.LoadAssembly("../../../Examples/bin/Debug/Examples.dll");
+		var methods = assembly.RootNamespace.Namespaces[4].Types[0].Methods;
+		
+		var method = methods[1];
+		method.Body = new Disassembler(method).Execute(); // to tac
+		var assembler = new Assembler(method);
+		var newBody = assembler.Execute();
+
+		//RunSomeTests();
 			// RunGenericsTests();
 			//RunInterPointsToTests();
 

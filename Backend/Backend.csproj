@@ -62,6 +62,7 @@
     <Compile Include="Analyses\PointsToAnalysis.cs" />
     <Compile Include="Analyses\ReachingDefinitionsAnalysis.cs" />
     <Compile Include="Model\PointsToGraph.cs" />
+    <Compile Include="Transformations\Assembler.cs" />
     <Compile Include="Transformations\Disassembler.cs" />
     <Compile Include="Transformations\StaticSingleAssignment.cs" />
     <Compile Include="Analyses\SymbolicAnalysis.cs" />

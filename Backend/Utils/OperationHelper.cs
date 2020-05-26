@@ -137,5 +137,63 @@ namespace Backend.Utils
 
 			return result;
 		}
+
+		public static Bytecode.BranchOperation ToBranchOperation(Tac.BranchOperation operation)
+		{
+			switch (operation)
+			{
+				case Tac.BranchOperation.Eq: return Bytecode.BranchOperation.Eq;
+				case Tac.BranchOperation.Neq: return Bytecode.BranchOperation.Neq;
+				case Tac.BranchOperation.Lt: return Bytecode.BranchOperation.Lt;
+				case Tac.BranchOperation.Le: return Bytecode.BranchOperation.Le;
+				case Tac.BranchOperation.Gt: return Bytecode.BranchOperation.Gt;
+				case Tac.BranchOperation.Ge: return Bytecode.BranchOperation.Ge;
+				default: throw operation.ToUnknownValueException();
+			}
+		}
+
+		public static Bytecode.ConvertOperation ToConvertOperation(Tac.ConvertOperation operation)
+		{
+			switch (operation)
+			{
+				case Tac.ConvertOperation.Conv: return Bytecode.ConvertOperation.Conv;
+				case Tac.ConvertOperation.Cast: return Bytecode.ConvertOperation.Cast;
+				case Tac.ConvertOperation.Box: return Bytecode.ConvertOperation.Box;
+				case Tac.ConvertOperation.Unbox: return Bytecode.ConvertOperation.Unbox;
+				case Tac.ConvertOperation.UnboxPtr: return Bytecode.ConvertOperation.Unbox;
+				default: throw operation.ToUnknownValueException();
+			}
+		}
+
+		public static Bytecode.BasicOperation ToBasicOperation(Tac.UnaryOperation operation)
+		{
+			switch (operation)
+			{
+				case Tac.UnaryOperation.Not: return Bytecode.BasicOperation.Not;
+				case Tac.UnaryOperation.Neg: return Bytecode.BasicOperation.Neg;
+				default: throw operation.ToUnknownValueException();
+			}
+		}
+
+		public static Bytecode.BasicOperation ToBasicOperation(Tac.BinaryOperation operation)
+		{
+			switch (operation)
+			{
+				case Tac.BinaryOperation.Add: return Bytecode.BasicOperation.Add; 
+				case Tac.BinaryOperation.Sub: return Bytecode.BasicOperation.Sub; 
+				case Tac.BinaryOperation.Mul: return Bytecode.BasicOperation.Mul; 
+				case Tac.BinaryOperation.Div: return Bytecode.BasicOperation.Div; 
+				case Tac.BinaryOperation.Rem: return Bytecode.BasicOperation.Rem; 
+				case Tac.BinaryOperation.And: return Bytecode.BasicOperation.And; 
+				case Tac.BinaryOperation.Or: return Bytecode.BasicOperation.Or; 
+				case Tac.BinaryOperation.Xor: return Bytecode.BasicOperation.Xor; 
+				case Tac.BinaryOperation.Shl: return Bytecode.BasicOperation.Shl; 
+				case Tac.BinaryOperation.Shr: return Bytecode.BasicOperation.Shr; 
+				case Tac.BinaryOperation.Eq: return Bytecode.BasicOperation.Eq; 
+				case Tac.BinaryOperation.Lt: return Bytecode.BasicOperation.Lt; 
+				case Tac.BinaryOperation.Gt: return Bytecode.BasicOperation.Gt;
+				default: throw operation.ToUnknownValueException();
+			}
+		}
 	}
 }
