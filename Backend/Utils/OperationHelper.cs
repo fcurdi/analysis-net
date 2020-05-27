@@ -33,7 +33,7 @@ namespace Backend.Utils
 				case Bytecode.ConvertOperation.Conv: return Tac.ConvertOperation.Conv;
 				case Bytecode.ConvertOperation.Unbox: return Tac.ConvertOperation.Unbox;
 				case Bytecode.ConvertOperation.UnboxPtr: return Tac.ConvertOperation.UnboxPtr;
-
+				case Bytecode.ConvertOperation.IsInst: return Tac.ConvertOperation.IsInst;
 				default: throw operation.ToUnknownValueException();
 			}
 		}

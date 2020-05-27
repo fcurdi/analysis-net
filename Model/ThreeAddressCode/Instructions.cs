@@ -50,6 +50,7 @@ namespace Model.ThreeAddressCode.Instructions
 	public enum ConvertOperation
 	{
 		Conv,
+		IsInst,
 		Cast,
 		Box,
 		Unbox,
