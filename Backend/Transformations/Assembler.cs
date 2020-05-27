@@ -17,8 +17,7 @@ using StoreInstruction = Model.ThreeAddressCode.Instructions.StoreInstruction;
 using SwitchInstruction = Model.ThreeAddressCode.Instructions.SwitchInstruction;
 using Bytecode = Model.Bytecode;
 
-// FIXME parti desde code-generator por las cosas que arregle en el metadata-provider. Esta en branch aparte. Estaria bueno hacer el PR de esto
-// FIXME sobre el branch de metadata-provider sin los cambios del code-generator.
+
 namespace Backend.Transformations
 {
     public class Assembler
@@ -52,15 +51,6 @@ namespace Backend.Transformations
             return body;
         }
 
-
-        //FIXME Revisar las operaciones que agregue (ej isinst, castClass, etc). Porque esas tampoco estan en las equivalentes del TAC y entonces no las puedo generar.
-        // FIXME va a haber que agregarlas al TAC no solo a los enums sino distinguirlas al momento de crearlas (al traducir de bytecode que ahora las tiene a tac).
-
-        // FIXME De la misma forma, hay algunas Instrucciones nuevas que habia metido creo. Y esas seguramente no esten en el Visitor por lo que tambien
-        // FIXME va a haber que crearlas al traucir de bytecode a tac. (Ej indirectLoad/Store, Constrained, etc).
-
-        // FIXME hay un par de metodos que no implemente porque son instrucciones de las que heredan otras por lo que entiendo que no hay que implementarlas.
-        // FIXME pero tenerlo en cuenta por si despues falta algo, quiza habia alguna que si.
         private class InstructionTranslator : InstructionVisitor
         {
             private readonly MethodBody body;
@@ -232,7 +222,12 @@ namespace Backend.Transformations
 
             public override void Visit(CreateArrayInstruction instruction)
             {
-                throw new Exception();
+                var createArrayInstruction =
+                    new Bytecode.CreateArrayInstruction(instruction.Offset, new ArrayType(instruction.ElementType, instruction.Rank))
+                    {
+                        WithLowerBound = instruction.LowerBounds.Any()
+                    };
+                body.Instructions.Add(createArrayInstruction);
             }
 
             public override void Visit(PhiInstruction instruction)
