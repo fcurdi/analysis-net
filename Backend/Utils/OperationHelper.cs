@@ -195,5 +195,16 @@ namespace Backend.Utils
 				default: throw operation.ToUnknownValueException();
 			}
 		}
+
+		public static Bytecode.MethodCallOperation ToMethodCallOperation(Tac.MethodCallOperation operation)
+		{
+			switch (operation)
+			{
+				case Tac.MethodCallOperation.Static: return Bytecode.MethodCallOperation.Static;
+				case Tac.MethodCallOperation.Virtual: return Bytecode.MethodCallOperation.Virtual;
+				case Tac.MethodCallOperation.Jump: return Bytecode.MethodCallOperation.Jump;
+				default: throw operation.ToUnknownValueException();
+			}
+		}
 	}
 }

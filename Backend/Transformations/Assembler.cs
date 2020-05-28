@@ -15,7 +15,7 @@ using MethodCallInstruction = Model.ThreeAddressCode.Instructions.MethodCallInst
 using SizeofInstruction = Model.ThreeAddressCode.Instructions.SizeofInstruction;
 using StoreInstruction = Model.ThreeAddressCode.Instructions.StoreInstruction;
 using SwitchInstruction = Model.ThreeAddressCode.Instructions.SwitchInstruction;
-using Bytecode = Model.Bytecode;
+using Bytecode = Model.Bytecode;q
 
 
 namespace Backend.Transformations
@@ -78,11 +78,16 @@ namespace Backend.Transformations
 
             public override void Visit(LoadInstruction instruction)
             {
+                // translate to dup, loadArrayLength, loadArrayElement, loadArrayElementAddress, loadStaticField, loadInstanceField,
+                // loadStaticFieldAddress, loadInnstanceFieldAddress, loadIndirect, loadConstant, loadVariable, loadVariableAddress, 
+                // loadStaticMethodAddress, loadVirtualMethodAddress,
+                // StoreInstruction? CreateObjectInstruction? (se genera una en el visit de ambos)
                 throw new Exception();
             }
 
             public override void Visit(StoreInstruction instruction)
             {
+                // translate to store array element, store field, store indirect
                 throw new Exception();
             }
 
@@ -182,32 +187,42 @@ namespace Backend.Transformations
 
             public override void Visit(MethodCallInstruction instruction)
             {
-                throw new Exception();
+                var methodCallInstruction = new Bytecode.MethodCallInstruction(
+                    instruction.Offset,
+                    OperationHelper.ToMethodCallOperation(instruction.Operation),
+                    instruction.Method
+                );
+                body.Instructions.Add(methodCallInstruction);
             }
 
             public override void Visit(IndirectMethodCallInstruction instruction)
             {
-                throw new Exception();
+                var indirectMethodCallInstruction = new Bytecode.IndirectMethodCallInstruction(instruction.Offset, instruction.Function);
+                body.Instructions.Add(indirectMethodCallInstruction);
             }
 
             public override void Visit(CreateObjectInstruction instruction)
             {
-                throw new Exception();
+                var createObjectInstruction = new Bytecode.CreateObjectInstruction(instruction.Offset, instruction.Constructor);
+                body.Instructions.Add(createObjectInstruction);
             }
 
             public override void Visit(CopyMemoryInstruction instruction)
             {
-                throw new Exception();
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.CopyBlock);
+                body.Instructions.Add(basicInstruction);
             }
 
             public override void Visit(LocalAllocationInstruction instruction)
             {
-                throw new Exception();
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.LocalAllocation);
+                body.Instructions.Add(basicInstruction);
             }
 
             public override void Visit(InitializeMemoryInstruction instruction)
             {
-                throw new Exception();
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.InitBlock);
+                body.Instructions.Add(basicInstruction);
             }
 
             public override void Visit(InitializeObjectInstruction instruction)
@@ -217,7 +232,8 @@ namespace Backend.Transformations
 
             public override void Visit(CopyObjectInstruction instruction)
             {
-                throw new Exception();
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.CopyObject);
+                body.Instructions.Add(basicInstruction);
             }
 
             public override void Visit(CreateArrayInstruction instruction)

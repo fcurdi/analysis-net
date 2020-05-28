@@ -611,7 +611,10 @@ namespace Backend.Transformations
 				arguments.Add(allocationResult);
 				arguments.Reverse();
 
-				IInstruction instruction = new Tac.CreateObjectInstruction(op.Offset, allocationResult, op.Constructor.ContainingType);
+				IInstruction instruction = new Tac.CreateObjectInstruction(op.Offset, allocationResult, op.Constructor.ContainingType)
+				{
+					Constructor = op.Constructor
+				};
 				body.Instructions.Add(instruction);
 
 				instruction = new Tac.MethodCallInstruction(op.Offset, null, Tac.MethodCallOperation.Static, op.Constructor, arguments);

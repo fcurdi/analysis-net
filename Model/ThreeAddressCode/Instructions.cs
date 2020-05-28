@@ -1077,7 +1077,9 @@ namespace Model.ThreeAddressCode.Instructions
 	public class CreateObjectInstruction : DefinitionInstruction
 	{
 		public IType AllocationType { get; set; }
-
+		
+		public IMethodReference Constructor { get; set; }
+		
 		public CreateObjectInstruction(uint offset, IVariable result, IType allocationType)
 			: base(offset, result)
 		{
