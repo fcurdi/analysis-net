@@ -15,7 +15,7 @@ using MethodCallInstruction = Model.ThreeAddressCode.Instructions.MethodCallInst
 using SizeofInstruction = Model.ThreeAddressCode.Instructions.SizeofInstruction;
 using StoreInstruction = Model.ThreeAddressCode.Instructions.StoreInstruction;
 using SwitchInstruction = Model.ThreeAddressCode.Instructions.SwitchInstruction;
-using Bytecode = Model.Bytecode;q
+using Bytecode = Model.Bytecode;
 
 
 namespace Backend.Transformations
