@@ -3,6 +3,7 @@ using System.Linq;
 using Backend.Utils;
 using Model;
 using Model.ThreeAddressCode.Instructions;
+using Model.ThreeAddressCode.Values;
 using Model.ThreeAddressCode.Visitor;
 using Model.Types;
 using ConvertInstruction = Model.ThreeAddressCode.Instructions.ConvertInstruction;
@@ -41,7 +42,7 @@ namespace Backend.Transformations
             body.MaxStack = method.Body.MaxStack;
             body.Parameters.AddRange(method.Body.Parameters);
             body.LocalVariables.AddRange(method.Body.LocalVariables);
-            body.ExceptionInformation.AddRange(method.Body.ExceptionInformation);
+            body.ExceptionInformation.AddRange(method.Body.ExceptionInformation); // FIXME this needs to be generated
 
             if (method.Body.Instructions.Count > 0)
             {
@@ -87,8 +88,26 @@ namespace Backend.Transformations
 
             public override void Visit(StoreInstruction instruction)
             {
-                // translate to store array element, store field, store indirect
-                throw new Exception();
+                Bytecode.Instruction storeInstruction;
+                switch (instruction.Result)
+                {
+                    case ArrayElementAccess arrayElementAccess:
+                        storeInstruction = new Bytecode.StoreArrayElementInstruction(instruction.Offset, (ArrayType) arrayElementAccess.Array.Type);
+                        break;
+                    case Dereference dereference:
+                        storeInstruction = new Bytecode.StoreIndirectInstruction(instruction.Offset, dereference.Type);
+                        break;
+                    case InstanceFieldAccess instanceFieldAccess:
+                        storeInstruction = new Bytecode.StoreFieldInstruction(instruction.Offset, instanceFieldAccess.Field);
+                        break;
+                    case StaticFieldAccess staticFieldAccess:
+                        storeInstruction = new Bytecode.StoreFieldInstruction(instruction.Offset, staticFieldAccess.Field);
+                        break;
+                    default:
+                        throw new Exception(); // TODO msg
+                }
+
+                body.Instructions.Add(storeInstruction);
             }
 
             public override void Visit(NopInstruction instruction)
@@ -105,22 +124,22 @@ namespace Backend.Transformations
 
             public override void Visit(TryInstruction instruction)
             {
-                throw new Exception();
+                // TODO
             }
 
             public override void Visit(FaultInstruction instruction)
             {
-                throw new Exception();
+                // TODO
             }
 
             public override void Visit(FinallyInstruction instruction)
             {
-                throw new Exception();
+                // TODO
             }
 
             public override void Visit(CatchInstruction instruction)
             {
-                throw new Exception();
+                // TODO
             }
 
             public override void Visit(ConvertInstruction instruction)
@@ -148,6 +167,7 @@ namespace Backend.Transformations
                 body.Instructions.Add(basicInstruction);
             }
 
+            // TODO branch, leave, false, true
             public override void Visit(UnconditionalBranchInstruction instruction)
             {
                 var unconditionalBranchInstruction = new Bytecode.BranchInstruction(
@@ -227,7 +247,8 @@ namespace Backend.Transformations
 
             public override void Visit(InitializeObjectInstruction instruction)
             {
-                throw new Exception();
+                var initObjInstruction = new Bytecode.InitObjInstruction(instruction.Offset, instruction.TargetAddress.Type);
+                body.Instructions.Add(initObjInstruction);
             }
 
             public override void Visit(CopyObjectInstruction instruction)

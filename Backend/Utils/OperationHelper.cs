@@ -137,7 +137,7 @@ namespace Backend.Utils
 
 			return result;
 		}
-
+		
 		public static Bytecode.BranchOperation ToBranchOperation(Tac.BranchOperation operation)
 		{
 			switch (operation)
@@ -161,6 +161,7 @@ namespace Backend.Utils
 				case Tac.ConvertOperation.Box: return Bytecode.ConvertOperation.Box;
 				case Tac.ConvertOperation.Unbox: return Bytecode.ConvertOperation.Unbox;
 				case Tac.ConvertOperation.UnboxPtr: return Bytecode.ConvertOperation.Unbox;
+				case Tac.ConvertOperation.IsInst: return Bytecode.ConvertOperation.IsInst;
 				default: throw operation.ToUnknownValueException();
 			}
 		}

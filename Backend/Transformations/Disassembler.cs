@@ -306,6 +306,7 @@ namespace Backend.Transformations
 			public override void Visit(Bytecode.InitObjInstruction op)
 			{
 				var targetAddress = stack.Pop();
+				targetAddress = new TemporalVariable(targetAddress.Prefix, targetAddress.Index) { Type = op.Type};
 				var instruction = new Tac.InitializeObjectInstruction(op.Offset, targetAddress);
 				body.Instructions.Add(instruction);
 			}
@@ -578,9 +579,8 @@ namespace Backend.Transformations
 				}
 
 				var array = stack.Pop();
-
+				array = new TemporalVariable(array.Prefix, array.Index) { Type = op.Array };
 				indices.Reverse();
-
 				var dest = new ArrayElementAccess(array, indices);
 				var instruction = new Tac.StoreInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
@@ -900,6 +900,7 @@ namespace Backend.Transformations
             {
                 var source = stack.Pop();
                 var address = stack.Pop();
+                address = new TemporalVariable(address.Prefix, address.Index) { Type = new PointerType(op.Type) };
                 var dest = new Dereference(address);
                 var instruction = new Tac.StoreInstruction(op.Offset, dest, source);
                 body.Instructions.Add(instruction);

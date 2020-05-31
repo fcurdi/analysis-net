@@ -430,18 +430,15 @@ namespace Console
 		var loader = new MetadataProvider.Loader(host);
 		var assembly = loader.LoadAssembly("../../../Examples/bin/Debug/Examples.dll");
 		var methods = assembly.RootNamespace.Namespaces[4].Types[0].Methods;
+
+		foreach (var method in methods.Where(method => method.HasBody))
+		{
+			method.Body = new Disassembler(method).Execute(); // to tac
+			var newBody = new Assembler(method).Execute();
 		
-		var method = methods[1];
-		method.Body = new Disassembler(method).Execute(); // to tac
-		var assembler = new Assembler(method);
-		var newBody = assembler.Execute();
-
-		//RunSomeTests();
-			// RunGenericsTests();
-			//RunInterPointsToTests();
-
-			System.Console.WriteLine("Done!");
-			// System.Console.ReadKey();
+		}
+		
+		System.Console.WriteLine("Done!");
 		}
 	}
 }
