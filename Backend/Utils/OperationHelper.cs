@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Model;
+using Model.ThreeAddressCode.Values;
 using Bytecode = Model.Bytecode;
 using Tac = Model.ThreeAddressCode.Instructions;
 
@@ -138,10 +139,12 @@ namespace Backend.Utils
 			return result;
 		}
 		
-		public static Bytecode.BranchOperation ToBranchOperation(Tac.BranchOperation operation)
+		public static Bytecode.BranchOperation ToBranchOperation(Tac.BranchOperation operation, IInmediateValue value)
 		{
 			switch (operation)
 			{
+				case Tac.BranchOperation.Eq when new Constant(true).Equals(value): return Bytecode.BranchOperation.True;
+				case Tac.BranchOperation.Eq when new Constant(false).Equals(value): return Bytecode.BranchOperation.False;
 				case Tac.BranchOperation.Eq: return Bytecode.BranchOperation.Eq;
 				case Tac.BranchOperation.Neq: return Bytecode.BranchOperation.Neq;
 				case Tac.BranchOperation.Lt: return Bytecode.BranchOperation.Lt;
@@ -204,6 +207,16 @@ namespace Backend.Utils
 				case Tac.MethodCallOperation.Static: return Bytecode.MethodCallOperation.Static;
 				case Tac.MethodCallOperation.Virtual: return Bytecode.MethodCallOperation.Virtual;
 				case Tac.MethodCallOperation.Jump: return Bytecode.MethodCallOperation.Jump;
+				default: throw operation.ToUnknownValueException();
+			}
+		}
+
+		public static Bytecode.BranchOperation ToBranchOperation(Tac.UnconditionalBranchOperation operation)
+		{
+			switch (operation)
+			{
+				case Tac.UnconditionalBranchOperation.Branch: return Bytecode.BranchOperation.Branch;
+				case Tac.UnconditionalBranchOperation.Leave: return Bytecode.BranchOperation.Leave;
 				default: throw operation.ToUnknownValueException();
 			}
 		}

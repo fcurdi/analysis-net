@@ -46,6 +46,12 @@ namespace Model.ThreeAddressCode.Instructions
 		Gt,
 		Ge
 	}
+	
+	public enum UnconditionalBranchOperation
+	{
+		Branch,
+		Leave
+	}
 
 	public enum ConvertOperation
 	{
@@ -724,14 +730,18 @@ namespace Model.ThreeAddressCode.Instructions
 
 	public class UnconditionalBranchInstruction : BranchInstruction
 	{
-		public UnconditionalBranchInstruction(uint offset, uint target)
+		public UnconditionalBranchOperation Operation { get; set; }
+		
+		public UnconditionalBranchInstruction(uint offset, uint target, UnconditionalBranchOperation operation = UnconditionalBranchOperation.Branch)
 			: base(offset, target)
 		{
+			this.Operation = operation;
 		}
 
-		public UnconditionalBranchInstruction(uint offset, string target)
+		public UnconditionalBranchInstruction(uint offset, string target, UnconditionalBranchOperation operation = UnconditionalBranchOperation.Branch)
 			: base(offset, target)
 		{
+			this.Operation = operation;
 		}
 
 		public override void Accept(IInstructionVisitor visitor)

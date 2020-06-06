@@ -39,10 +39,10 @@ namespace Backend.Transformations
         {
             var body = new MethodBody(MethodBodyKind.Bytecode);
 
-            body.MaxStack = method.Body.MaxStack;
+            body.MaxStack = method.Body.MaxStack; // FIXME 
             body.Parameters.AddRange(method.Body.Parameters);
             body.LocalVariables.AddRange(method.Body.LocalVariables);
-            body.ExceptionInformation.AddRange(method.Body.ExceptionInformation); // FIXME this needs to be generated
+            // body.ExceptionInformation.AddRange(method.Body.ExceptionInformation); // FIXME this needs to be generated
 
             if (method.Body.Instructions.Count > 0)
             {
@@ -83,7 +83,76 @@ namespace Backend.Transformations
                 // loadStaticFieldAddress, loadInnstanceFieldAddress, loadIndirect, loadConstant, loadVariable, loadVariableAddress, 
                 // loadStaticMethodAddress, loadVirtualMethodAddress,
                 // StoreInstruction? CreateObjectInstruction? (se genera una en el visit de ambos)
-                throw new Exception();
+
+                Bytecode.Instruction loadInstruction;
+                if (instruction.Operand is TemporalVariable && instruction.Result is TemporalVariable)
+                {
+                    if (instruction.Operand.Equals(instruction.Result))
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        loadInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Dup);
+                    }
+                }
+                else
+                {
+                    switch (instruction.Operand)
+                    {
+                        case Constant constant:
+                            loadInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Value, constant);
+                            break;
+                        case TemporalVariable _:
+                            loadInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Content, instruction.Result);
+                            break;
+                        case Dereference dereference:
+                            loadInstruction = new Bytecode.LoadIndirectInstruction(instruction.Offset, dereference.Type);
+                            break;
+                        case Reference reference:
+                            switch (reference.Value)
+                            {
+                                case ArrayElementAccess arrayElementAccess:
+                                case LocalVariable localVariable:
+                                    loadInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Address,
+                                        instruction.Result);
+                                    break;
+                                default:
+                                    throw new Exception();
+                            }
+
+                            break;
+                        case LocalVariable _: throw new Exception();
+                        case ArrayLengthAccess _:
+                            loadInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.LoadArrayLength);
+                            break;
+                        case StaticMethodReference staticMethodReference:
+                            loadInstruction = new Bytecode.LoadMethodAddressInstruction(
+                                instruction.Offset,
+                                Bytecode.LoadMethodAddressOperation.Static,
+                                staticMethodReference.Method);
+                            break;
+                        case InstanceFieldAccess instanceFieldAccess:
+                            // fixme es content?
+                            loadInstruction = new Bytecode.LoadFieldInstruction(instruction.Offset, Bytecode.LoadFieldOperation.Content,
+                                instanceFieldAccess.Field);
+                            break;
+                        case StaticFieldAccess staticFieldAccess:
+                            // fixme es content?
+                            loadInstruction = new Bytecode.LoadFieldInstruction(instruction.Offset, Bytecode.LoadFieldOperation.Content,
+                                staticFieldAccess.Field);
+                            break;
+                        case ArrayElementAccess arrayElementAccess:
+                            loadInstruction = new Bytecode.LoadArrayElementInstruction(
+                                instruction.Offset,
+                                Bytecode.LoadArrayElementOperation.Content,
+                                (ArrayType) arrayElementAccess.Array.Type);
+                            break;
+                        default: throw new Exception();
+                    }
+                }
+
+                body.Instructions.Add(loadInstruction);
             }
 
             public override void Visit(StoreInstruction instruction)
@@ -124,22 +193,22 @@ namespace Backend.Transformations
 
             public override void Visit(TryInstruction instruction)
             {
-                // TODO
+                throw new Exception();
             }
 
             public override void Visit(FaultInstruction instruction)
             {
-                // TODO
+                throw new Exception();
             }
 
             public override void Visit(FinallyInstruction instruction)
             {
-                // TODO
+                throw new Exception();
             }
 
             public override void Visit(CatchInstruction instruction)
             {
-                // TODO
+                throw new Exception();
             }
 
             public override void Visit(ConvertInstruction instruction)
@@ -167,12 +236,11 @@ namespace Backend.Transformations
                 body.Instructions.Add(basicInstruction);
             }
 
-            // TODO branch, leave, false, true
             public override void Visit(UnconditionalBranchInstruction instruction)
             {
                 var unconditionalBranchInstruction = new Bytecode.BranchInstruction(
                     instruction.Offset,
-                    Bytecode.BranchOperation.Branch,
+                    OperationHelper.ToBranchOperation(instruction.Operation),
                     Convert.ToUInt32(instruction.Target.Substring(2), 16));
                 body.Instructions.Add(unconditionalBranchInstruction);
             }
@@ -181,7 +249,7 @@ namespace Backend.Transformations
             {
                 var conditionalBranchInstruction = new Bytecode.BranchInstruction(
                     instruction.Offset,
-                    OperationHelper.ToBranchOperation(instruction.Operation),
+                    OperationHelper.ToBranchOperation(instruction.Operation, instruction.RightOperand),
                     Convert.ToUInt32(instruction.Target.Substring(2), 16));
                 body.Instructions.Add(conditionalBranchInstruction);
             }

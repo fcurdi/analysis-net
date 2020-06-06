@@ -465,7 +465,7 @@ namespace Backend.Transformations
 
 				if (!isTryFinallyEnd)
 				{
-					var instruction = new Tac.UnconditionalBranchInstruction(op.Offset, op.Target);
+					var instruction = new Tac.UnconditionalBranchInstruction(op.Offset, op.Target, Tac.UnconditionalBranchOperation.Leave);
 					body.Instructions.Add(instruction);
 				}
 			}
@@ -537,6 +537,7 @@ namespace Backend.Transformations
                 }
 
                 var array = stack.Pop(); 
+                array = new TemporalVariable(array.Prefix, array.Index) { Type = op.Array };
 
                 indices.Reverse();
 
@@ -557,6 +558,7 @@ namespace Backend.Transformations
 				}
 
 				var array = stack.Pop();
+				array = new TemporalVariable(array.Prefix, array.Index) { Type = op.Array };
 
 				indices.Reverse();
 
@@ -736,6 +738,7 @@ namespace Backend.Transformations
             public override void Visit(Bytecode.LoadIndirectInstruction op)
             {
                 var address = stack.Pop();
+                address = new TemporalVariable(address.Prefix, address.Index) { Type = new PointerType(op.Type) };
                 var dest = stack.Push();
                 var source = new Dereference(address);
                 var instruction = new Tac.LoadInstruction(op.Offset, dest, source);

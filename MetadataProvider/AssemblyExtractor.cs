@@ -1415,10 +1415,37 @@ namespace MetadataProvider
 			CreateGenericParameterReferences(GenericParameterKind.Method, genericArguments.Length);
 
 			var method = GetMethodReference(methodspec.Method);
-			method = method.Instantiate(genericArguments);
+			method = new MethodInstantiationProxy(method, genericArguments);
 
 			BindGenericParameterReferences(GenericParameterKind.Method, method);
 			return method;
+		}
+		
+		// TODO make copies of collections
+		private class MethodInstantiationProxy : IMethodReference
+		{
+			public IBasicType ContainingType => method.ContainingType;
+			public ISet<CustomAttribute> Attributes => method.Attributes;
+			public int GenericParameterCount => method.GenericParameterCount;
+			public IType ReturnType => method.ReturnType;
+			public string Name => method.Name;
+			public string GenericName => method.GenericName;
+			public IList<IMethodParameterReference> Parameters => method.Parameters;
+			public IList<IType> GenericArguments => genericArguments;
+			public IMethodReference GenericMethod => method;
+			public MethodDefinition ResolvedMethod => throw new NotImplementedException();
+			public bool IsStatic => method.IsStatic;
+			public bool IsVirtual => method.IsVirtual;
+
+			private readonly IMethodReference method;
+			private readonly IList<IType> genericArguments;
+
+			public MethodInstantiationProxy(IMethodReference method, IEnumerable<IType> genericArguments)
+			{
+				this.method = method;
+				this.genericArguments = new List<IType>();
+				this.genericArguments.AddRange(genericArguments);
+			}
 		}
 
 		private IMethodReference GetMethodReference(SRM.EntityHandle handle)
