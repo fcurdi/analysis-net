@@ -28,6 +28,7 @@ namespace Model.ThreeAddressCode.Visitor
 		public virtual void Visit(NopInstruction instruction) { }
 		public virtual void Visit(BreakpointInstruction instruction) { }
 		public virtual void Visit(TryInstruction instruction) { }
+		public virtual void Visit(FilterInstruction instruction) { }
 		public virtual void Visit(FaultInstruction instruction) { }
 		public virtual void Visit(FinallyInstruction instruction) { }
 		public virtual void Visit(CatchInstruction instruction) { }

@@ -210,15 +210,5 @@ namespace Backend.Utils
 				default: throw operation.ToUnknownValueException();
 			}
 		}
-
-		public static Bytecode.BranchOperation ToBranchOperation(Tac.UnconditionalBranchOperation operation)
-		{
-			switch (operation)
-			{
-				case Tac.UnconditionalBranchOperation.Branch: return Bytecode.BranchOperation.Branch;
-				case Tac.UnconditionalBranchOperation.Leave: return Bytecode.BranchOperation.Leave;
-				default: throw operation.ToUnknownValueException();
-			}
-		}
 	}
 }

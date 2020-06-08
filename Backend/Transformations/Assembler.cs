@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Backend.Utils;
 using Model;
 using Model.ThreeAddressCode.Instructions;
@@ -42,7 +44,6 @@ namespace Backend.Transformations
             body.MaxStack = method.Body.MaxStack; // FIXME 
             body.Parameters.AddRange(method.Body.Parameters);
             body.LocalVariables.AddRange(method.Body.LocalVariables);
-            // body.ExceptionInformation.AddRange(method.Body.ExceptionInformation); // FIXME this needs to be generated
 
             if (method.Body.Instructions.Count > 0)
             {
@@ -55,6 +56,7 @@ namespace Backend.Transformations
         private class InstructionTranslator : InstructionVisitor
         {
             private readonly MethodBody body;
+            private readonly Stack<ExceptionBlockBuilder> exceptionBlocks = new Stack<ExceptionBlockBuilder>();
 
             public InstructionTranslator(MethodBody body)
             {
@@ -83,6 +85,7 @@ namespace Backend.Transformations
                 // loadStaticFieldAddress, loadInnstanceFieldAddress, loadIndirect, loadConstant, loadVariable, loadVariableAddress, 
                 // loadStaticMethodAddress, loadVirtualMethodAddress,
                 // StoreInstruction? CreateObjectInstruction? (se genera una en el visit de ambos)
+                // FIXME revisar los casos, hay algunos que no estoy seguro de que esten bien.
 
                 Bytecode.Instruction loadInstruction;
                 if (instruction.Operand is TemporalVariable && instruction.Result is TemporalVariable)
@@ -112,17 +115,21 @@ namespace Backend.Transformations
                         case Reference reference:
                             switch (reference.Value)
                             {
-                                case ArrayElementAccess arrayElementAccess:
-                                case LocalVariable localVariable:
-                                    loadInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Address,
+                                case ArrayElementAccess _:
+                                case LocalVariable _:
+                                    loadInstruction = new Bytecode.LoadInstruction(
+                                        instruction.Offset,
+                                        Bytecode.LoadOperation.Address,
                                         instruction.Result);
                                     break;
                                 default:
-                                    throw new Exception();
+                                    throw new Exception(); // TODO
                             }
 
                             break;
-                        case LocalVariable _: throw new Exception();
+                        case LocalVariable localVariable:
+                            loadInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Content, localVariable);
+                            break;
                         case ArrayLengthAccess _:
                             loadInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.LoadArrayLength);
                             break;
@@ -148,7 +155,7 @@ namespace Backend.Transformations
                                 Bytecode.LoadArrayElementOperation.Content,
                                 (ArrayType) arrayElementAccess.Array.Type);
                             break;
-                        default: throw new Exception();
+                        default: throw new Exception(); // TODO
                     }
                 }
 
@@ -181,8 +188,20 @@ namespace Backend.Transformations
 
             public override void Visit(NopInstruction instruction)
             {
-                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Nop);
-                body.Instructions.Add(basicInstruction);
+                var endsFilterOrFinally = exceptionBlocks.Count > 0 && (
+                    ExceptionHandlerBlockKind.Filter.Equals(exceptionBlocks.Peek().HandlerBlockKind.Value) ||
+                    ExceptionHandlerBlockKind.Finally.Equals(exceptionBlocks.Peek().HandlerBlockKind.Value));
+                if (endsFilterOrFinally)
+                {
+                    var exceptionBlockBuilder = exceptionBlocks.Pop();
+                    exceptionBlockBuilder.HandlerEnd = instruction.Offset;
+                    body.ExceptionInformation.Add(exceptionBlockBuilder.Build());
+                }
+                else
+                {
+                    var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Nop);
+                    body.Instructions.Add(basicInstruction);
+                }
             }
 
             public override void Visit(BreakpointInstruction instruction)
@@ -191,24 +210,49 @@ namespace Backend.Transformations
                 body.Instructions.Add(basicInstruction);
             }
 
+            // TODO en el bytecode no hay instrucciones de todo lo que es exception handling. 
+            // Hay que usar estas del tac que si hay para crear el exceptionInformation del method me parece usando las mismas para 
+            // tener bien los labels en dodne estan. Hay que ver que los handlers y las excepciones si es que esta todo o habra que agregar algo.
+            // la idea es que voy pusheando a la pila los bloques asi los voy completando y cuadno tengo la instruccion que lo termina (
+            // la que sale del bloque) lo construyo, lo saco de la pila y lo agrego.
+            // El tema es que
+            //     - Para lo que es endFilter/endFinally, La traduccion de Bytecode a Tac genera un Nop. Hay que ver si lo que hice en el nop esta bien.
+            //     Mismo con el leave. Ver esos metodos de extensions de CanFallThrough, IsExitingMethod, etc.
+
             public override void Visit(TryInstruction instruction)
             {
-                throw new Exception();
+                var exceptionBlockBuilder = new ExceptionBlockBuilder {TryStart = instruction.Offset};
+                exceptionBlocks.Push(exceptionBlockBuilder);
             }
 
             public override void Visit(FaultInstruction instruction)
             {
-                throw new Exception();
+                var exceptionBlockBuilder = exceptionBlocks.Last();
+                exceptionBlockBuilder.HandlerStart = instruction.Offset;
+                exceptionBlockBuilder.HandlerBlockKind = ExceptionHandlerBlockKind.Fault;
             }
 
             public override void Visit(FinallyInstruction instruction)
             {
-                throw new Exception();
+                var exceptionBlockBuilder = exceptionBlocks.Last();
+                exceptionBlockBuilder.HandlerStart = instruction.Offset;
+                exceptionBlockBuilder.HandlerBlockKind = ExceptionHandlerBlockKind.Finally;
+            }
+
+            public override void Visit(FilterInstruction instruction)
+            {
+                var exceptionBlockBuilder = exceptionBlocks.Last();
+                exceptionBlockBuilder.HandlerStart = null; //FIXME
+                exceptionBlockBuilder.HandlerBlockKind = ExceptionHandlerBlockKind.Filter;
+                exceptionBlockBuilder.ExceptionType = instruction.ExceptionType;
             }
 
             public override void Visit(CatchInstruction instruction)
             {
-                throw new Exception();
+                var exceptionBlockBuilder = exceptionBlocks.Last();
+                exceptionBlockBuilder.HandlerStart = instruction.Offset;
+                exceptionBlockBuilder.HandlerBlockKind = ExceptionHandlerBlockKind.Catch;
+                exceptionBlockBuilder.ExceptionType = instruction.ExceptionType;
             }
 
             public override void Visit(ConvertInstruction instruction)
@@ -232,17 +276,59 @@ namespace Backend.Transformations
 
             public override void Visit(ThrowInstruction instruction)
             {
-                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Throw);
-                body.Instructions.Add(basicInstruction);
+                if (exceptionBlocks.Count > 0)
+                {
+                    var exceptionBlockBuilder = exceptionBlocks.Peek();
+                    if (exceptionBlockBuilder.HandlerStart == null) // fixme mismo comentario que en el leave
+                    {
+                        exceptionBlockBuilder.TryEnd = instruction.Offset;
+                    }
+                    else
+                    {
+                        // rethrow
+                        exceptionBlockBuilder = exceptionBlocks.Pop();
+                        exceptionBlockBuilder.HandlerEnd = instruction.Offset;
+                        // exceptionBlockBuilder.ExceptionType = null; // FIXME ? al ser un rethrow, ya esta seteado esto por un anterior throw?
+                        // fixme sin embargo en la rama del if, no habria que setear la excepcion?
+                    }
+                }
+                else
+                {
+                    var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Throw);
+                    body.Instructions.Add(basicInstruction);
+                }
             }
 
             public override void Visit(UnconditionalBranchInstruction instruction)
             {
-                var unconditionalBranchInstruction = new Bytecode.BranchInstruction(
-                    instruction.Offset,
-                    OperationHelper.ToBranchOperation(instruction.Operation),
-                    Convert.ToUInt32(instruction.Target.Substring(2), 16));
-                body.Instructions.Add(unconditionalBranchInstruction);
+                switch (instruction.Operation)
+                {
+                    // FIXME leave can be used for another purpose than exiting a protected region?
+                    case UnconditionalBranchOperation.Leave when exceptionBlocks.Count == 0:
+                    case UnconditionalBranchOperation.Branch:
+                        var unconditionalBranchInstruction = new Bytecode.BranchInstruction(
+                            instruction.Offset,
+                            Bytecode.BranchOperation.Branch,
+                            Convert.ToUInt32(instruction.Target.Substring(2), 16));
+                        body.Instructions.Add(unconditionalBranchInstruction);
+                        break;
+                    case UnconditionalBranchOperation.Leave:
+                        var exceptionBlockBuilder = exceptionBlocks.Peek();
+                        if (exceptionBlockBuilder.HandlerStart == null) // FIXME estoy asumiendo que si no se seteo el handler es porque es un try aun
+                            //  FIXME es correcto esto? Si lo es quiza puedo poner un metodo que diga que todavia estoy en el try asi se entiende mas
+                        {
+                            exceptionBlockBuilder.TryEnd = instruction.Offset;
+                        }
+                        else
+                        {
+                            exceptionBlockBuilder = exceptionBlocks.Pop();
+                            exceptionBlockBuilder.HandlerEnd = instruction.Offset;
+                            body.ExceptionInformation.Add(exceptionBlockBuilder.Build());
+                        }
+
+                        break;
+                    default: throw instruction.Operation.ToUnknownValueException();
+                }
             }
 
             public override void Visit(ConditionalBranchInstruction instruction)
@@ -338,6 +424,49 @@ namespace Backend.Transformations
             public override void Visit(PhiInstruction instruction)
             {
                 throw new Exception();
+            }
+
+            private class ExceptionBlockBuilder
+            {
+                public uint? TryStart;
+                public uint? TryEnd;
+                public uint? HandlerStart;
+                public uint? HandlerEnd;
+                public ExceptionHandlerBlockKind? HandlerBlockKind;
+                public IType ExceptionType;
+
+                public ProtectedBlock Build()
+                {
+                    if (TryStart == null) throw new Exception("TryStart not set");
+                    if (TryEnd == null) throw new Exception("TryEnd not set");
+                    if (HandlerStart == null) throw new Exception("HandlerStart not set");
+                    if (HandlerEnd == null) throw new Exception("HandlerEnd not set");
+                    if (HandlerBlockKind == null) throw new Exception("HandlerBlockKind not set");
+                    IExceptionHandler handler;
+                    switch (HandlerBlockKind)
+                    {
+                        case ExceptionHandlerBlockKind.Filter:
+                            if (ExceptionType == null) throw new Exception("ExceptionType not set");
+                            handler = new FilterExceptionHandler(TryEnd.Value, HandlerStart.Value, HandlerEnd.Value, ExceptionType);
+                            break;
+                        case ExceptionHandlerBlockKind.Catch:
+                            if (ExceptionType == null) throw new Exception("ExceptionType not set");
+                            handler = new CatchExceptionHandler(HandlerStart.Value, HandlerEnd.Value, ExceptionType);
+                            break;
+                        case ExceptionHandlerBlockKind.Fault:
+                            handler = new FaultExceptionHandler(HandlerStart.Value, HandlerEnd.Value);
+                            break;
+                        case ExceptionHandlerBlockKind.Finally:
+                            handler = new FinallyExceptionHandler(HandlerStart.Value, HandlerEnd.Value);
+                            break;
+                        default: throw new UnknownValueException<ExceptionHandlerBlockKind>(HandlerBlockKind.Value);
+                    }
+
+                    return new ProtectedBlock(TryStart.Value, TryEnd.Value)
+                    {
+                        Handler = handler
+                    };
+                }
             }
         }
     }
