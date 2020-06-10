@@ -50,7 +50,9 @@ namespace Model.ThreeAddressCode.Instructions
 	public enum UnconditionalBranchOperation
 	{
 		Branch,
-		Leave
+		Leave,
+		EndFinally,
+		EndFilter
 	}
 
 	public enum ConvertOperation
@@ -68,6 +70,13 @@ namespace Model.ThreeAddressCode.Instructions
 		Static,
 		Virtual,
 		Jump
+	}
+
+	// FIXME names
+	public enum FilterInstructionKind
+	{
+		FilterSection,
+		FilterHandler
 	}
 
 	public abstract class Instruction : IInstruction
@@ -478,10 +487,13 @@ namespace Model.ThreeAddressCode.Instructions
 	{
 		public IType ExceptionType { get; set; }
 
-		public FilterInstruction(uint offset, IVariable result, IType exceptionType)
+		public FilterInstructionKind kind { get; private set; }
+
+		public FilterInstruction(uint offset, IVariable result, IType exceptionType, FilterInstructionKind kind)
 			: base(offset, result)
 		{
 			this.ExceptionType = exceptionType;
+			this.kind = kind;
 		}
 
 		public override void Accept(IInstructionVisitor visitor)
@@ -497,7 +509,11 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return this.ToString("filter {0} {1}", this.ExceptionType, this.Result);
+			return this.ToString(
+				"filter {0} {1} {2}",
+				kind == FilterInstructionKind.FilterSection ? "section" : "handler",
+				this.ExceptionType, 
+				this.Result);
 		}
 	}
 

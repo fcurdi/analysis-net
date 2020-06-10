@@ -256,7 +256,8 @@ namespace Backend.Transformations
 			{
 				stack.Clear();
 
-				ProcessEmptyOperation(op);
+				var instruction = new Tac.UnconditionalBranchInstruction(op.Offset, op.Offset+1, Tac.UnconditionalBranchOperation.EndFinally);
+				body.Instructions.Add(instruction);
 
 				//// TODO: Maybe we don't need to add this branch instruction
 				//// since it is jumping to the next one,
@@ -281,7 +282,8 @@ namespace Backend.Transformations
 			{
 				stack.Clear();
 
-				ProcessEmptyOperation(op);
+				var instruction = new Tac.UnconditionalBranchInstruction(op.Offset, op.Offset+1, Tac.UnconditionalBranchOperation.EndFilter);
+				body.Instructions.Add(instruction);
 			}
 
 			private void ProcessLocalAllocation(Bytecode.BasicInstruction op)
@@ -1014,6 +1016,10 @@ namespace Backend.Transformations
 			foreach (var protectedBlock in method.Body.ExceptionInformation)
 			{
 				exceptionHandlersStart.Add(protectedBlock.Start, protectedBlock);
+				if (protectedBlock.Handler is FilterExceptionHandler filterExceptionHandler)
+				{
+					exceptionHandlersStart.Add(filterExceptionHandler.FilterStart, protectedBlock.Handler);
+				}
 				exceptionHandlersStart.Add(protectedBlock.Handler.Start, protectedBlock.Handler);
 				//exceptionHandlersEnd.Add(protectedBlock.End, protectedBlock);
 				//exceptionHandlersEnd.Add(protectedBlock.Handler.End, protectedBlock.Handler);
@@ -1049,8 +1055,11 @@ namespace Backend.Transformations
 						case ExceptionHandlerBlockKind.Filter:
 							// Push the exception into the stack
 							var filterException = stack.Push();
-							var filterBlock = block as FilterExceptionHandler;
-							instruction = new Tac.FilterInstruction(operation.Offset, filterException, filterBlock.ExceptionType);
+							var filterBlock = (FilterExceptionHandler) block;
+							var kind = operation.Label.Equals(filterBlock.FilterStart)
+								? Tac.FilterInstructionKind.FilterSection
+								: Tac.FilterInstructionKind.FilterHandler;
+							instruction = new Tac.FilterInstruction(operation.Offset, filterException, filterBlock.ExceptionType, kind);
 							break;
 
 						case ExceptionHandlerBlockKind.Catch:

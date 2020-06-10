@@ -1030,18 +1030,38 @@ namespace MethodBody
         }
 
 
-        public void ExceptionHandlingTryCatchFilter(int x)
+        public void ExceptionHandlingTryCatchMultipleFilter(int x)
         {
             try
             {
                 var y = 1 / x;
+            }
+            catch (EntryPointNotFoundException e) when (e.Message.Contains(""))
+            {
+                Console.WriteLine(e.Message);
             }
             catch (Exception ex) when (ex.Message.Contains("by zero"))
             {
                 Console.WriteLine(ex.Message);
             }
         }
-
+        
+        public void ExceptionHandlingMultipleCatchs(int x)
+        {
+            try
+            {
+                var y = 1 / x;
+            }
+            catch (EntryPointNotFoundException e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+        
         /* FIXME finally end label is wrong in the model (one more that it should be, that label does not exist)? this example results in an
          FIXME unmarked label. The IL though is generated correctly
         public void ExceptionHandlingTryCatchFinally(Exception e)

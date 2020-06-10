@@ -188,20 +188,8 @@ namespace Backend.Transformations
 
             public override void Visit(NopInstruction instruction)
             {
-                var endsFilterOrFinally = exceptionBlocks.Count > 0 && (
-                    ExceptionHandlerBlockKind.Filter.Equals(exceptionBlocks.Peek().HandlerBlockKind.Value) ||
-                    ExceptionHandlerBlockKind.Finally.Equals(exceptionBlocks.Peek().HandlerBlockKind.Value));
-                if (endsFilterOrFinally)
-                {
-                    var exceptionBlockBuilder = exceptionBlocks.Pop();
-                    exceptionBlockBuilder.HandlerEnd = instruction.Offset;
-                    body.ExceptionInformation.Add(exceptionBlockBuilder.Build());
-                }
-                else
-                {
-                    var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Nop);
-                    body.Instructions.Add(basicInstruction);
-                }
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Nop);
+                body.Instructions.Add(basicInstruction);
             }
 
             public override void Visit(BreakpointInstruction instruction)
@@ -209,15 +197,6 @@ namespace Backend.Transformations
                 var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Breakpoint);
                 body.Instructions.Add(basicInstruction);
             }
-
-            // TODO en el bytecode no hay instrucciones de todo lo que es exception handling. 
-            // Hay que usar estas del tac que si hay para crear el exceptionInformation del method me parece usando las mismas para 
-            // tener bien los labels en dodne estan. Hay que ver que los handlers y las excepciones si es que esta todo o habra que agregar algo.
-            // la idea es que voy pusheando a la pila los bloques asi los voy completando y cuadno tengo la instruccion que lo termina (
-            // la que sale del bloque) lo construyo, lo saco de la pila y lo agrego.
-            // El tema es que
-            //     - Para lo que es endFilter/endFinally, La traduccion de Bytecode a Tac genera un Nop. Hay que ver si lo que hice en el nop esta bien.
-            //     Mismo con el leave. Ver esos metodos de extensions de CanFallThrough, IsExitingMethod, etc.
 
             public override void Visit(TryInstruction instruction)
             {
@@ -239,10 +218,11 @@ namespace Backend.Transformations
                 exceptionBlockBuilder.HandlerBlockKind = ExceptionHandlerBlockKind.Finally;
             }
 
+            //FIXME ajustar ahora que estan separados la parte del filter del handler del filter. Hay que cambiar tmb cuando sale del block de filter
             public override void Visit(FilterInstruction instruction)
             {
                 var exceptionBlockBuilder = exceptionBlocks.Last();
-                exceptionBlockBuilder.HandlerStart = null; //FIXME
+                exceptionBlockBuilder.HandlerStart = instruction.Offset;
                 exceptionBlockBuilder.HandlerBlockKind = ExceptionHandlerBlockKind.Filter;
                 exceptionBlockBuilder.ExceptionType = instruction.ExceptionType;
             }
@@ -299,6 +279,7 @@ namespace Backend.Transformations
                 }
             }
 
+            // todo emprolijar
             public override void Visit(UnconditionalBranchInstruction instruction)
             {
                 switch (instruction.Operation)
@@ -306,13 +287,24 @@ namespace Backend.Transformations
                     // FIXME leave can be used for another purpose than exiting a protected region?
                     case UnconditionalBranchOperation.Leave when exceptionBlocks.Count == 0:
                     case UnconditionalBranchOperation.Branch:
+                    {
                         var unconditionalBranchInstruction = new Bytecode.BranchInstruction(
                             instruction.Offset,
                             Bytecode.BranchOperation.Branch,
                             Convert.ToUInt32(instruction.Target.Substring(2), 16));
                         body.Instructions.Add(unconditionalBranchInstruction);
                         break;
+                    }
+                    case UnconditionalBranchOperation.EndFinally:
+                    case UnconditionalBranchOperation.EndFilter: //FIXME adaptar por lo nuevo del filter
+                    {
+                        var exceptionBlockBuilder = exceptionBlocks.Pop();
+                        exceptionBlockBuilder.HandlerEnd = instruction.Offset;
+                        body.ExceptionInformation.Add(exceptionBlockBuilder.Build());
+                        break;
+                    }
                     case UnconditionalBranchOperation.Leave:
+                    {
                         var exceptionBlockBuilder = exceptionBlocks.Peek();
                         if (exceptionBlockBuilder.HandlerStart == null) // FIXME estoy asumiendo que si no se seteo el handler es porque es un try aun
                             //  FIXME es correcto esto? Si lo es quiza puedo poner un metodo que diga que todavia estoy en el try asi se entiende mas
@@ -327,6 +319,7 @@ namespace Backend.Transformations
                         }
 
                         break;
+                    }
                     default: throw instruction.Operation.ToUnknownValueException();
                 }
             }

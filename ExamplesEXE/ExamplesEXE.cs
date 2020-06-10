@@ -37,7 +37,7 @@ namespace ExamplesEXE
             Console.WriteLine(methodBodyExamples.StoreValue(100));
             methodBodyExamples.ExceptionHandlingTryCatchSpecific(0);
             methodBodyExamples.ExceptionHandlingTryCatch(0);
-            methodBodyExamples.ExceptionHandlingTryCatchFilter(0);
+            methodBodyExamples.ExceptionHandlingTryCatchMultipleFilter(0);
             Console.WriteLine(methodBodyExamples.LoadField());
             Console.WriteLine(methodBodyExamples.StoreField());
             methodBodyExamples.Calls(sc, e => 5);
