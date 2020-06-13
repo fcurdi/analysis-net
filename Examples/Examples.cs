@@ -1030,7 +1030,7 @@ namespace MethodBody
         }
 
 
-        public void ExceptionHandlingTryCatchMultipleFilter(int x)
+        public void ExceptionHandlingMultipleFilter(int x)
         {
             try
             {

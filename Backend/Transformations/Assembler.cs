@@ -85,7 +85,7 @@ namespace Backend.Transformations
                 // loadStaticFieldAddress, loadInnstanceFieldAddress, loadIndirect, loadConstant, loadVariable, loadVariableAddress, 
                 // loadStaticMethodAddress, loadVirtualMethodAddress,
                 // StoreInstruction? CreateObjectInstruction? (se genera una en el visit de ambos)
-                // FIXME revisar los casos, hay algunos que no estoy seguro de que esten bien.
+                // FIXME revisar los casos, hay algunos que no estoy seguro de que esten bien. se repiten caminos ademas (sobretodo por el reference)
 
                 Bytecode.Instruction loadInstruction;
                 if (instruction.Operand is TemporalVariable && instruction.Result is TemporalVariable)
@@ -121,6 +121,11 @@ namespace Backend.Transformations
                                         instruction.Offset,
                                         Bytecode.LoadOperation.Address,
                                         instruction.Result);
+                                    break;
+                                case InstanceFieldAccess instanceFieldAccess:
+                                    // fixme es content?
+                                    loadInstruction = new Bytecode.LoadFieldInstruction(instruction.Offset, Bytecode.LoadFieldOperation.Content,
+                                        instanceFieldAccess.Field);
                                     break;
                                 default:
                                     throw new Exception(); // TODO
@@ -206,22 +211,21 @@ namespace Backend.Transformations
 
             public override void Visit(FaultInstruction instruction)
             {
-                var exceptionBlockBuilder = exceptionBlocks.Last();
+                var exceptionBlockBuilder = exceptionBlocks.Peek();
                 exceptionBlockBuilder.HandlerStart = instruction.Offset;
                 exceptionBlockBuilder.HandlerBlockKind = ExceptionHandlerBlockKind.Fault;
             }
 
             public override void Visit(FinallyInstruction instruction)
             {
-                var exceptionBlockBuilder = exceptionBlocks.Last();
+                var exceptionBlockBuilder = exceptionBlocks.Peek();
                 exceptionBlockBuilder.HandlerStart = instruction.Offset;
                 exceptionBlockBuilder.HandlerBlockKind = ExceptionHandlerBlockKind.Finally;
             }
 
-            //FIXME ajustar ahora que estan separados la parte del filter del handler del filter. Hay que cambiar tmb cuando sale del block de filter
             public override void Visit(FilterInstruction instruction)
             {
-                var exceptionBlockBuilder = exceptionBlocks.Last();
+                var exceptionBlockBuilder = exceptionBlocks.Peek();
                 exceptionBlockBuilder.HandlerStart = instruction.Offset;
                 exceptionBlockBuilder.HandlerBlockKind = ExceptionHandlerBlockKind.Filter;
                 exceptionBlockBuilder.ExceptionType = instruction.ExceptionType;
@@ -229,7 +233,7 @@ namespace Backend.Transformations
 
             public override void Visit(CatchInstruction instruction)
             {
-                var exceptionBlockBuilder = exceptionBlocks.Last();
+                var exceptionBlockBuilder = exceptionBlocks.Peek();
                 exceptionBlockBuilder.HandlerStart = instruction.Offset;
                 exceptionBlockBuilder.HandlerBlockKind = ExceptionHandlerBlockKind.Catch;
                 exceptionBlockBuilder.ExceptionType = instruction.ExceptionType;
@@ -296,11 +300,15 @@ namespace Backend.Transformations
                         break;
                     }
                     case UnconditionalBranchOperation.EndFinally:
-                    case UnconditionalBranchOperation.EndFilter: //FIXME adaptar por lo nuevo del filter
                     {
                         var exceptionBlockBuilder = exceptionBlocks.Pop();
                         exceptionBlockBuilder.HandlerEnd = instruction.Offset;
                         body.ExceptionInformation.Add(exceptionBlockBuilder.Build());
+                        break;
+                    }
+                    case UnconditionalBranchOperation.EndFilter:
+                    {
+                        // nothing since filter area is the gap between try end and handler start
                         break;
                     }
                     case UnconditionalBranchOperation.Leave:
@@ -422,7 +430,9 @@ namespace Backend.Transformations
             private class ExceptionBlockBuilder
             {
                 public uint? TryStart;
+
                 public uint? TryEnd;
+
                 public uint? HandlerStart;
                 public uint? HandlerEnd;
                 public ExceptionHandlerBlockKind? HandlerBlockKind;
