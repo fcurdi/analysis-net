@@ -35,8 +35,6 @@ namespace Backend.Transformations
             this.method = method;
         }
 
-        // fixme ver si protectedblocks tiene que ser una pila e ir sacandolo meintras genero o si quiza puede ser una lista e ir cerandolos
-        // FIXME pero sacarlos y armarlos todos aca en el execute despues
         public MethodBody Execute()
         {
             var body = new MethodBody(MethodBodyKind.Bytecode);
@@ -218,51 +216,24 @@ namespace Backend.Transformations
                 }
             }
 
-            // FIXME este codigo se va a repetir entre todos los handlers
-            // FIXME revisar si siguen haciendo falta la separacion de filter que agregue (section, handler) y los endFIlter y eso
             public override void Visit(FaultInstruction instruction)
             {
-                var protectedBlockBuilder = protectedBlocks.Peek();
-                if (protectedBlockBuilder.Handlers.Count == 0) // first handler
-                {
-                    protectedBlockBuilder.TryEnd = instruction.Offset;
-                }
-                else // more than 1 handler
-                {
-                    protectedBlockBuilder
-                        .Handlers
-                        .Last()
-                        .HandlerEnd = instruction.Offset;
-                }
-
-                protectedBlockBuilder
-                    .Handlers
-                    .Add(new ExceptionHandlerBlockBuilder
+                protectedBlocks
+                    .Peek()
+                    .EndPreviousRegion(instruction.Offset)
+                    .Handlers.Add(new ExceptionHandlerBlockBuilder
                     {
                         HandlerStart = instruction.Offset,
                         HandlerBlockKind = ExceptionHandlerBlockKind.Fault,
                     });
             }
 
-            // There can only be one finallyBlock and is the last handler of a try block
             public override void Visit(FinallyInstruction instruction)
             {
-                var protectedBlockBuilder = protectedBlocks.Peek();
-                if (protectedBlockBuilder.Handlers.Count == 0) // try-finally 
-                {
-                    protectedBlockBuilder.TryEnd = instruction.Offset;
-                }
-                else // try-catch/filter-finally
-                {
-                    protectedBlockBuilder
-                        .Handlers
-                        .Last()
-                        .HandlerEnd = instruction.Offset;
-                }
-
-                protectedBlockBuilder
-                    .Handlers
-                    .Add(
+                protectedBlocks
+                    .Peek()
+                    .EndPreviousRegion(instruction.Offset)
+                    .Handlers.Add(
                         new ExceptionHandlerBlockBuilder
                         {
                             HandlerStart = instruction.Offset,
@@ -273,20 +244,13 @@ namespace Backend.Transformations
             public override void Visit(FilterInstruction instruction)
             {
                 var protectedBlockBuilder = protectedBlocks.Peek();
-                if (protectedBlockBuilder.Handlers.Count == 0) // first handler
-                {
-                    protectedBlockBuilder.TryEnd = instruction.Offset;
-                }
-                // fixme explain
-                else if (
-                    protectedBlockBuilder.Handlers.Last().HandlerBlockKind != ExceptionHandlerBlockKind.Filter ||
-                    instruction.kind == FilterInstructionKind.FilterSection)
-                {
-                    protectedBlockBuilder
-                        .Handlers
-                        .Last()
-                        .HandlerEnd = instruction.Offset;
-                }
+
+                // filter is a special case since it has a two regions (filter and handler). A filter in this TAC is moddeled as two FilterInstruction
+                // with different kinds. If the previous region is a Filter, it must be ended only if it is in it's handler part.
+                bool EndPreviousHandlerCondition() => protectedBlockBuilder.Handlers.Last().HandlerBlockKind != ExceptionHandlerBlockKind.Filter ||
+                                                      instruction.kind == FilterInstructionKind.FilterSection;
+
+                protectedBlockBuilder.EndPreviousRegion(instruction.Offset, EndPreviousHandlerCondition);
 
                 switch (instruction.kind)
                 {
@@ -309,20 +273,9 @@ namespace Backend.Transformations
 
             public override void Visit(CatchInstruction instruction)
             {
-                var protectedBlockBuilder = protectedBlocks.Peek();
-                if (protectedBlockBuilder.Handlers.Count == 0) // first handler
-                {
-                    protectedBlockBuilder.TryEnd = instruction.Offset;
-                }
-                else // more than one handler
-                {
-                    protectedBlockBuilder
-                        .Handlers
-                        .Last()
-                        .HandlerEnd = instruction.Offset;
-                }
-
-                protectedBlockBuilder
+                protectedBlocks
+                    .Peek()
+                    .EndPreviousRegion(instruction.Offset)
                     .Handlers
                     .Add(
                         new ExceptionHandlerBlockBuilder()
@@ -367,11 +320,9 @@ namespace Backend.Transformations
                     {
                         if (protectedBlocks.Count > 0)
                         {
-                            var exceptionBlockBuilder = protectedBlocks.Peek();
-                            if (exceptionBlockBuilder.AllHandlersAdded())
+                            if (protectedBlocks.Peek().AllHandlersAdded())
                             {
-                                // FIXME codigo repetido con el endfinally. 
-                                exceptionBlockBuilder = protectedBlocks.Pop();
+                                var exceptionBlockBuilder = protectedBlocks.Pop();
                                 exceptionBlockBuilder
                                     .Handlers
                                     .Last()
@@ -512,6 +463,9 @@ namespace Backend.Transformations
                 throw new Exception();
             }
 
+
+            #region ExceptionInformation
+
             private class ProtectedBlockBuilder
             {
                 private uint? tryStart;
@@ -528,7 +482,7 @@ namespace Backend.Transformations
 
                 private uint? tryEnd;
 
-                public uint TryEnd
+                private uint TryEnd
                 {
                     get => tryEnd ?? throw new Exception("TryEnd was not set");
                     set
@@ -540,13 +494,25 @@ namespace Backend.Transformations
 
                 public uint HandlerCount { get; set; }
 
-
-                // FIXME naming
                 public bool AllHandlersAdded() => HandlerCount == Handlers.Count;
 
-                public IList<ExceptionHandlerBlockBuilder> Handlers = new List<ExceptionHandlerBlockBuilder>();
-                //FIXME revisar si esto esta bien y como uso last(). Asumo que siempre el ultimo es el que quiero. Creo que tiene sentido
-                // FIXME por ejemplo en el FIlterInstruction cuando es handler estoy asumiendo que el last es un filter ya
+                public readonly IList<ExceptionHandlerBlockBuilder> Handlers = new List<ExceptionHandlerBlockBuilder>();
+
+                public ProtectedBlockBuilder EndPreviousRegion(uint offset) => EndPreviousRegion(offset, () => true);
+
+                public ProtectedBlockBuilder EndPreviousRegion(uint offset, Func<bool> multipleHandlerCondition)
+                {
+                    if (Handlers.Count == 0) // first handler, ends try region
+                    {
+                        TryEnd = offset;
+                    }
+                    else if (multipleHandlerCondition()) // multiple handlers. End previous handler conditionally
+                    {
+                        Handlers.Last().HandlerEnd = offset;
+                    }
+
+                    return this;
+                }
 
                 public IList<ProtectedBlock> Build() =>
                     Handlers
@@ -633,6 +599,8 @@ namespace Backend.Transformations
                     }
                 }
             }
+
+            #endregion
         }
     }
 }
