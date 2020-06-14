@@ -56,7 +56,7 @@ namespace Backend.Transformations
         private class InstructionTranslator : InstructionVisitor
         {
             private readonly MethodBody body;
-            private readonly Stack<ExceptionBlockBuilder> exceptionBlocks = new Stack<ExceptionBlockBuilder>();
+            private readonly Stack<ProtectedBlockBuilder> protectedBlocks = new Stack<ProtectedBlockBuilder>();
 
             public InstructionTranslator(MethodBody body)
             {
@@ -205,38 +205,79 @@ namespace Backend.Transformations
 
             public override void Visit(TryInstruction instruction)
             {
-                var exceptionBlockBuilder = new ExceptionBlockBuilder {TryStart = instruction.Offset};
-                exceptionBlocks.Push(exceptionBlockBuilder);
+                // try with multiple handlers are modelled as multiple try instructions with the same label but different handlers.
+                // if label matches with the current try, then increase the number of expected handlers
+                if (protectedBlocks.Count > 0 && protectedBlocks.Peek().TryStart.Equals(instruction.Offset))
+                {
+                    protectedBlocks.Peek().HandlerCount++;
+                }
+                else
+                {
+                    var exceptionBlockBuilder = new ProtectedBlockBuilder {TryStart = instruction.Offset, HandlerCount = 1};
+                    protectedBlocks.Push(exceptionBlockBuilder);
+                }
             }
 
             public override void Visit(FaultInstruction instruction)
             {
-                var exceptionBlockBuilder = exceptionBlocks.Peek();
-                exceptionBlockBuilder.HandlerStart = instruction.Offset;
-                exceptionBlockBuilder.HandlerBlockKind = ExceptionHandlerBlockKind.Fault;
+                protectedBlocks
+                    .Peek()
+                    .Handlers
+                    .Add(new ExceptionHandlerBlockBuilder
+                    {
+                        HandlerStart = instruction.Offset,
+                        HandlerBlockKind = ExceptionHandlerBlockKind.Fault,
+                    });
             }
 
             public override void Visit(FinallyInstruction instruction)
             {
-                var exceptionBlockBuilder = exceptionBlocks.Peek();
-                exceptionBlockBuilder.HandlerStart = instruction.Offset;
-                exceptionBlockBuilder.HandlerBlockKind = ExceptionHandlerBlockKind.Finally;
+                protectedBlocks
+                    .Peek()
+                    .Handlers
+                    .Add(
+                        new ExceptionHandlerBlockBuilder
+                        {
+                            HandlerStart = instruction.Offset,
+                            HandlerBlockKind = ExceptionHandlerBlockKind.Finally,
+                        });
             }
 
             public override void Visit(FilterInstruction instruction)
             {
-                var exceptionBlockBuilder = exceptionBlocks.Peek();
-                exceptionBlockBuilder.HandlerStart = instruction.Offset;
-                exceptionBlockBuilder.HandlerBlockKind = ExceptionHandlerBlockKind.Filter;
-                exceptionBlockBuilder.ExceptionType = instruction.ExceptionType;
+                var handlers = protectedBlocks.Peek().Handlers;
+                switch (instruction.kind)
+                {
+                    case FilterInstructionKind.FilterSection:
+                        handlers.Add(
+                            new ExceptionHandlerBlockBuilder
+                            {
+                                FilterStart = instruction.Offset,
+                                HandlerBlockKind = ExceptionHandlerBlockKind.Filter,
+                            });
+                        break;
+                    case FilterInstructionKind.FilterHandler:
+                        var handler = handlers.Last();
+                        handler.HandlerStart = instruction.Offset;
+                        handler.ExceptionType = instruction.ExceptionType;
+                        break;
+                    default: throw instruction.kind.ToUnknownValueException();
+                }
             }
 
             public override void Visit(CatchInstruction instruction)
             {
-                var exceptionBlockBuilder = exceptionBlocks.Peek();
-                exceptionBlockBuilder.HandlerStart = instruction.Offset;
-                exceptionBlockBuilder.HandlerBlockKind = ExceptionHandlerBlockKind.Catch;
-                exceptionBlockBuilder.ExceptionType = instruction.ExceptionType;
+                protectedBlocks
+                    .Peek()
+                    .Handlers
+                    .Add(
+                        new ExceptionHandlerBlockBuilder()
+                        {
+                            HandlerStart = instruction.Offset,
+                            HandlerBlockKind = ExceptionHandlerBlockKind.Catch,
+                            ExceptionType = instruction.ExceptionType
+                        }
+                    );
             }
 
             public override void Visit(ConvertInstruction instruction)
@@ -260,23 +301,26 @@ namespace Backend.Transformations
 
             public override void Visit(ThrowInstruction instruction)
             {
-                if (exceptionBlocks.Count > 0)
+                if (protectedBlocks.Count > 0)
                 {
-                    var exceptionBlockBuilder = exceptionBlocks.Peek();
-                    if (exceptionBlockBuilder.HandlerStart == null) // fixme mismo comentario que en el leave
+                    var exceptionBlockBuilder = protectedBlocks.Peek();
+                    if (exceptionBlockBuilder.StillOnTrySection())
                     {
                         exceptionBlockBuilder.TryEnd = instruction.Offset;
                     }
-                    else
+                    else // rethrow
                     {
-                        // rethrow
-                        exceptionBlockBuilder = exceptionBlocks.Pop();
-                        exceptionBlockBuilder.HandlerEnd = instruction.Offset;
+                        //TODO
+
+
                         // exceptionBlockBuilder.ExceptionType = null; // FIXME ? al ser un rethrow, ya esta seteado esto por un anterior throw?
                         // fixme sin embargo en la rama del if, no habria que setear la excepcion?
+
+                        //             exceptionBlockBuilder = protectedBlocks.Pop();
+                        //           exceptionBlockBuilder.HandlerEnd = instruction.Offset;
                     }
                 }
-                else
+                else // not used to exit protected block
                 {
                     var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Throw);
                     body.Instructions.Add(basicInstruction);
@@ -289,7 +333,7 @@ namespace Backend.Transformations
                 switch (instruction.Operation)
                 {
                     // FIXME leave can be used for another purpose than exiting a protected region?
-                    case UnconditionalBranchOperation.Leave when exceptionBlocks.Count == 0:
+                    case UnconditionalBranchOperation.Leave when protectedBlocks.Count == 0:
                     case UnconditionalBranchOperation.Branch:
                     {
                         var unconditionalBranchInstruction = new Bytecode.BranchInstruction(
@@ -301,9 +345,13 @@ namespace Backend.Transformations
                     }
                     case UnconditionalBranchOperation.EndFinally:
                     {
-                        var exceptionBlockBuilder = exceptionBlocks.Pop();
-                        exceptionBlockBuilder.HandlerEnd = instruction.Offset;
-                        body.ExceptionInformation.Add(exceptionBlockBuilder.Build());
+                        var exceptionBlockBuilder = protectedBlocks.Pop(); // no more handlers after finally
+                        exceptionBlockBuilder.AssertValidHandlerCount();
+                        exceptionBlockBuilder
+                            .Handlers
+                            .Last()
+                            .HandlerEnd = instruction.Offset;
+                        body.ExceptionInformation.AddRange(exceptionBlockBuilder.Build());
                         break;
                     }
                     case UnconditionalBranchOperation.EndFilter:
@@ -313,17 +361,30 @@ namespace Backend.Transformations
                     }
                     case UnconditionalBranchOperation.Leave:
                     {
-                        var exceptionBlockBuilder = exceptionBlocks.Peek();
-                        if (exceptionBlockBuilder.HandlerStart == null) // FIXME estoy asumiendo que si no se seteo el handler es porque es un try aun
-                            //  FIXME es correcto esto? Si lo es quiza puedo poner un metodo que diga que todavia estoy en el try asi se entiende mas
+                        var exceptionBlockBuilder = protectedBlocks.Peek();
+                        if (exceptionBlockBuilder.StillOnTrySection())
                         {
                             exceptionBlockBuilder.TryEnd = instruction.Offset;
                         }
                         else
                         {
-                            exceptionBlockBuilder = exceptionBlocks.Pop();
-                            exceptionBlockBuilder.HandlerEnd = instruction.Offset;
-                            body.ExceptionInformation.Add(exceptionBlockBuilder.Build());
+                            if (exceptionBlockBuilder.AllHandlersAdded())
+                            {
+                                // FIXME codigo repetido con el endfinally. 
+                                exceptionBlockBuilder = protectedBlocks.Pop();
+                                exceptionBlockBuilder
+                                    .Handlers
+                                    .Last()
+                                    .HandlerEnd = instruction.Offset;
+                                body.ExceptionInformation.AddRange(exceptionBlockBuilder.Build());
+                            }
+                            else
+                            {
+                                exceptionBlockBuilder
+                                    .Handlers
+                                    .Last()
+                                    .HandlerEnd = instruction.Offset;
+                            }
                         }
 
                         break;
@@ -427,48 +488,139 @@ namespace Backend.Transformations
                 throw new Exception();
             }
 
-            private class ExceptionBlockBuilder
+            //TODO en estos builder: validar que las cosas no se seteen mas de una vez, encapsular en metodos que sean mas declarativos, emprolijar, etc
+            // ver quiza se mover esto a otro archivo. 
+
+            // TODO ver de extraer algun lugar esto de hacer que las properties se seteen una sola vez. Ya lo use tmb en el metadata container al menos
+
+            // FIXME los try puede tener multiples catch/filter. En el bytecode esto se traduce a mutiples entradas en el exception information
+            // FIXME que tienen todas el mismo try pero distinto catch
+            // FIXME en el tac pasa lo mismo, es decir tengo instrucciones try con labels repetidas
+            private class ProtectedBlockBuilder
             {
-                public uint? TryStart;
+                private uint? tryStart;
 
-                public uint? TryEnd;
-
-                public uint? HandlerStart;
-                public uint? HandlerEnd;
-                public ExceptionHandlerBlockKind? HandlerBlockKind;
-                public IType ExceptionType;
-
-                public ProtectedBlock Build()
+                public uint TryStart
                 {
-                    if (TryStart == null) throw new Exception("TryStart not set");
-                    if (TryEnd == null) throw new Exception("TryEnd not set");
-                    if (HandlerStart == null) throw new Exception("HandlerStart not set");
-                    if (HandlerEnd == null) throw new Exception("HandlerEnd not set");
-                    if (HandlerBlockKind == null) throw new Exception("HandlerBlockKind not set");
-                    IExceptionHandler handler;
+                    get => tryStart ?? throw new Exception("TryStart was not set");
+                    set
+                    {
+                        if (tryStart != null) throw new Exception("TryStart was already set");
+                        tryStart = value;
+                    }
+                }
+
+                private uint? tryEnd;
+
+                public uint TryEnd
+                {
+                    get => tryEnd ?? throw new Exception("TryEnd was not set");
+                    set
+                    {
+                        if (tryEnd != null) throw new Exception("TryEnd was already set");
+                        tryEnd = value;
+                    }
+                }
+
+                public bool StillOnTrySection() => tryEnd == null;
+
+                public uint HandlerCount { get; set; }
+
+                public void AssertValidHandlerCount()
+                {
+                    if (HandlerCount != Handlers.Count) throw new Exception("Expected and actual handler count does not match");
+                }
+
+                // FIXME naming
+                public bool AllHandlersAdded() => HandlerCount == Handlers.Count;
+
+                public IList<ExceptionHandlerBlockBuilder> Handlers = new List<ExceptionHandlerBlockBuilder>();
+                //FIXME revisar si esto esta bien y como uso last(). Asumo que siempre el ultimo es el que quiero. Creo que tiene sentido
+                // FIXME por ejemplo en el FIlterInstruction cuando es handler estoy asumiendo que el last es un filter ya
+
+                public IList<ProtectedBlock> Build() =>
+                    Handlers
+                        .Select(handlerBuilder => handlerBuilder.Build())
+                        .Select(handler => new ProtectedBlock(TryStart, TryEnd) {Handler = handler})
+                        .ToList();
+            }
+
+            private class ExceptionHandlerBlockBuilder
+            {
+                private uint? filterStart;
+
+                public uint FilterStart
+                {
+                    get => filterStart ?? throw new Exception("FilterStart was not set");
+                    set
+                    {
+                        if (filterStart != null) throw new Exception("FilterStart was already set");
+                        filterStart = value;
+                    }
+                }
+
+                private uint? handlerStart;
+
+                public uint HandlerStart
+                {
+                    get => handlerStart ?? throw new Exception("HandlerStart was not set");
+                    set
+                    {
+                        if (handlerStart != null) throw new Exception("HandlerStart was already set");
+                        handlerStart = value;
+                    }
+                }
+
+                private uint? handlerEnd;
+
+                public uint HandlerEnd
+                {
+                    get => handlerEnd ?? throw new Exception("HandlerEnd was not set");
+                    set
+                    {
+                        if (handlerEnd != null) throw new Exception("HandlerEnd was already set");
+                        handlerEnd = value;
+                    }
+                }
+
+                private ExceptionHandlerBlockKind? handlerBlockKind;
+
+                public ExceptionHandlerBlockKind HandlerBlockKind
+                {
+                    get => handlerBlockKind ?? throw new Exception("HandlerBlockKind was not set");
+                    set
+                    {
+                        if (handlerBlockKind != null) throw new Exception("HandlerBlockKind was already set");
+                        handlerBlockKind = value;
+                    }
+                }
+
+                private IType exceptionType;
+
+                public IType ExceptionType
+                {
+                    get => exceptionType ?? throw new Exception("ExceptionType was not set");
+                    set
+                    {
+                        if (exceptionType != null) throw new Exception("ExceptionType was already set");
+                        exceptionType = value;
+                    }
+                }
+
+                public IExceptionHandler Build()
+                {
                     switch (HandlerBlockKind)
                     {
                         case ExceptionHandlerBlockKind.Filter:
-                            if (ExceptionType == null) throw new Exception("ExceptionType not set");
-                            handler = new FilterExceptionHandler(TryEnd.Value, HandlerStart.Value, HandlerEnd.Value, ExceptionType);
-                            break;
+                            return new FilterExceptionHandler(FilterStart, HandlerStart, HandlerEnd, ExceptionType);
                         case ExceptionHandlerBlockKind.Catch:
-                            if (ExceptionType == null) throw new Exception("ExceptionType not set");
-                            handler = new CatchExceptionHandler(HandlerStart.Value, HandlerEnd.Value, ExceptionType);
-                            break;
+                            return new CatchExceptionHandler(HandlerStart, HandlerEnd, ExceptionType);
                         case ExceptionHandlerBlockKind.Fault:
-                            handler = new FaultExceptionHandler(HandlerStart.Value, HandlerEnd.Value);
-                            break;
+                            return new FaultExceptionHandler(HandlerStart, HandlerEnd);
                         case ExceptionHandlerBlockKind.Finally:
-                            handler = new FinallyExceptionHandler(HandlerStart.Value, HandlerEnd.Value);
-                            break;
-                        default: throw new UnknownValueException<ExceptionHandlerBlockKind>(HandlerBlockKind.Value);
+                            return new FinallyExceptionHandler(HandlerStart, HandlerEnd);
+                        default: throw new UnknownValueException<ExceptionHandlerBlockKind>(HandlerBlockKind);
                     }
-
-                    return new ProtectedBlock(TryStart.Value, TryEnd.Value)
-                    {
-                        Handler = handler
-                    };
                 }
             }
         }

@@ -389,7 +389,7 @@ namespace Console
 			var inputs = new[]
 			{
 				new[] {"../../../Examples/bin/Debug/Examples.dll"},
-				new[]
+			/*	new[]
 				{
 					"../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser/bin/Debug/net45/TinyCsvParser.dll",
 					"../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser.Test/bin/Debug/net45/TinyCsvParser.Test.dll"
@@ -412,7 +412,7 @@ namespace Console
 					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Tests.dll",
 					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Utilities.dll",
 					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.dll"
-				}
+				}*/
 			};
 
 		/*	foreach (var input in inputs)
@@ -444,6 +444,13 @@ namespace Console
 				{
 					method.Body = new Disassembler(method).Execute(); // to tac
 					var newBody = new Assembler(method).Execute(); // to bytecode
+					var exOriginal = method.Body.ExceptionInformation;
+					var exGenerated = newBody.ExceptionInformation;
+					
+					// FIXME comparar los dos. Calculo que puede ser que no matcheen exactos los labels porque hay mas instrucciones (no estoy seguro igual)
+					// FIXME pero lo que seguro tiene que matchear es el comienzo de los catches con final de los try, filters con sus handlers etc.
+					// FIXME y eso no esta pasando parece. Comparar bien todos los casos de examples.dll
+					var x = 1;
 				}
 			}
 		}
