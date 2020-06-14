@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using Backend.Utils;
 using Model;
 using Model.ThreeAddressCode.Instructions;
@@ -20,7 +19,6 @@ using StoreInstruction = Model.ThreeAddressCode.Instructions.StoreInstruction;
 using SwitchInstruction = Model.ThreeAddressCode.Instructions.SwitchInstruction;
 using Bytecode = Model.Bytecode;
 
-
 namespace Backend.Transformations
 {
     public class Assembler
@@ -37,6 +35,8 @@ namespace Backend.Transformations
             this.method = method;
         }
 
+        // fixme ver si protectedblocks tiene que ser una pila e ir sacandolo meintras genero o si quiza puede ser una lista e ir cerandolos
+        // FIXME pero sacarlos y armarlos todos aca en el execute despues
         public MethodBody Execute()
         {
             var body = new MethodBody(MethodBodyKind.Bytecode);
@@ -218,10 +218,24 @@ namespace Backend.Transformations
                 }
             }
 
+            // FIXME este codigo se va a repetir entre todos los handlers
+            // FIXME revisar si siguen haciendo falta la separacion de filter que agregue (section, handler) y los endFIlter y eso
             public override void Visit(FaultInstruction instruction)
             {
-                protectedBlocks
-                    .Peek()
+                var protectedBlockBuilder = protectedBlocks.Peek();
+                if (protectedBlockBuilder.Handlers.Count == 0) // first handler
+                {
+                    protectedBlockBuilder.TryEnd = instruction.Offset;
+                }
+                else // more than 1 handler
+                {
+                    protectedBlockBuilder
+                        .Handlers
+                        .Last()
+                        .HandlerEnd = instruction.Offset;
+                }
+
+                protectedBlockBuilder
                     .Handlers
                     .Add(new ExceptionHandlerBlockBuilder
                     {
@@ -230,10 +244,23 @@ namespace Backend.Transformations
                     });
             }
 
+            // There can only be one finallyBlock and is the last handler of a try block
             public override void Visit(FinallyInstruction instruction)
             {
-                protectedBlocks
-                    .Peek()
+                var protectedBlockBuilder = protectedBlocks.Peek();
+                if (protectedBlockBuilder.Handlers.Count == 0) // try-finally 
+                {
+                    protectedBlockBuilder.TryEnd = instruction.Offset;
+                }
+                else // try-catch/filter-finally
+                {
+                    protectedBlockBuilder
+                        .Handlers
+                        .Last()
+                        .HandlerEnd = instruction.Offset;
+                }
+
+                protectedBlockBuilder
                     .Handlers
                     .Add(
                         new ExceptionHandlerBlockBuilder
@@ -245,11 +272,26 @@ namespace Backend.Transformations
 
             public override void Visit(FilterInstruction instruction)
             {
-                var handlers = protectedBlocks.Peek().Handlers;
+                var protectedBlockBuilder = protectedBlocks.Peek();
+                if (protectedBlockBuilder.Handlers.Count == 0) // first handler
+                {
+                    protectedBlockBuilder.TryEnd = instruction.Offset;
+                }
+                // fixme explain
+                else if (
+                    protectedBlockBuilder.Handlers.Last().HandlerBlockKind != ExceptionHandlerBlockKind.Filter ||
+                    instruction.kind == FilterInstructionKind.FilterSection)
+                {
+                    protectedBlockBuilder
+                        .Handlers
+                        .Last()
+                        .HandlerEnd = instruction.Offset;
+                }
+
                 switch (instruction.kind)
                 {
                     case FilterInstructionKind.FilterSection:
-                        handlers.Add(
+                        protectedBlockBuilder.Handlers.Add(
                             new ExceptionHandlerBlockBuilder
                             {
                                 FilterStart = instruction.Offset,
@@ -257,7 +299,7 @@ namespace Backend.Transformations
                             });
                         break;
                     case FilterInstructionKind.FilterHandler:
-                        var handler = handlers.Last();
+                        var handler = protectedBlockBuilder.Handlers.Last();
                         handler.HandlerStart = instruction.Offset;
                         handler.ExceptionType = instruction.ExceptionType;
                         break;
@@ -267,8 +309,20 @@ namespace Backend.Transformations
 
             public override void Visit(CatchInstruction instruction)
             {
-                protectedBlocks
-                    .Peek()
+                var protectedBlockBuilder = protectedBlocks.Peek();
+                if (protectedBlockBuilder.Handlers.Count == 0) // first handler
+                {
+                    protectedBlockBuilder.TryEnd = instruction.Offset;
+                }
+                else // more than one handler
+                {
+                    protectedBlockBuilder
+                        .Handlers
+                        .Last()
+                        .HandlerEnd = instruction.Offset;
+                }
+
+                protectedBlockBuilder
                     .Handlers
                     .Add(
                         new ExceptionHandlerBlockBuilder()
@@ -301,39 +355,38 @@ namespace Backend.Transformations
 
             public override void Visit(ThrowInstruction instruction)
             {
-                if (protectedBlocks.Count > 0)
-                {
-                    var exceptionBlockBuilder = protectedBlocks.Peek();
-                    if (exceptionBlockBuilder.StillOnTrySection())
-                    {
-                        exceptionBlockBuilder.TryEnd = instruction.Offset;
-                    }
-                    else // rethrow
-                    {
-                        //TODO
-
-
-                        // exceptionBlockBuilder.ExceptionType = null; // FIXME ? al ser un rethrow, ya esta seteado esto por un anterior throw?
-                        // fixme sin embargo en la rama del if, no habria que setear la excepcion?
-
-                        //             exceptionBlockBuilder = protectedBlocks.Pop();
-                        //           exceptionBlockBuilder.HandlerEnd = instruction.Offset;
-                    }
-                }
-                else // not used to exit protected block
-                {
-                    var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Throw);
-                    body.Instructions.Add(basicInstruction);
-                }
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Throw);
+                body.Instructions.Add(basicInstruction);
             }
 
-            // todo emprolijar
             public override void Visit(UnconditionalBranchInstruction instruction)
             {
                 switch (instruction.Operation)
                 {
-                    // FIXME leave can be used for another purpose than exiting a protected region?
-                    case UnconditionalBranchOperation.Leave when protectedBlocks.Count == 0:
+                    case UnconditionalBranchOperation.Leave:
+                    {
+                        if (protectedBlocks.Count > 0)
+                        {
+                            var exceptionBlockBuilder = protectedBlocks.Peek();
+                            if (exceptionBlockBuilder.AllHandlersAdded())
+                            {
+                                // FIXME codigo repetido con el endfinally. 
+                                exceptionBlockBuilder = protectedBlocks.Pop();
+                                exceptionBlockBuilder
+                                    .Handlers
+                                    .Last()
+                                    .HandlerEnd = instruction.Offset;
+                                body.ExceptionInformation.AddRange(exceptionBlockBuilder.Build());
+                            }
+                        }
+
+                        var unconditionalBranchInstruction = new Bytecode.BranchInstruction(
+                            instruction.Offset,
+                            Bytecode.BranchOperation.Leave,
+                            Convert.ToUInt32(instruction.Target.Substring(2), 16));
+                        body.Instructions.Add(unconditionalBranchInstruction);
+                        break;
+                    }
                     case UnconditionalBranchOperation.Branch:
                     {
                         var unconditionalBranchInstruction = new Bytecode.BranchInstruction(
@@ -346,47 +399,18 @@ namespace Backend.Transformations
                     case UnconditionalBranchOperation.EndFinally:
                     {
                         var exceptionBlockBuilder = protectedBlocks.Pop(); // no more handlers after finally
-                        exceptionBlockBuilder.AssertValidHandlerCount();
                         exceptionBlockBuilder
                             .Handlers
                             .Last()
                             .HandlerEnd = instruction.Offset;
                         body.ExceptionInformation.AddRange(exceptionBlockBuilder.Build());
+                        body.Instructions.Add(new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.EndFinally));
                         break;
                     }
                     case UnconditionalBranchOperation.EndFilter:
                     {
-                        // nothing since filter area is the gap between try end and handler start
-                        break;
-                    }
-                    case UnconditionalBranchOperation.Leave:
-                    {
-                        var exceptionBlockBuilder = protectedBlocks.Peek();
-                        if (exceptionBlockBuilder.StillOnTrySection())
-                        {
-                            exceptionBlockBuilder.TryEnd = instruction.Offset;
-                        }
-                        else
-                        {
-                            if (exceptionBlockBuilder.AllHandlersAdded())
-                            {
-                                // FIXME codigo repetido con el endfinally. 
-                                exceptionBlockBuilder = protectedBlocks.Pop();
-                                exceptionBlockBuilder
-                                    .Handlers
-                                    .Last()
-                                    .HandlerEnd = instruction.Offset;
-                                body.ExceptionInformation.AddRange(exceptionBlockBuilder.Build());
-                            }
-                            else
-                            {
-                                exceptionBlockBuilder
-                                    .Handlers
-                                    .Last()
-                                    .HandlerEnd = instruction.Offset;
-                            }
-                        }
-
+                        // nothing is done with protectedBlocks since filter area is the gap between try end and handler start
+                        body.Instructions.Add(new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.EndFilter));
                         break;
                     }
                     default: throw instruction.Operation.ToUnknownValueException();
@@ -488,14 +512,6 @@ namespace Backend.Transformations
                 throw new Exception();
             }
 
-            //TODO en estos builder: validar que las cosas no se seteen mas de una vez, encapsular en metodos que sean mas declarativos, emprolijar, etc
-            // ver quiza se mover esto a otro archivo. 
-
-            // TODO ver de extraer algun lugar esto de hacer que las properties se seteen una sola vez. Ya lo use tmb en el metadata container al menos
-
-            // FIXME los try puede tener multiples catch/filter. En el bytecode esto se traduce a mutiples entradas en el exception information
-            // FIXME que tienen todas el mismo try pero distinto catch
-            // FIXME en el tac pasa lo mismo, es decir tengo instrucciones try con labels repetidas
             private class ProtectedBlockBuilder
             {
                 private uint? tryStart;
@@ -522,14 +538,8 @@ namespace Backend.Transformations
                     }
                 }
 
-                public bool StillOnTrySection() => tryEnd == null;
-
                 public uint HandlerCount { get; set; }
 
-                public void AssertValidHandlerCount()
-                {
-                    if (HandlerCount != Handlers.Count) throw new Exception("Expected and actual handler count does not match");
-                }
 
                 // FIXME naming
                 public bool AllHandlersAdded() => HandlerCount == Handlers.Count;

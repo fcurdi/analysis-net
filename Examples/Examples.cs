@@ -1046,7 +1046,7 @@ namespace MethodBody
                 Console.WriteLine(ex.Message);
             }
         }
-        
+
         public void ExceptionHandlingFilterCatch(int x)
         {
             try
@@ -1062,7 +1062,7 @@ namespace MethodBody
                 Console.WriteLine(ex.Message);
             }
         }
-        
+
         public void ExceptionHandlingCatchFilter(int x)
         {
             try
@@ -1078,7 +1078,7 @@ namespace MethodBody
                 Console.WriteLine(ex.Message);
             }
         }
-        
+
         public void ExceptionHandlingMultipleCatchs(int x)
         {
             try
@@ -1094,7 +1094,7 @@ namespace MethodBody
                 Console.WriteLine(ex.Message);
             }
         }
-        
+
         /* FIXME finally end label is wrong in the model (one more that it should be, that label does not exist)? this example results in an
          FIXME unmarked label. The IL though is generated correctly
         public void ExceptionHandlingTryCatchFinally(Exception e)
