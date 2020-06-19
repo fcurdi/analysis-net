@@ -136,6 +136,12 @@ namespace Backend.Transformations
                         case ArrayLengthAccess _:
                             loadInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.LoadArrayLength);
                             break;
+                        case VirtualMethodReference virtualMethodReference:
+                            loadInstruction = new Bytecode.LoadMethodAddressInstruction(
+                                instruction.Offset,
+                                Bytecode.LoadMethodAddressOperation.Virtual,
+                                virtualMethodReference.Method);
+                            break;
                         case StaticMethodReference staticMethodReference:
                             loadInstruction = new Bytecode.LoadMethodAddressInstruction(
                                 instruction.Offset,

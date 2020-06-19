@@ -1053,8 +1053,8 @@ namespace Backend.Transformations
 							break;
 
 						case ExceptionHandlerBlockKind.Filter:
-							// Push the exception into the stack
-							var filterException = stack.Push();
+							stack.Clear();
+							var filterException = stack.Push(); // Push the exception into the stack
 							var filterBlock = (FilterExceptionHandler) block;
 							var kind = operation.Label.Equals(filterBlock.FilterStart)
 								? Tac.FilterInstructionKind.FilterSection
@@ -1063,8 +1063,8 @@ namespace Backend.Transformations
 							break;
 
 						case ExceptionHandlerBlockKind.Catch:
-							// Push the exception into the stack
-							var catchException = stack.Push();
+							stack.Clear();
+							var catchException = stack.Push(); // Push the exception into the stack
 							var catchBlock = block as CatchExceptionHandler;
 							instruction = new Tac.CatchInstruction(operation.Offset, catchException, catchBlock.ExceptionType);
 							break;
