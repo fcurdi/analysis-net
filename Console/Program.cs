@@ -415,15 +415,15 @@ namespace Console
 				}
 			};
 
-		/*	foreach (var input in inputs)
+			foreach (var input in inputs)
 			{
 				foreach (var file in input)
 				{
 					DisassembleAndThenAssemble(file);
 				}
 			}
-*/
-		foreach (var input in inputs)
+
+/*		foreach (var input in inputs)
 		{
 			foreach (var file in input)
 			{
@@ -449,7 +449,7 @@ namespace Console
 					var x = 1;
 				}
 			}
-		}
+		}*/
 		
 		
 		

@@ -52,5 +52,6 @@ namespace Model.ThreeAddressCode.Visitor
 		public virtual void Visit(CopyObjectInstruction instruction) { }
 		public virtual void Visit(CreateArrayInstruction instruction) { }
 		public virtual void Visit(PhiInstruction instruction) { }
+		public virtual void Visit(ConstrainedInstruction instruction) { }
 	}
 }

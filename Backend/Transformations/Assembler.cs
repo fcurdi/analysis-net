@@ -41,7 +41,7 @@ namespace Backend.Transformations
 
             body.MaxStack = method.Body.MaxStack; // FIXME 
             body.Parameters.AddRange(method.Body.Parameters);
-            body.LocalVariables.AddRange(method.Body.LocalVariables);
+            body.LocalVariables.AddRange(method.Body.LocalVariables.Select(variable => variable.ToLocalVariable()));
 
             if (method.Body.Instructions.Count > 0)
             {
@@ -79,12 +79,7 @@ namespace Backend.Transformations
 
             public override void Visit(LoadInstruction instruction)
             {
-                // translate to dup, loadArrayLength, loadArrayElement, loadArrayElementAddress, loadStaticField, loadInstanceField,
-                // loadStaticFieldAddress, loadInnstanceFieldAddress, loadIndirect, loadConstant, loadVariable, loadVariableAddress, 
-                // loadStaticMethodAddress, loadVirtualMethodAddress,
-                // StoreInstruction? CreateObjectInstruction? (se genera una en el visit de ambos)
                 // FIXME revisar los casos, hay algunos que no estoy seguro de que esten bien. se repiten caminos ademas (sobretodo por el reference)
-
                 Bytecode.Instruction loadInstruction;
                 if (instruction.Operand is TemporalVariable && instruction.Result is TemporalVariable)
                 {
@@ -105,7 +100,9 @@ namespace Backend.Transformations
                             loadInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Value, constant);
                             break;
                         case TemporalVariable _:
-                            loadInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Content, instruction.Result);
+                            loadInstruction = new Bytecode.LoadInstruction(
+                                instruction.Offset, Bytecode.LoadOperation.Content,
+                                instruction.Result.ToLocalVariable());
                             break;
                         case Dereference dereference:
                             loadInstruction = new Bytecode.LoadIndirectInstruction(instruction.Offset, dereference.Type);
@@ -118,7 +115,7 @@ namespace Backend.Transformations
                                     loadInstruction = new Bytecode.LoadInstruction(
                                         instruction.Offset,
                                         Bytecode.LoadOperation.Address,
-                                        instruction.Result);
+                                        instruction.Result.ToLocalVariable());
                                     break;
                                 case InstanceFieldAccess instanceFieldAccess:
                                     // fixme es content?
@@ -467,6 +464,11 @@ namespace Backend.Transformations
             public override void Visit(PhiInstruction instruction)
             {
                 throw new Exception();
+            }
+
+            public override void Visit(ConstrainedInstruction instruction)
+            {
+                body.Instructions.Add(new Bytecode.ConstrainedInstruction(instruction.Offset, instruction.ThisType));
             }
 
 
