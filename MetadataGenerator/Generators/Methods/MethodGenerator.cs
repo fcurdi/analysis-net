@@ -36,6 +36,14 @@ namespace MetadataGenerator.Generators.Methods
             var methodBodyOffset = -1;
             if (method.HasBody)
             {
+                var og = method.Body;
+                var tac = new Backend.Transformations.Disassembler(method).Execute();
+                method.Body = tac;
+                var bytecode = new Backend.Transformations.Assembler(method).Execute();
+                method.Body = bytecode;
+             // method.Body = og;
+
+
                 // FIXME maxStack should be computed from instructions. When a dll is read, the maxStack will be available (Model) but if code is generated 
                 // programatically then the maxStack is gonna be missing
                 var maxStack = method.Body.MaxStack;

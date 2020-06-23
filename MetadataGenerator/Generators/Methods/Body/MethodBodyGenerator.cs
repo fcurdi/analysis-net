@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Linq;
 using MetadataGenerator.Metadata;
+using Model;
 using Model.Bytecode;
 using Model.ThreeAddressCode.Values;
 using Model.Types;

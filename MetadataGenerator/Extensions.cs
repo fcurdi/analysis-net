@@ -16,10 +16,6 @@ namespace MetadataGenerator
             return first.Equals(default(T)) ? defaultValue : first;
         }
 
-        public static bool IsOneOf(this Enum value, params Enum[] values) => ImmutableList.Create(values).Contains(value);
-
-        public static bool IsOneOf(this IType type, params IType[] types) => ImmutableList.Create(types).Contains(type);
-
         public static void CallVirtual(this ECMA335.InstructionEncoder encoder, SRM.EntityHandle methodReference)
         {
             encoder.OpCode(SRM.ILOpCode.Callvirt);
