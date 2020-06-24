@@ -112,62 +112,80 @@ namespace Backend.Transformations
                     {
                         case Constant constant:
                             loadInstruction = new Bytecode.LoadInstruction(offset, Bytecode.LoadOperation.Value, constant);
-                            if (constant.Value == null)
+                            switch (constant.Value)
                             {
-                                // ldnull -> 14 (1) 
-                                offset++;
-                            }
-                            else if (constant.Type.Equals(PlatformTypes.String))
-                            {
-                                // ldstr string -> 72 <T> (1 + 4)  
-                                offset += 5;
-                            }
-                            else
-                            {
-                                switch (constant.Value)
+                                case null:
+                                    offset++; // ldnull -> 14 (1)
+                                    break;
+                                case string _:
+                                    offset += 5; // ldstr string -> 72 <T> (1 + 4)  
+                                    break;
+                                case -1:
+                                case 0:
+                                case 1:
+                                case 2:
+                                case 3:
+                                case 4:
+                                case 5:
+                                case 6:
+                                case 7:
+                                case 8:
+                                    offset++;
+                                    break;
+                                case object _ when constant.Type.IsOneOf(PlatformTypes.Int8, PlatformTypes.Int16, PlatformTypes.Int32):
                                 {
-                                    case -1:
-                                    case 0:
-                                    case 1:
-                                    case 2:
-                                    case 3:
-                                    case 4:
-                                    case 5:
-                                    case 6:
-                                    case 7:
-                                    case 8:
-                                        offset++;
-                                        break;
-                                    default:
-                                        if (constant.Type.IsOneOf(PlatformTypes.Int8, PlatformTypes.UInt8))
-                                        {
-                                            // ldc.i4.s num -> 1F <int8> (1 + 1)
-                                            offset += 2;
-                                        }
-                                        else if (constant.Type.IsOneOf(PlatformTypes.Int16, PlatformTypes.Int32, PlatformTypes.UInt16,
-                                            PlatformTypes.UInt32))
-                                        {
-                                            // ldc.i4 num -> 20 <int32> (1 + 4)
-                                            offset += 5;
-                                        }
-                                        else if (constant.Type.IsOneOf(PlatformTypes.Int64, PlatformTypes.UInt64))
-                                        {
-                                            // ldc.i8 num-> 21 <int64> (1 + 8)
-                                            offset += 9;
-                                        }
-                                        else if (constant.Type.Equals(PlatformTypes.Float32))
-                                        {
-                                            // ldc.r4 num -> 22 <float32> (1 + 4) 
-                                            offset += 5;
-                                        }
-                                        else if (constant.Type.Equals(PlatformTypes.Float64))
-                                        {
-                                            // ldc.r8 num -> 23 <float64> (1 + 8)
-                                            offset += 9;
-                                        }
+                                    var value = (int) constant.Value;
+                                    if (value >= sbyte.MinValue && value <= sbyte.MaxValue)
+                                    {
+                                        offset += 2; // ldc.i4.s num -> 1F <int8> (1 + 1)
+                                    }
+                                    else
+                                    {
+                                        offset += 5; // ldc.i4 num -> 20 <int32> (1 + 4)
+                                    }
 
-                                        break;
+                                    break;
                                 }
+                                case object _ when constant.Type.Equals(PlatformTypes.Int64):
+                                    offset += 9; // ldc.i8 num-> 21 <int64> (1 + 8)
+                                    break;
+                                case object _ when constant.Type.IsOneOf(PlatformTypes.UInt8, PlatformTypes.UInt16, PlatformTypes.UInt32):
+                                {
+                                    var value = (uint) constant.Value;
+                                    if (value <= byte.MaxValue)
+                                    {
+                                        offset += 2; // ldc.i4.s num -> 1F <int8> (1 + 1)
+                                    }
+                                    else
+                                    {
+                                        offset += 5; // ldc.i4 num -> 20 <int32> (1 + 4)
+                                    }
+
+                                    break;
+                                }
+                                case object _ when constant.Type.Equals(PlatformTypes.UInt64):
+                                    offset += 9; // ldc.i8 num-> 21 <int64> (1 + 8)
+                                    break;
+
+                                case object _ when constant.Type.Equals(PlatformTypes.Float32):
+                                    offset += 5; // ldc.r4 num -> 22 <float32> (1 + 4)
+                                    break;
+                                case object _ when constant.Type.Equals(PlatformTypes.Float64):
+                                {
+                                    var value = (double) constant.Value;
+                                    if (value >= float.MinValue && value <= float.MaxValue)
+                                    {
+                                        offset += 5; // ldc.r4 num -> 22 <float32> (1 + 4)
+                                    }
+                                    else
+                                    {
+                                        offset += 9; // ldc.r8 num -> 23 <float64> (1 + 8)
+                                    }
+
+                                    break;
+                                }
+                                default:
+                                    throw new Exception();
                             }
 
 
