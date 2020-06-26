@@ -1430,7 +1430,7 @@ namespace Model.ThreeAddressCode.Instructions
 
 		public override string ToString()
 		{
-			return String.Format("constrain virtual call to type: {0}", ThisType.ToString());
+			return this.ToString("constrain virtual call to type: {0}", ThisType.ToString());
 		}
 	}
 }

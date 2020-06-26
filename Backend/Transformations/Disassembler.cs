@@ -247,7 +247,15 @@ namespace Backend.Transformations
 			private void ProcessDup(Bytecode.BasicInstruction op)
 			{
 				var source = stack.Top();
-				var dest = stack.Push();
+				// recover type
+				var type = body.Instructions
+					.Reverse()
+					.Select(instructions => instructions.Variables)
+					.First(variables => variables.Any(variable => variable.Equals(source)))
+					.First(variable => variable.Equals(source))
+					.Type;
+				source = source.MakeCopy(type);
+				var dest = stack.Push().MakeCopy(type);
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
@@ -594,9 +602,9 @@ namespace Backend.Transformations
 
 				var arguments = new List<IVariable>();
 
-				foreach (var par in op.Constructor.Parameters)
+				foreach (var parameter in op.Constructor.Parameters)
 				{
-					var arg = stack.Pop();
+					var arg = stack.Pop().MakeCopy(parameter.Type);
 					arguments.Add(arg);
 				}
 
@@ -633,9 +641,9 @@ namespace Backend.Transformations
 				var arguments = new List<IVariable>();
 				IVariable result = null;
 
-				foreach (var par in op.Function.Parameters)
+				foreach (var parameter in op.Function.Parameters)
 				{
-					var arg = stack.Pop();
+					var arg = stack.Pop().MakeCopy(parameter.Type);
 					arguments.Add(arg);
 				}
 
@@ -829,9 +837,9 @@ namespace Backend.Transformations
 				var arguments = new List<IVariable>();
 				IVariable result = null;
 
-				foreach (var par in op.Method.Parameters)
+				foreach (var parameter in op.Method.Parameters)
 				{
-					var arg = stack.Pop();
+					var arg = stack.Pop().MakeCopy(parameter.Type);
 					arguments.Add(arg);
 				}
 

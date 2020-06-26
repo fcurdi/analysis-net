@@ -172,16 +172,7 @@ namespace Backend.Transformations
                                     break;
                                 case object _ when constant.Type.Equals(PlatformTypes.Float64):
                                 {
-                                    var value = (double) constant.Value;
-                                    if (value >= float.MinValue && value <= float.MaxValue)
-                                    {
-                                        offset += 5; // ldc.r4 num -> 22 <float32> (1 + 4)
-                                    }
-                                    else
-                                    {
-                                        offset += 9; // ldc.r8 num -> 23 <float64> (1 + 8)
-                                    }
-
+                                    offset += 9; // ldc.r8 num -> 23 <float64> (1 + 8)
                                     break;
                                 }
                                 default:
@@ -259,10 +250,13 @@ namespace Backend.Transformations
                         case Reference reference:
                             switch (reference.Value)
                             {
-                                case ArrayElementAccess _:
+                                case ArrayElementAccess arrayElementAccess:
                                 {
-                                    var operand = instruction.Result.ToLocalVariable();
-                                    loadInstruction = new Bytecode.LoadInstruction(offset, Bytecode.LoadOperation.Address, operand);
+                                    loadInstruction = new Bytecode.LoadArrayElementInstruction(
+                                        offset,
+                                        Bytecode.LoadArrayElementOperation.Address,
+                                        (ArrayType) arrayElementAccess.Array.Type);
+
                                     // ldelema typeTok -> 8F <Token> (1 + 4) 
                                     offset += 5;
                                     break;

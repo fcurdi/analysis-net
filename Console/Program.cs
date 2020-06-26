@@ -389,7 +389,7 @@ namespace Console
 			var inputs = new[]
 			{
 				new[] {"../../../Examples/bin/Debug/Examples.dll"},
-			/*	new[]
+				new[]
 				{
 					"../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser/bin/Debug/net45/TinyCsvParser.dll",
 					"../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser.Test/bin/Debug/net45/TinyCsvParser.Test.dll"
@@ -412,7 +412,7 @@ namespace Console
 					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Tests.dll",
 					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Utilities.dll",
 					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.dll"
-				}*/
+				}
 			};
 
 			foreach (var input in inputs)

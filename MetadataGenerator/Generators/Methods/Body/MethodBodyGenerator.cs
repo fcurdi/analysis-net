@@ -30,7 +30,7 @@ namespace MetadataGenerator.Generators.Methods.Body
             foreach (var instruction in body.Instructions)
             {
                 controlFlowGenerator.MarkCurrentLabel();
-                if (instruction.Offset != instructionEncoder.Offset) throw new Exception();
+                if (instruction.Offset != instructionEncoder.Offset) throw new Exception("Real offset does not match with expected one");
 
                 switch (instruction)
                 {

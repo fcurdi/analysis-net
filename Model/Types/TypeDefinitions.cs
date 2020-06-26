@@ -820,7 +820,7 @@ namespace Model.Types
 	{
 		public IList<IVariable> Parameters { get; private set; }
 		public IList<IVariable> LocalVariables { get; private set; }
-		public IList<IInstruction> Instructions { get; set; } // fixme undo, just for testing
+		public IList<IInstruction> Instructions { get; private set; }
 		public IList<ProtectedBlock> ExceptionInformation { get; private set; }
 		public ushort MaxStack { get; set; }
 		public MethodBodyKind Kind { get; set; }
