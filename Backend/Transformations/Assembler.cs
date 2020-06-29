@@ -41,11 +41,19 @@ namespace Backend.Transformations
 
             body.MaxStack = method.Body.MaxStack; // FIXME 
             body.Parameters.AddRange(method.Body.Parameters);
-            body.LocalVariables.AddRange(method.Body.LocalVariables.Select(variable => variable.ToLocalVariable()));
 
             if (method.Body.Instructions.Count > 0)
             {
-                new InstructionTranslator(body).Visit(method.Body);
+                new InstructionTranslator(body, method.Body).Visit(method.Body);
+            }
+
+            foreach (var bodyInstruction in body.Instructions.Where(i => i.Variables.Count > 0))
+            {
+                foreach (var loc in bodyInstruction.Variables)
+                {
+                    // filter this????
+                    if (!body.LocalVariables.Contains(loc) && !loc.Name.Equals("this")) body.LocalVariables.Add(loc);
+                }
             }
 
             return body;
@@ -54,12 +62,27 @@ namespace Backend.Transformations
         private class InstructionTranslator : InstructionVisitor
         {
             private readonly MethodBody body;
+            private readonly MethodBody bodyToProcess;
             private uint offset;
             private readonly Stack<ProtectedBlockBuilder> protectedBlocks = new Stack<ProtectedBlockBuilder>();
+            private readonly IDictionary<int, bool> ignoreInstruction = new Dictionary<int, bool>();
 
-            public InstructionTranslator(MethodBody body)
+            public InstructionTranslator(MethodBody body, MethodBody bodyToProcess)
             {
                 this.body = body;
+                this.bodyToProcess = bodyToProcess;
+            }
+
+            public override bool ShouldVisit(Instruction instruction)
+            {
+                var shouldProcessInstruction = !ignoreInstruction.TryGetValue(bodyToProcess.Instructions.IndexOf(instruction), out _);
+                return shouldProcessInstruction;
+            }
+
+            public override void Visit(PopInstruction instruction)
+            {
+                body.Instructions.Add(new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Pop));
+                offset++;
             }
 
             public override void Visit(BinaryInstruction instruction)
@@ -93,7 +116,7 @@ namespace Backend.Transformations
             public override void Visit(LoadInstruction instruction)
             {
                 // FIXME revisar los casos, hay algunos que no estoy seguro de que esten bien. se repiten caminos ademas (sobretodo por el reference)
-                Bytecode.Instruction loadInstruction;
+                Bytecode.Instruction bytecodeInstruction;
                 if (instruction.Operand is TemporalVariable && instruction.Result is TemporalVariable)
                 {
                     if (instruction.Operand.Equals(instruction.Result))
@@ -102,256 +125,287 @@ namespace Backend.Transformations
                     }
                     else
                     {
-                        loadInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Dup);
+                        bytecodeInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Dup);
                         offset++;
                     }
                 }
                 else
                 {
-                    switch (instruction.Operand)
+                    if (instruction.Result is LocalVariable loc)
                     {
-                        case Constant constant:
-                            loadInstruction = new Bytecode.LoadInstruction(offset, Bytecode.LoadOperation.Value, constant);
-                            switch (constant.Value)
+                        bytecodeInstruction = new Bytecode.StoreInstruction(offset, loc);
+                        if (loc.IsParameter)
+                        {
+                            // starg num -> FE 0B <unsigned int16> (2 + 2) 
+                            // starg.s num -> 10 <unsigned int8> (1 + 1)
+                            offset += (uint) (loc.Index.Value > byte.MaxValue ? 4 : 2);
+                        }
+                        else
+                        {
+                            switch (loc.Index.Value)
                             {
-                                case null:
-                                    offset++; // ldnull -> 14 (1)
-                                    break;
-                                case string _:
-                                    offset += 5; // ldstr string -> 72 <T> (1 + 4)  
-                                    break;
-                                case -1:
                                 case 0:
                                 case 1:
                                 case 2:
                                 case 3:
-                                case 4:
-                                case 5:
-                                case 6:
-                                case 7:
-                                case 8:
-                                    offset++;
-                                    break;
-                                case object _ when constant.Type.IsOneOf(PlatformTypes.Int8, PlatformTypes.Int16, PlatformTypes.Int32):
-                                {
-                                    var value = (int) constant.Value;
-                                    if (value >= sbyte.MinValue && value <= sbyte.MaxValue)
-                                    {
-                                        offset += 2; // ldc.i4.s num -> 1F <int8> (1 + 1)
-                                    }
-                                    else
-                                    {
-                                        offset += 5; // ldc.i4 num -> 20 <int32> (1 + 4)
-                                    }
-
-                                    break;
-                                }
-                                case object _ when constant.Type.Equals(PlatformTypes.Int64):
-                                    offset += 9; // ldc.i8 num-> 21 <int64> (1 + 8)
-                                    break;
-                                case object _ when constant.Type.IsOneOf(PlatformTypes.UInt8, PlatformTypes.UInt16, PlatformTypes.UInt32):
-                                {
-                                    var value = (uint) constant.Value;
-                                    if (value <= byte.MaxValue)
-                                    {
-                                        offset += 2; // ldc.i4.s num -> 1F <int8> (1 + 1)
-                                    }
-                                    else
-                                    {
-                                        offset += 5; // ldc.i4 num -> 20 <int32> (1 + 4)
-                                    }
-
-                                    break;
-                                }
-                                case object _ when constant.Type.Equals(PlatformTypes.UInt64):
-                                    offset += 9; // ldc.i8 num-> 21 <int64> (1 + 8)
-                                    break;
-
-                                case object _ when constant.Type.Equals(PlatformTypes.Float32):
-                                    offset += 5; // ldc.r4 num -> 22 <float32> (1 + 4)
-                                    break;
-                                case object _ when constant.Type.Equals(PlatformTypes.Float64):
-                                {
-                                    offset += 9; // ldc.r8 num -> 23 <float64> (1 + 8)
-                                    break;
-                                }
-                                default:
-                                    throw new Exception();
-                            }
-
-
-                            break;
-                        case TemporalVariable _:
-                        {
-                            var operand = instruction.Result.ToLocalVariable();
-                            loadInstruction = new Bytecode.LoadInstruction(offset, Bytecode.LoadOperation.Content, operand);
-                            switch (operand.Index.Value)
-                            {
-                                // ldloc.0,1,2,3 ldarg.0,1,2,3
-                                case 0:
-                                case 1:
-                                case 2:
-                                case 3:
-                                    offset++;
+                                    offset++; // 1byte OpCode
                                     break;
                                 default:
-                                    // ldloc indx -> FE 0C <unsigned int16>  (2 + 2) 
-                                    // ldloc.s indx -> 11 <unsigned int8> (1 + 1) 
-                                    // ldarg num -> FE 09 <unsigned int16> (2 + 2) 
-                                    // ldarg.s num -> 0E <unsigned int8>  (1 + 1)
-                                    offset += (uint) (operand.Index.Value > byte.MaxValue ? 4 : 2);
+                                    // stloc indx -> FE 0E <unsigned int16> (2 + 2) 
+                                    // stloc.s indx -> 13 <unsigned int8> (1 + 1) 
+                                    offset += (uint) (loc.Index.Value > byte.MaxValue ? 4 : 2);
                                     break;
                             }
-
-                            break;
                         }
-                        case LocalVariable localVariable:
+                    }
+                    else
+                    {
+                        switch (instruction.Operand)
                         {
-                            loadInstruction = new Bytecode.LoadInstruction(offset, Bytecode.LoadOperation.Content, localVariable);
-                            // fixme igual al caso de arriba? o estoy mezclando los casos? Creo que esta bien porque local y temporal ambas pueden
-                            // fixme ser parameter (esto determina si es ldloc o ldarg)
-                            switch (localVariable.Index.Value)
-                            {
-                                // ldloc.0,1,2,3 ldarg.0,1,2,3
-                                case 0:
-                                case 1:
-                                case 2:
-                                case 3:
-                                    offset++;
-                                    break;
-                                default:
-                                    // ldloc indx -> FE 0C <unsigned int16>  (2 + 2) 
-                                    // ldloc.s indx -> 11 <unsigned int8> (1 + 1) 
-                                    // ldarg num -> FE 09 <unsigned int16> (2 + 2) 
-                                    // ldarg.s num -> 0E <unsigned int8>  (1 + 1)
-                                    offset += (uint) (localVariable.Index.Value > byte.MaxValue ? 4 : 2);
-                                    break;
-                            }
-
-                            break;
-                        }
-                        case Dereference dereference:
-                        {
-                            var type = dereference.Type;
-                            loadInstruction = new Bytecode.LoadIndirectInstruction(offset, type);
-                            if (type.IsIntType() || type.IsFloatType() || type.Equals(PlatformTypes.IntPtr) || type.Equals(PlatformTypes.Object))
-                            {
-                                // 1 byte opcode
-                                offset++;
-                            }
-                            else
-                            {
-                                // ldobj typeTok -> 71 <Token> (1 + 4) 
-                                offset += 5;
-                            }
-
-                            break;
-                        }
-                        case Reference reference:
-                            switch (reference.Value)
-                            {
-                                case ArrayElementAccess arrayElementAccess:
+                            case Constant constant:
+                                bytecodeInstruction = new Bytecode.LoadInstruction(offset, Bytecode.LoadOperation.Value, constant);
+                                switch (constant.Value)
                                 {
-                                    loadInstruction = new Bytecode.LoadArrayElementInstruction(
-                                        offset,
-                                        Bytecode.LoadArrayElementOperation.Address,
-                                        (ArrayType) arrayElementAccess.Array.Type);
+                                    case null:
+                                        offset++; // ldnull -> 14 (1)
+                                        break;
+                                    case string _:
+                                        offset += 5; // ldstr string -> 72 <T> (1 + 4)  
+                                        break;
+                                    case -1:
+                                    case 0:
+                                    case 1:
+                                    case 2:
+                                    case 3:
+                                    case 4:
+                                    case 5:
+                                    case 6:
+                                    case 7:
+                                    case 8:
+                                        offset++;
+                                        break;
+                                    case object _ when constant.Type.IsOneOf(PlatformTypes.Int8, PlatformTypes.Int16, PlatformTypes.Int32):
+                                    {
+                                        var value = (int) constant.Value;
+                                        if (value >= sbyte.MinValue && value <= sbyte.MaxValue)
+                                        {
+                                            offset += 2; // ldc.i4.s num -> 1F <int8> (1 + 1)
+                                        }
+                                        else
+                                        {
+                                            offset += 5; // ldc.i4 num -> 20 <int32> (1 + 4)
+                                        }
 
-                                    // ldelema typeTok -> 8F <Token> (1 + 4) 
+                                        break;
+                                    }
+                                    case object _ when constant.Type.Equals(PlatformTypes.Int64):
+                                        offset += 9; // ldc.i8 num-> 21 <int64> (1 + 8)
+                                        break;
+                                    case object _ when constant.Type.IsOneOf(PlatformTypes.UInt8, PlatformTypes.UInt16, PlatformTypes.UInt32):
+                                    {
+                                        var value = (uint) constant.Value;
+                                        if (value <= byte.MaxValue)
+                                        {
+                                            offset += 2; // ldc.i4.s num -> 1F <int8> (1 + 1)
+                                        }
+                                        else
+                                        {
+                                            offset += 5; // ldc.i4 num -> 20 <int32> (1 + 4)
+                                        }
+
+                                        break;
+                                    }
+                                    case object _ when constant.Type.Equals(PlatformTypes.UInt64):
+                                        offset += 9; // ldc.i8 num-> 21 <int64> (1 + 8)
+                                        break;
+
+                                    case object _ when constant.Type.Equals(PlatformTypes.Float32):
+                                        offset += 5; // ldc.r4 num -> 22 <float32> (1 + 4)
+                                        break;
+                                    case object _ when constant.Type.Equals(PlatformTypes.Float64):
+                                    {
+                                        offset += 9; // ldc.r8 num -> 23 <float64> (1 + 8)
+                                        break;
+                                    }
+                                    default:
+                                        throw new Exception();
+                                }
+
+
+                                break;
+                            case TemporalVariable _:
+                            {
+                                // FIXME hay casos sin sentido? a este no se entra nunca creo. Hay que revisar todo.
+                                var operand = instruction.Result.ToLocalVariable(); // fixme operand como en l otro caso qie cambie?
+                                bytecodeInstruction = new Bytecode.LoadInstruction(offset, Bytecode.LoadOperation.Content, operand);
+                                switch (operand.Index.Value)
+                                {
+                                    // ldloc.0,1,2,3 ldarg.0,1,2,3
+                                    case 0:
+                                    case 1:
+                                    case 2:
+                                    case 3:
+                                        offset++;
+                                        break;
+                                    default:
+                                        // ldloc indx -> FE 0C <unsigned int16>  (2 + 2) 
+                                        // ldloc.s indx -> 11 <unsigned int8> (1 + 1) 
+                                        // ldarg num -> FE 09 <unsigned int16> (2 + 2) 
+                                        // ldarg.s num -> 0E <unsigned int8>  (1 + 1)
+                                        offset += (uint) (operand.Index.Value > byte.MaxValue ? 4 : 2);
+                                        break;
+                                }
+
+                                break;
+                            }
+                            case LocalVariable localVariable:
+                            {
+                                bytecodeInstruction = new Bytecode.LoadInstruction(offset, Bytecode.LoadOperation.Content, localVariable);
+                                // fixme igual al caso de arriba? o estoy mezclando los casos? Creo que esta bien porque local y temporal ambas pueden
+                                // fixme ser parameter (esto determina si es ldloc o ldarg)
+                                switch (localVariable.Index.Value)
+                                {
+                                    // ldloc.0,1,2,3 ldarg.0,1,2,3
+                                    case 0:
+                                    case 1:
+                                    case 2:
+                                    case 3:
+                                        offset++;
+                                        break;
+                                    default:
+                                        // ldloc indx -> FE 0C <unsigned int16>  (2 + 2) 
+                                        // ldloc.s indx -> 11 <unsigned int8> (1 + 1) 
+                                        // ldarg num -> FE 09 <unsigned int16> (2 + 2) 
+                                        // ldarg.s num -> 0E <unsigned int8>  (1 + 1)
+                                        offset += (uint) (localVariable.Index.Value > byte.MaxValue ? 4 : 2);
+                                        break;
+                                }
+
+                                break;
+                            }
+                            case Dereference dereference:
+                            {
+                                var type = dereference.Type;
+                                bytecodeInstruction = new Bytecode.LoadIndirectInstruction(offset, type);
+                                if (type.IsIntType() || type.IsFloatType() || type.Equals(PlatformTypes.IntPtr) || type.Equals(PlatformTypes.Object))
+                                {
+                                    // 1 byte opcode
+                                    offset++;
+                                }
+                                else
+                                {
+                                    // ldobj typeTok -> 71 <Token> (1 + 4) 
                                     offset += 5;
-                                    break;
                                 }
 
-                                case LocalVariable _:
+                                break;
+                            }
+                            case Reference reference:
+                                switch (reference.Value)
                                 {
-                                    var operand = instruction.Result.ToLocalVariable();
-                                    loadInstruction = new Bytecode.LoadInstruction(offset, Bytecode.LoadOperation.Address, operand);
-                                    // ldloca indx -> FE 0D <unsigned int16>  (2 + 2) 
-                                    // ldloca.s indx -> 12 <unsigned int8> (1 + 1)
-                                    // ldarga argNum -> FE 0A <unsigned int16> (2 + 2)
-                                    // ldarga.s argNum -> 0F <unsigned int8> (1 + 1)
-                                    offset += (uint) (operand.Index.Value > byte.MaxValue ? 4 : 2);
-                                    break;
+                                    case ArrayElementAccess arrayElementAccess:
+                                    {
+                                        bytecodeInstruction = new Bytecode.LoadArrayElementInstruction(
+                                            offset,
+                                            Bytecode.LoadArrayElementOperation.Address,
+                                            (ArrayType) arrayElementAccess.Array.Type) {Method = arrayElementAccess.Method};
+
+                                        // ldelema typeTok -> 8F <Token> (1 + 4) 
+                                        offset += 5;
+                                        break;
+                                    }
+
+                                    case LocalVariable localVariable:
+                                    {
+                                        bytecodeInstruction = new Bytecode.LoadInstruction(offset, Bytecode.LoadOperation.Address, localVariable);
+                                        // ldloca indx -> FE 0D <unsigned int16>  (2 + 2) 
+                                        // ldloca.s indx -> 12 <unsigned int8> (1 + 1)
+                                        // ldarga argNum -> FE 0A <unsigned int16> (2 + 2)
+                                        // ldarga.s argNum -> 0F <unsigned int8> (1 + 1)
+                                        offset += (uint) (localVariable.Index.Value > byte.MaxValue ? 4 : 2);
+                                        break;
+                                    }
+                                    case InstanceFieldAccess instanceFieldAccess:
+                                        bytecodeInstruction = new Bytecode.LoadFieldInstruction(
+                                            offset,
+                                            Bytecode.LoadFieldOperation.Address,
+                                            instanceFieldAccess.Field);
+                                        // ldsflda field -> 0x7F <Token> (1 + 4)
+                                        // ldflda field -> 0x7C <Token>  (1 + 4)
+                                        offset += 5;
+                                        break;
+                                    default:
+                                        throw new Exception(); // TODO
                                 }
-                                case InstanceFieldAccess instanceFieldAccess:
-                                    loadInstruction = new Bytecode.LoadFieldInstruction(
-                                        offset,
-                                        Bytecode.LoadFieldOperation.Address,
-                                        instanceFieldAccess.Field);
-                                    // ldsflda field -> 0x7F <Token> (1 + 4)
-                                    // ldflda field -> 0x7C <Token>  (1 + 4)
-                                    offset += 5;
-                                    break;
-                                default:
-                                    throw new Exception(); // TODO
-                            }
 
-                            break;
-                        case ArrayLengthAccess _:
-                            loadInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.LoadArrayLength);
-                            offset++;
-                            break;
-                        case VirtualMethodReference virtualMethodReference:
-                            loadInstruction = new Bytecode.LoadMethodAddressInstruction(
-                                offset,
-                                Bytecode.LoadMethodAddressOperation.Virtual,
-                                virtualMethodReference.Method);
-                            // ldvirtftn method -> FE 07 <Token> (2 + 4)  
-                            offset += 6;
-                            break;
-                        case StaticMethodReference staticMethodReference:
-                            loadInstruction = new Bytecode.LoadMethodAddressInstruction(
-                                offset,
-                                Bytecode.LoadMethodAddressOperation.Static,
-                                staticMethodReference.Method);
-                            // ldftn method -> FE 06 <Token> (2 + 4)  
-                            offset += 6;
-                            break;
-                        case InstanceFieldAccess instanceFieldAccess:
-                            loadInstruction = new Bytecode.LoadFieldInstruction(
-                                offset,
-                                Bytecode.LoadFieldOperation.Content,
-                                instanceFieldAccess.Field);
-                            //  ldfld field -> 7B <T> (1 + 4)
-                            offset += 5;
-                            break;
-                        case StaticFieldAccess staticFieldAccess:
-                            loadInstruction = new Bytecode.LoadFieldInstruction(
-                                offset,
-                                Bytecode.LoadFieldOperation.Content,
-                                staticFieldAccess.Field);
-                            // ldsfld field -> 7E <T> (1 + 4)
-                            offset += 5;
-                            break;
-                        case ArrayElementAccess arrayElementAccess:
-                        {
-                            var type = (ArrayType) arrayElementAccess.Array.Type;
-                            loadInstruction = new Bytecode.LoadArrayElementInstruction(
-                                offset,
-                                Bytecode.LoadArrayElementOperation.Content,
-                                type);
-
-                            if (type.ElementsType.IsIntType() ||
-                                type.ElementsType.IsFloatType() ||
-                                type.ElementsType.Equals(PlatformTypes.IntPtr) ||
-                                type.ElementsType.Equals(PlatformTypes.Object))
-                            {
-                                // 1 byte opcode
+                                break;
+                            case ArrayLengthAccess _:
+                                bytecodeInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.LoadArrayLength);
                                 offset++;
-                            }
-                            else
-                            {
-                                // ldelem typeTok -> A3 <Token> (1 + 4) 
+                                break;
+                            case VirtualMethodReference virtualMethodReference:
+                                bytecodeInstruction = new Bytecode.LoadMethodAddressInstruction(
+                                    offset,
+                                    Bytecode.LoadMethodAddressOperation.Virtual,
+                                    virtualMethodReference.Method);
+                                // ldvirtftn method -> FE 07 <Token> (2 + 4)  
+                                offset += 6;
+                                break;
+                            case StaticMethodReference staticMethodReference:
+                                bytecodeInstruction = new Bytecode.LoadMethodAddressInstruction(
+                                    offset,
+                                    Bytecode.LoadMethodAddressOperation.Static,
+                                    staticMethodReference.Method);
+                                // ldftn method -> FE 06 <Token> (2 + 4)  
+                                offset += 6;
+                                break;
+                            case InstanceFieldAccess instanceFieldAccess:
+                                bytecodeInstruction = new Bytecode.LoadFieldInstruction(
+                                    offset,
+                                    Bytecode.LoadFieldOperation.Content,
+                                    instanceFieldAccess.Field);
+                                //  ldfld field -> 7B <T> (1 + 4)
                                 offset += 5;
-                            }
+                                break;
+                            case StaticFieldAccess staticFieldAccess:
+                                bytecodeInstruction = new Bytecode.LoadFieldInstruction(
+                                    offset,
+                                    Bytecode.LoadFieldOperation.Content,
+                                    staticFieldAccess.Field);
+                                // ldsfld field -> 7E <T> (1 + 4)
+                                offset += 5;
+                                break;
+                            case ArrayElementAccess arrayElementAccess:
+                            {
+                                var type = (ArrayType) arrayElementAccess.Array.Type;
+                                bytecodeInstruction = new Bytecode.LoadArrayElementInstruction(
+                                    offset,
+                                    Bytecode.LoadArrayElementOperation.Content,
+                                    type) {Method = arrayElementAccess.Method};
 
-                            break;
+                                if ((type.ElementsType.IsIntType() ||
+                                     type.ElementsType.IsFloatType() ||
+                                     type.ElementsType.Equals(PlatformTypes.IntPtr) ||
+                                     type.ElementsType.Equals(PlatformTypes.Object)) && ((ArrayType) arrayElementAccess.Array.Type).IsVector)
+                                    /// fixme cuaqluiera ese isvector?
+                                {
+                                    // 1 byte opcode
+                                    offset++;
+                                }
+                                else
+                                {
+                                    // ldelem typeTok -> A3 <Token> (1 + 4) 
+                                    offset += 5;
+                                }
+
+                                break;
+                            }
+                            default: throw new Exception(); // TODO
                         }
-                        default: throw new Exception(); // TODO
                     }
                 }
 
-                body.Instructions.Add(loadInstruction);
+                body.Instructions.Add(bytecodeInstruction);
             }
 
             public override void Visit(StoreInstruction instruction)
@@ -362,11 +416,14 @@ namespace Backend.Transformations
                     case ArrayElementAccess arrayElementAccess:
                     {
                         var type = (ArrayType) arrayElementAccess.Array.Type;
-                        storeInstruction = new Bytecode.StoreArrayElementInstruction(offset, type);
-                        if (type.ElementsType.IsIntType() ||
-                            type.ElementsType.IsFloatType() ||
-                            type.ElementsType.Equals(PlatformTypes.IntPtr) ||
-                            type.ElementsType.Equals(PlatformTypes.Object))
+                        storeInstruction = new Bytecode.StoreArrayElementInstruction(offset, type) {Method = arrayElementAccess.Method};
+                        if (
+                            (type.ElementsType.IsIntType() ||
+                             type.ElementsType.IsFloatType() ||
+                             type.ElementsType.Equals(PlatformTypes.IntPtr) ||
+                             type.ElementsType.Equals(PlatformTypes.Object)
+                            ) && ((ArrayType) arrayElementAccess.Array.Type).IsVector /// fixme cuaqluiera ese isvector?
+                        )
                         {
                             // 1 byte opcode
                             offset++;
@@ -562,6 +619,15 @@ namespace Backend.Transformations
                 {
                     case UnconditionalBranchOperation.Leave:
                     {
+                        var target = Convert.ToUInt32(instruction.Target.Substring(2), 16);
+                        var unconditionalBranchInstruction = new Bytecode.BranchInstruction(offset, Bytecode.BranchOperation.Leave, target);
+
+                        body.Instructions.Add(unconditionalBranchInstruction);
+                        // leave target -> DD <int32> (1 + 4)
+                        // leave.s target -> DE <int8> (1 + 1)
+                        offset += (uint) (IsShortForm(instruction) ? 2 : 5);
+
+
                         if (protectedBlocks.Count > 0)
                         {
                             if (protectedBlocks.Peek().AllHandlersAdded())
@@ -575,12 +641,6 @@ namespace Backend.Transformations
                             }
                         }
 
-                        var target = Convert.ToUInt32(instruction.Target.Substring(2), 16);
-                        var unconditionalBranchInstruction = new Bytecode.BranchInstruction(offset, Bytecode.BranchOperation.Leave, target);
-                        body.Instructions.Add(unconditionalBranchInstruction);
-                        // leave target -> DD <int32> (1 + 4)
-                        // leave.s target -> DE <int8> (1 + 1)
-                        offset += (uint) (target > byte.MaxValue ? 5 : 2);
                         break;
                     }
                     case UnconditionalBranchOperation.Branch:
@@ -593,19 +653,19 @@ namespace Backend.Transformations
                         body.Instructions.Add(unconditionalBranchInstruction);
                         // leave target -> 38 <int32> (1 + 4)
                         // leave.s target -> 2B <int8> (1 + 1)
-                        offset += (uint) (target > byte.MaxValue ? 5 : 2);
+                        offset += (uint) (IsShortForm(instruction) ? 2 : 5);
                         break;
                     }
                     case UnconditionalBranchOperation.EndFinally:
                     {
+                        body.Instructions.Add(new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.EndFinally));
+                        offset++;
                         var exceptionBlockBuilder = protectedBlocks.Pop(); // no more handlers after finally
                         exceptionBlockBuilder
                             .Handlers
                             .Last()
                             .HandlerEnd = offset;
                         body.ExceptionInformation.AddRange(exceptionBlockBuilder.Build());
-                        body.Instructions.Add(new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.EndFinally));
-                        offset++;
                         break;
                     }
                     case UnconditionalBranchOperation.EndFilter:
@@ -629,7 +689,7 @@ namespace Backend.Transformations
                 body.Instructions.Add(conditionalBranchInstruction);
                 // br* target -> 1ByteOpcode <int32> (1 + 4)
                 // br*.s target -> 1ByteOpcode <int8> (1 + 1)
-                offset += (uint) (target > byte.MaxValue ? 5 : 2);
+                offset += (uint) (IsShortForm(instruction) ? 2 : 5);
             }
 
             public override void Visit(SwitchInstruction instruction)
@@ -680,7 +740,12 @@ namespace Backend.Transformations
 
             public override void Visit(CreateObjectInstruction instruction)
             {
-                var createObjectInstruction = new Bytecode.CreateObjectInstruction(offset, instruction.Constructor);
+                var index = bodyToProcess.Instructions.IndexOf(instruction);
+                var methodCallInstruction = (MethodCallInstruction) bodyToProcess.Instructions[index + 1];
+                ignoreInstruction.Add(index + 1, true); // method call
+                ignoreInstruction.Add(index + 2, true); // load
+
+                var createObjectInstruction = new Bytecode.CreateObjectInstruction(offset, methodCallInstruction.Method);
                 body.Instructions.Add(createObjectInstruction);
                 // newobj ctor -> 73 <Token> (1 + 4)
                 offset += 5;
@@ -728,7 +793,8 @@ namespace Backend.Transformations
                 var createArrayInstruction =
                     new Bytecode.CreateArrayInstruction(offset, new ArrayType(instruction.ElementType, instruction.Rank))
                     {
-                        WithLowerBound = instruction.LowerBounds.Any()
+                        WithLowerBound = instruction.LowerBounds.Any(),
+                        Constructor = instruction.Constructor
                     };
                 body.Instructions.Add(createArrayInstruction);
                 // newobj ctor -> 73 <Token> (1 + 4)
@@ -747,6 +813,17 @@ namespace Backend.Transformations
                 body.Instructions.Add(new Bytecode.ConstrainedInstruction(offset, instruction.ThisType));
                 // constrained. thisType -> FE 16 <T> (2 + 4)
                 offset += 6;
+            }
+
+
+            private bool IsShortForm(BranchInstruction instruction)
+            {
+                var nextInstructionOffset =
+                    Convert.ToInt32(bodyToProcess.Instructions[bodyToProcess.Instructions.IndexOf(instruction) + 1].Label.Substring(2), 16);
+                var currentInstructionOffset = Convert.ToInt32(instruction.Label.Substring(2), 16);
+                // short forms are 1 byte opcode + 1 byte target. normal forms are 1 byte opcode + 4 byte target
+                var isShortForm = nextInstructionOffset - currentInstructionOffset == 2;
+                return isShortForm;
             }
 
 

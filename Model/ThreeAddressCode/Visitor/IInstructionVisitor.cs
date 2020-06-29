@@ -45,5 +45,6 @@ namespace Model.ThreeAddressCode.Visitor
 		void Visit(CreateArrayInstruction instruction);
 		void Visit(PhiInstruction instruction);
 		void Visit(ConstrainedInstruction instruction);
+		void Visit(PopInstruction instruction);
 	}
 }

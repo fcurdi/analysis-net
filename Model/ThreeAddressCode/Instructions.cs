@@ -406,6 +406,25 @@ namespace Model.ThreeAddressCode.Instructions
 			return this.ToString("nop");
 		}
 	}
+	
+	public class PopInstruction : Instruction
+	{
+		public PopInstruction(uint offset)
+			: base(offset)
+		{
+		}
+
+		public override void Accept(IInstructionVisitor visitor)
+		{
+			base.Accept(visitor);
+			visitor.Visit(this);
+		}
+
+		public override string ToString()
+		{
+			return this.ToString("pop");
+		}
+	}
 
 	public class BreakpointInstruction : Instruction
 	{
@@ -1103,9 +1122,7 @@ namespace Model.ThreeAddressCode.Instructions
 	public class CreateObjectInstruction : DefinitionInstruction
 	{
 		public IType AllocationType { get; set; }
-		
-		public IMethodReference Constructor { get; set; }
-		
+
 		public CreateObjectInstruction(uint offset, IVariable result, IType allocationType)
 			: base(offset, result)
 		{
@@ -1313,6 +1330,8 @@ namespace Model.ThreeAddressCode.Instructions
 		public uint Rank { get; set; }
 		public IList<IVariable> LowerBounds { get; private set; }
 		public IList<IVariable> Sizes { get; private set; }
+		
+		public IMethodReference Constructor { get; set; }
 
 		public CreateArrayInstruction(uint offset, IVariable result, IType elementType, uint rank, IEnumerable<IVariable> lowerBounds, IEnumerable<IVariable> sizes)
 			: base(offset, result)

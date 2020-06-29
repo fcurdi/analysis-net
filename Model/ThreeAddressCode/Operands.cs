@@ -787,7 +787,8 @@ namespace Model.ThreeAddressCode.Values
 	{
 		public IVariable Array { get; set; }
 		public IList<IVariable> Indices { get; set; }
-
+		
+		public IMethodReference Method { get; set; }
 		public ArrayElementAccess(IVariable array, IEnumerable<IVariable> indices)
 		{
 			this.Array = array;

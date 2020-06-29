@@ -15,7 +15,11 @@ namespace Model.ThreeAddressCode.Visitor
 			foreach (var instruction in container.Instructions)
 			{
 				var tacInstruction = instruction as Instruction;
-				tacInstruction.Accept(this);
+				if (ShouldVisit(tacInstruction))
+				{
+					tacInstruction.Accept(this);	
+				}
+				
 			}
 		}
 
@@ -53,5 +57,8 @@ namespace Model.ThreeAddressCode.Visitor
 		public virtual void Visit(CreateArrayInstruction instruction) { }
 		public virtual void Visit(PhiInstruction instruction) { }
 		public virtual void Visit(ConstrainedInstruction instruction) { }
+		public virtual void Visit(PopInstruction instruction) { }
+
+		public virtual bool ShouldVisit(Instruction instruction) => true;
 	}
 }

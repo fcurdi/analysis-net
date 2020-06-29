@@ -242,6 +242,7 @@ namespace Backend.Transformations
 			private void ProcessPop(Bytecode.BasicInstruction op)
 			{
 				stack.Pop();
+				body.Instructions.Add(new Tac.PopInstruction(op.Offset));
 			}
 
 			private void ProcessDup(Bytecode.BasicInstruction op)
@@ -515,7 +516,10 @@ namespace Backend.Transformations
 				sizes.Reverse();
 
 				var result = stack.Push().MakeCopy(op.Type);
-				var instruction = new Tac.CreateArrayInstruction(op.Offset, result, op.Type.ElementsType, op.Type.Rank, lowerBounds, sizes);
+				var instruction = new Tac.CreateArrayInstruction(op.Offset, result, op.Type.ElementsType, op.Type.Rank, lowerBounds, sizes)
+				{
+					Constructor = op.Constructor
+				};
 				body.Instructions.Add(instruction);
 			}
 
@@ -548,7 +552,7 @@ namespace Backend.Transformations
                 var array = stack.Pop().MakeCopy(op.Array); 
                 indices.Reverse();
 
-                var source = new ArrayElementAccess(array, indices);
+                var source = new ArrayElementAccess(array, indices) { Method = op.Method};
                 var dest = stack.Push().MakeCopy(source.Type);
                 var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
                 body.Instructions.Add(instruction);
@@ -568,7 +572,7 @@ namespace Backend.Transformations
 
 				indices.Reverse();
 
-				var access = new ArrayElementAccess(array, indices);
+				var access = new ArrayElementAccess(array, indices) { Method = op.Method};;
 				var source = new Reference(access);
 				var dest = stack.Push().MakeCopy(source.Type);
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
@@ -588,7 +592,7 @@ namespace Backend.Transformations
 
 				var array = stack.Pop().MakeCopy(op.Array);
 				indices.Reverse();
-				var dest = new ArrayElementAccess(array, indices);
+				var dest = new ArrayElementAccess(array, indices) { Method = op.Method};
 				var instruction = new Tac.StoreInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
@@ -618,10 +622,7 @@ namespace Backend.Transformations
 				arguments.Add(allocationResult);
 				arguments.Reverse();
 
-				IInstruction instruction = new Tac.CreateObjectInstruction(op.Offset, allocationResult, op.Constructor.ContainingType)
-				{
-					Constructor = op.Constructor
-				};
+				IInstruction instruction = new Tac.CreateObjectInstruction(op.Offset, allocationResult, op.Constructor.ContainingType);
 				body.Instructions.Add(instruction);
 
 				instruction = new Tac.MethodCallInstruction(op.Offset, null, Tac.MethodCallOperation.Static, op.Constructor, arguments);
@@ -826,7 +827,7 @@ namespace Backend.Transformations
 
 			public override void Visit(Bytecode.LoadTokenInstruction op)
 			{
-				var result = stack.Push();
+				var result = stack.Push().MakeCopy(TypeHelper.TokenType(op.Token));
 				var instruction = new Tac.LoadTokenInstruction(op.Offset, result, op.Token);
 				body.Instructions.Add(instruction);
 			}

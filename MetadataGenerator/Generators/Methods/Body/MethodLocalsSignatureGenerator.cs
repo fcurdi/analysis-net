@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using MetadataGenerator.Metadata;
 using Model.ThreeAddressCode.Values;
+using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
