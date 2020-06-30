@@ -836,6 +836,7 @@ namespace Model.Types
 
 		public void UpdateVariables()
 		{
+			var previousLocals = LocalVariables.ToSet();
 			this.LocalVariables.Clear();
 			//this.LocalVariables.AddRange(this.Parameters);
 
@@ -849,6 +850,7 @@ namespace Model.Types
 			}
 
 			locals.ExceptWith(this.Parameters);
+			locals.UnionWith(previousLocals); // this ensures that local variables that were declared but not used are included
 			this.LocalVariables.AddRange(locals);
 		}
 

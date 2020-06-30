@@ -40,21 +40,19 @@ namespace Backend.Transformations
             var body = new MethodBody(MethodBodyKind.Bytecode);
 
             body.MaxStack = method.Body.MaxStack; // FIXME 
-            body.Parameters.AddRange(method.Body.Parameters);
+            body.Parameters.AddRange(method.Body.Parameters); // FIXME esto queda igual?
+            // this is updated later on. Needed to preserver variables that are declared but not used
+            body.LocalVariables.AddRange(method.Body.LocalVariables);
 
             if (method.Body.Instructions.Count > 0)
             {
                 new InstructionTranslator(body, method.Body).Visit(method.Body);
             }
 
-            foreach (var bodyInstruction in body.Instructions.Where(i => i.Variables.Count > 0))
-            {
-                foreach (var loc in bodyInstruction.Variables)
-                {
-                    // filter this????
-                    if (!body.LocalVariables.Contains(loc) && !loc.Name.Equals("this")) body.LocalVariables.Add(loc);
-                }
-            }
+            body.UpdateVariables();
+            var newLocals = body.LocalVariables.OfType<LocalVariable>().OrderBy(local => local.Index.Value).ToList();
+            body.LocalVariables.Clear();
+            body.LocalVariables.AddRange(newLocals);
 
             return body;
         }
