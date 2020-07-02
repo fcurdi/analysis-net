@@ -46,7 +46,9 @@ namespace Backend.Transformations
 
             if (method.Body.Instructions.Count > 0)
             {
-                new InstructionTranslator(body, method.Body).Visit(method.Body);
+                var instructionTranslator = new InstructionTranslator(body, method.Body);
+                instructionTranslator.Visit(method.Body);
+                instructionTranslator.AssertNoProtectedBlocks();
             }
 
             body.UpdateVariables();
@@ -64,6 +66,11 @@ namespace Backend.Transformations
             private uint offset;
             private readonly Stack<ProtectedBlockBuilder> protectedBlocks = new Stack<ProtectedBlockBuilder>();
             private readonly IDictionary<int, bool> ignoreInstruction = new Dictionary<int, bool>();
+
+            public void AssertNoProtectedBlocks()
+            {
+                if (protectedBlocks.Count > 0) throw new Exception("Protected Blocks not generated correctly");
+            }
 
             public InstructionTranslator(MethodBody body, MethodBody bodyToProcess)
             {
@@ -604,11 +611,20 @@ namespace Backend.Transformations
 
             public override void Visit(ThrowInstruction instruction)
             {
-                // FIXME rethrow se modela como ThrowInstruction, hay que generarla. Habria que ver si esta dentro de un catch creo para saber si es o no.
-                // FIXME admeas el offset cambia si es rethrow.
-                var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Throw);
+                Bytecode.BasicInstruction basicInstruction;
+                if (instruction.HasOperand)
+                {
+                    basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Throw);
+                    offset++;
+                }
+                else
+                {
+                    basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Rethrow);
+                    offset += 2; // 2byte opcode
+                }
+
+                EndProtectedBlockIfApplies();
                 body.Instructions.Add(basicInstruction);
-                offset++;
             }
 
             public override void Visit(UnconditionalBranchInstruction instruction)
@@ -624,21 +640,7 @@ namespace Backend.Transformations
                         // leave target -> DD <int32> (1 + 4)
                         // leave.s target -> DE <int8> (1 + 1)
                         offset += (uint) (IsShortForm(instruction) ? 2 : 5);
-
-
-                        if (protectedBlocks.Count > 0)
-                        {
-                            if (protectedBlocks.Peek().AllHandlersAdded())
-                            {
-                                var exceptionBlockBuilder = protectedBlocks.Pop();
-                                exceptionBlockBuilder
-                                    .Handlers
-                                    .Last()
-                                    .HandlerEnd = offset;
-                                body.ExceptionInformation.AddRange(exceptionBlockBuilder.Build());
-                            }
-                        }
-
+                        EndProtectedBlockIfApplies();
                         break;
                     }
                     case UnconditionalBranchOperation.Branch:
@@ -822,6 +824,19 @@ namespace Backend.Transformations
                 // short forms are 1 byte opcode + 1 byte target. normal forms are 1 byte opcode + 4 byte target
                 var isShortForm = nextInstructionOffset - currentInstructionOffset == 2;
                 return isShortForm;
+            }
+
+            private void EndProtectedBlockIfApplies()
+            {
+                if (protectedBlocks.Count > 0 && protectedBlocks.Peek().AllHandlersAdded())
+                {
+                    var exceptionBlockBuilder = protectedBlocks.Pop();
+                    exceptionBlockBuilder
+                        .Handlers
+                        .Last()
+                        .HandlerEnd = offset;
+                    body.ExceptionInformation.AddRange(exceptionBlockBuilder.Build());
+                }
             }
 
 
