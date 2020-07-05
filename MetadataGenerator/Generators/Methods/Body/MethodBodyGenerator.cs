@@ -422,7 +422,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                             case LoadOperation.Address:
                             {
                                 var variable = (LocalVariable) loadInstruction.Operand;
-                                var index = variable.Index.Value;
+                                var index = variable.Index;
                                 if (variable.IsParameter)
                                 {
                                     instructionEncoder.LoadArgumentAddress(index);
@@ -437,7 +437,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                             case LoadOperation.Content:
                             {
                                 var variable = (LocalVariable) loadInstruction.Operand;
-                                var index = variable.Index.Value;
+                                var index = variable.Index;
                                 if (variable.IsParameter)
                                 {
                                     instructionEncoder.LoadArgument(index);
@@ -615,7 +615,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                     }
                     case StoreInstruction storeInstruction:
                     {
-                        var index = ((LocalVariable) storeInstruction.Target).Index.Value;
+                        var index = ((LocalVariable) storeInstruction.Target).Index;
                         if (storeInstruction.Target.IsParameter)
                         {
                             instructionEncoder.StoreArgument(index);
