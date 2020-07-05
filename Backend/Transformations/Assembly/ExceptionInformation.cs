@@ -36,11 +36,11 @@ namespace Backend.Transformations.Assembly
 
         public bool AllHandlersAdded() => HandlerCount == Handlers.Count;
 
-        public readonly IList<ExceptionHandlerBlockBuilder> Handlers = new List<ExceptionHandlerBlockBuilder>();
+        public readonly IList<ProtectedBlockHandlerBuilder> Handlers = new List<ProtectedBlockHandlerBuilder>();
 
-        public ProtectedBlockBuilder EndPreviousRegion(uint offset) => EndPreviousRegion(offset, () => true);
+        public ProtectedBlockBuilder EndPreviousRegionWith(uint offset) => EndPreviousRegionWith(offset, () => true);
 
-        public ProtectedBlockBuilder EndPreviousRegion(uint offset, Func<bool> multipleHandlerCondition)
+        public ProtectedBlockBuilder EndPreviousRegionWith(uint offset, Func<bool> multipleHandlerCondition)
         {
             if (Handlers.Count == 0) // first handler, ends try region
             {
@@ -61,7 +61,7 @@ namespace Backend.Transformations.Assembly
                 .ToList();
     }
 
-    internal class ExceptionHandlerBlockBuilder
+    internal class ProtectedBlockHandlerBuilder
     {
         private uint? filterStart;
 

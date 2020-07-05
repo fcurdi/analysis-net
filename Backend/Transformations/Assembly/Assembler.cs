@@ -44,6 +44,7 @@ namespace Backend.Transformations.Assembly
 
             body.MaxStack = method.Body.MaxStack; // FIXME 
             body.Parameters.AddRange(method.Body.Parameters);
+
             // this is updated later on. Needed to preserver variables that are declared but not used
             body.LocalVariables.AddRange(method.Body.LocalVariables);
 
@@ -76,11 +77,6 @@ namespace Backend.Transformations.Assembly
                 this.bodyToProcess = bodyToProcess;
             }
 
-            public void AssertNoProtectedBlocks()
-            {
-                if (protectedBlocks.Count > 0) throw new Exception("Protected Blocks not generated correctly");
-            }
-
             public override bool ShouldVisit(Instruction instruction)
             {
                 var shouldProcessInstruction = !ignoreInstruction.TryGetValue(bodyToProcess.Instructions.IndexOf(instruction), out _);
@@ -89,8 +85,9 @@ namespace Backend.Transformations.Assembly
 
             public override void Visit(PopInstruction instruction)
             {
-                body.Instructions.Add(new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Pop));
-                offset++;
+                var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Pop);
+                body.Instructions.Add(basicInstruction);
+                offset++; // 1 Byte OpCode
             }
 
             public override void Visit(BinaryInstruction instruction)
@@ -106,10 +103,10 @@ namespace Backend.Transformations.Assembly
                     case Bytecode.BasicOperation.Gt:
                     case Bytecode.BasicOperation.Lt:
                     case Bytecode.BasicOperation.Eq:
-                        offset += 2; // 2ByteOpcode
+                        offset += 2; // 2 Byte OpCode
                         break;
                     default:
-                        offset++;
+                        offset++; // 1 Byte OpCode
                         break;
                 }
             }
@@ -118,12 +115,12 @@ namespace Backend.Transformations.Assembly
             {
                 var basicInstruction = new Bytecode.BasicInstruction(offset, OperationHelper.ToBasicOperation(instruction.Operation));
                 body.Instructions.Add(basicInstruction);
-                offset++;
+                offset++; // 1 Byte OpCode
             }
 
+            // FIXME revisar los casos, hay algunos que no estoy seguro de que esten bien. se repiten caminos ademas (sobretodo por el reference)
             public override void Visit(LoadInstruction instruction)
             {
-                // FIXME revisar los casos, hay algunos que no estoy seguro de que esten bien. se repiten caminos ademas (sobretodo por el reference)
                 Bytecode.Instruction bytecodeInstruction;
                 if (instruction.Operand is TemporalVariable && instruction.Result is TemporalVariable)
                 {
@@ -390,6 +387,7 @@ namespace Backend.Transformations.Assembly
                 body.Instructions.Add(bytecodeInstruction);
             }
 
+            // FIXME revisar
             public override void Visit(StoreInstruction instruction)
             {
                 Bytecode.Instruction storeInstruction;
@@ -454,28 +452,29 @@ namespace Backend.Transformations.Assembly
             {
                 var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Nop);
                 body.Instructions.Add(basicInstruction);
-                offset++;
+                offset++; // 1 Byte OpCode
             }
 
             public override void Visit(BreakpointInstruction instruction)
             {
                 var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Breakpoint);
                 body.Instructions.Add(basicInstruction);
-                offset++;
+                offset++; // 1 Byte OpCode
             }
 
             public override void Visit(TryInstruction instruction)
             {
-                // try with multiple handlers are modelled as multiple try instructions with the same label but different handlers.
+                // try with multiple handlers is modelled as multiple try instructions with the same label but different handlers.
                 // if label matches with the current try, then increase the number of expected handlers
+                // if not, it is a new try block 
                 if (protectedBlocks.Count > 0 && protectedBlocks.Peek().TryStart.Equals(offset))
                 {
                     protectedBlocks.Peek().HandlerCount++;
                 }
                 else
                 {
-                    var exceptionBlockBuilder = new ProtectedBlockBuilder {TryStart = offset, HandlerCount = 1};
-                    protectedBlocks.Push(exceptionBlockBuilder);
+                    var protectedBlockBuilder = new ProtectedBlockBuilder {TryStart = offset, HandlerCount = 1};
+                    protectedBlocks.Push(protectedBlockBuilder);
                 }
             }
 
@@ -483,8 +482,8 @@ namespace Backend.Transformations.Assembly
             {
                 protectedBlocks
                     .Peek()
-                    .EndPreviousRegion(offset)
-                    .Handlers.Add(new ExceptionHandlerBlockBuilder
+                    .EndPreviousRegionWith(offset)
+                    .Handlers.Add(new ProtectedBlockHandlerBuilder
                     {
                         HandlerStart = offset,
                         HandlerBlockKind = ExceptionHandlerBlockKind.Fault,
@@ -495,35 +494,33 @@ namespace Backend.Transformations.Assembly
             {
                 protectedBlocks
                     .Peek()
-                    .EndPreviousRegion(offset)
-                    .Handlers.Add(
-                        new ExceptionHandlerBlockBuilder
-                        {
-                            HandlerStart = offset,
-                            HandlerBlockKind = ExceptionHandlerBlockKind.Finally,
-                        });
+                    .EndPreviousRegionWith(offset)
+                    .Handlers.Add(new ProtectedBlockHandlerBuilder
+                    {
+                        HandlerStart = offset,
+                        HandlerBlockKind = ExceptionHandlerBlockKind.Finally,
+                    });
             }
 
             public override void Visit(FilterInstruction instruction)
             {
                 var protectedBlockBuilder = protectedBlocks.Peek();
 
-                // filter is a special case since it has a two regions (filter and handler). A filter in this TAC is moddeled as two FilterInstruction
-                // with different kinds. If the previous region is a Filter, it must be ended only if it is in it's handler part.
+                // filter is a special case since it has a two regions (filter and handler). A filter in this TAC is modeled as two FilterInstruction
+                // with different kinds, one for each region. If the previous region is a Filter, it must be ended only if it is in it's handler region.
                 bool EndPreviousHandlerCondition() => protectedBlockBuilder.Handlers.Last().HandlerBlockKind != ExceptionHandlerBlockKind.Filter ||
                                                       instruction.kind == FilterInstructionKind.FilterSection;
 
-                protectedBlockBuilder.EndPreviousRegion(offset, EndPreviousHandlerCondition);
+                protectedBlockBuilder.EndPreviousRegionWith(offset, EndPreviousHandlerCondition);
 
                 switch (instruction.kind)
                 {
                     case FilterInstructionKind.FilterSection:
-                        protectedBlockBuilder.Handlers.Add(
-                            new ExceptionHandlerBlockBuilder
-                            {
-                                FilterStart = offset,
-                                HandlerBlockKind = ExceptionHandlerBlockKind.Filter,
-                            });
+                        protectedBlockBuilder.Handlers.Add(new ProtectedBlockHandlerBuilder
+                        {
+                            FilterStart = offset,
+                            HandlerBlockKind = ExceptionHandlerBlockKind.Filter,
+                        });
                         break;
                     case FilterInstructionKind.FilterHandler:
                         var handler = protectedBlockBuilder.Handlers.Last();
@@ -538,10 +535,10 @@ namespace Backend.Transformations.Assembly
             {
                 protectedBlocks
                     .Peek()
-                    .EndPreviousRegion(offset)
+                    .EndPreviousRegionWith(offset)
                     .Handlers
                     .Add(
-                        new ExceptionHandlerBlockBuilder()
+                        new ProtectedBlockHandlerBuilder
                         {
                             HandlerStart = offset,
                             HandlerBlockKind = ExceptionHandlerBlockKind.Catch,
@@ -550,58 +547,25 @@ namespace Backend.Transformations.Assembly
                     );
             }
 
-            public override void Visit(ConvertInstruction instruction)
-            {
-                var convertInstruction = new Bytecode.ConvertInstruction(
-                    offset,
-                    OperationHelper.ToConvertOperation(instruction.Operation),
-                    instruction.ConversionType)
-                {
-                    OverflowCheck = instruction.OverflowCheck,
-                    UnsignedOperands = instruction.UnsignedOperands,
-                };
-                body.Instructions.Add(convertInstruction);
-                switch (convertInstruction.Operation)
-                {
-                    case Bytecode.ConvertOperation.Conv:
-                        offset++;
-                        break;
-                    default:
-                        // box typeTok -> 8C <Token> (1 + 4) 
-                        // castclass typeTok -> 74 <Token> (1 + 4) 
-                        // isinst typeTok -> 75 <Token> (1 + 4) 
-                        // unbox valuetype -> 79 <Token> (1 + 4) 
-                        // unbox.any typeTok -> A5 <Token> (1 + 4) 
-                        offset += 5;
-                        break;
-                }
-            }
-
-            public override void Visit(ReturnInstruction instruction)
-            {
-                var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Return);
-                body.Instructions.Add(basicInstruction);
-                offset++;
-            }
-
             public override void Visit(ThrowInstruction instruction)
             {
                 Bytecode.BasicInstruction basicInstruction;
                 if (instruction.HasOperand)
                 {
                     basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Throw);
-                    offset++;
+                    offset++; // 1 Byte OpCode
                 }
                 else
                 {
                     basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Rethrow);
-                    offset += 2; // 2byte opcode
+                    offset += 2; // 2 Byte OpCode
                 }
 
                 EndProtectedBlockIfApplies();
                 body.Instructions.Add(basicInstruction);
             }
 
+            // fixme revisar de aca en adelante
             public override void Visit(UnconditionalBranchInstruction instruction)
             {
                 switch (instruction.Operation)
@@ -652,6 +616,40 @@ namespace Backend.Transformations.Assembly
                     }
                     default: throw instruction.Operation.ToUnknownValueException();
                 }
+            }
+
+            public override void Visit(ConvertInstruction instruction)
+            {
+                var convertInstruction = new Bytecode.ConvertInstruction(
+                    offset,
+                    OperationHelper.ToConvertOperation(instruction.Operation),
+                    instruction.ConversionType)
+                {
+                    OverflowCheck = instruction.OverflowCheck,
+                    UnsignedOperands = instruction.UnsignedOperands,
+                };
+                body.Instructions.Add(convertInstruction);
+                switch (convertInstruction.Operation)
+                {
+                    case Bytecode.ConvertOperation.Conv:
+                        offset++;
+                        break;
+                    default:
+                        // box typeTok -> 8C <Token> (1 + 4) 
+                        // castclass typeTok -> 74 <Token> (1 + 4) 
+                        // isinst typeTok -> 75 <Token> (1 + 4) 
+                        // unbox valuetype -> 79 <Token> (1 + 4) 
+                        // unbox.any typeTok -> A5 <Token> (1 + 4) 
+                        offset += 5;
+                        break;
+                }
+            }
+
+            public override void Visit(ReturnInstruction instruction)
+            {
+                var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Return);
+                body.Instructions.Add(basicInstruction);
+                offset++;
             }
 
             public override void Visit(ConditionalBranchInstruction instruction)
@@ -812,6 +810,11 @@ namespace Backend.Transformations.Assembly
                         .HandlerEnd = offset;
                     body.ExceptionInformation.AddRange(exceptionBlockBuilder.Build());
                 }
+            }
+
+            public void AssertNoProtectedBlocks()
+            {
+                if (protectedBlocks.Count > 0) throw new Exception("Protected Blocks not generated correctly");
             }
         }
     }
