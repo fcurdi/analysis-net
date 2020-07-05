@@ -1017,20 +1017,5 @@ namespace Backend.Utils
 		}
 		public static TemporalVariable MakeCopy(this TemporalVariable temporalVariable, IType type) =>
 			new TemporalVariable(temporalVariable.Prefix, temporalVariable.Index) { Type = type };
-
-		public static LocalVariable ToLocalVariable(this IVariable variable)
-		{
-			switch (variable)
-			{
-				case TemporalVariable temporalVariable:
-					return new LocalVariable(temporalVariable.Name, temporalVariable.IsParameter)
-					{
-						Type = temporalVariable.Type,
-						Index = (int?) temporalVariable.Index
-					};
-				case LocalVariable localVariable: return localVariable;
-				default: throw new NotImplementedException();
-			}
-		}
 	}
 }

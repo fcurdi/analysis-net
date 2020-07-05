@@ -1,4 +1,5 @@
-﻿using MetadataGenerator.Generators.Methods.Body;
+﻿using Backend.Transformations.Assembly;
+using MetadataGenerator.Generators.Methods.Body;
 using MetadataGenerator.Metadata;
 using Model.Types;
 using static MetadataGenerator.Metadata.AttributesProvider;
@@ -40,7 +41,7 @@ namespace MetadataGenerator.Generators.Methods
                 // var og = method.Body;
                 var tac = new Backend.Transformations.Disassembler(method).Execute();
                 method.Body = tac;
-                var bytecode = new Backend.Transformations.Assembler(method).Execute();
+                var bytecode = new Backend.Transformations.Assembly.Assembler(method).Execute();
                 method.Body = bytecode;
                 // method.Body = og;
 

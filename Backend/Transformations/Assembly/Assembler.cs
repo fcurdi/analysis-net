@@ -7,6 +7,7 @@ using Model.ThreeAddressCode.Instructions;
 using Model.ThreeAddressCode.Values;
 using Model.ThreeAddressCode.Visitor;
 using Model.Types;
+using BranchInstruction = Model.ThreeAddressCode.Instructions.BranchInstruction;
 using ConvertInstruction = Model.ThreeAddressCode.Instructions.ConvertInstruction;
 using CreateArrayInstruction = Model.ThreeAddressCode.Instructions.CreateArrayInstruction;
 using CreateObjectInstruction = Model.ThreeAddressCode.Instructions.CreateObjectInstruction;
@@ -18,8 +19,10 @@ using SizeofInstruction = Model.ThreeAddressCode.Instructions.SizeofInstruction;
 using StoreInstruction = Model.ThreeAddressCode.Instructions.StoreInstruction;
 using SwitchInstruction = Model.ThreeAddressCode.Instructions.SwitchInstruction;
 using Bytecode = Model.Bytecode;
+using ConstrainedInstruction = Model.ThreeAddressCode.Instructions.ConstrainedInstruction;
+using Instruction = Model.ThreeAddressCode.Instructions.Instruction;
 
-namespace Backend.Transformations
+namespace Backend.Transformations.Assembly
 {
     public class Assembler
     {
@@ -40,7 +43,7 @@ namespace Backend.Transformations
             var body = new MethodBody(MethodBodyKind.Bytecode);
 
             body.MaxStack = method.Body.MaxStack; // FIXME 
-            body.Parameters.AddRange(method.Body.Parameters); // FIXME esto queda igual?
+            body.Parameters.AddRange(method.Body.Parameters);
             // this is updated later on. Needed to preserver variables that are declared but not used
             body.LocalVariables.AddRange(method.Body.LocalVariables);
 
@@ -52,7 +55,7 @@ namespace Backend.Transformations
             }
 
             body.UpdateVariables();
-            var newLocals = body.LocalVariables.OfType<LocalVariable>().OrderBy(local => local.Index.Value).ToList();
+            var newLocals = body.LocalVariables.OfType<LocalVariable>().OrderBy(local => local.Index).ToList();
             body.LocalVariables.Clear();
             body.LocalVariables.AddRange(newLocals);
 
@@ -67,15 +70,15 @@ namespace Backend.Transformations
             private readonly Stack<ProtectedBlockBuilder> protectedBlocks = new Stack<ProtectedBlockBuilder>();
             private readonly IDictionary<int, bool> ignoreInstruction = new Dictionary<int, bool>();
 
-            public void AssertNoProtectedBlocks()
-            {
-                if (protectedBlocks.Count > 0) throw new Exception("Protected Blocks not generated correctly");
-            }
-
             public InstructionTranslator(MethodBody body, MethodBody bodyToProcess)
             {
                 this.body = body;
                 this.bodyToProcess = bodyToProcess;
+            }
+
+            public void AssertNoProtectedBlocks()
+            {
+                if (protectedBlocks.Count > 0) throw new Exception("Protected Blocks not generated correctly");
             }
 
             public override bool ShouldVisit(Instruction instruction)
@@ -143,11 +146,11 @@ namespace Backend.Transformations
                         {
                             // starg num -> FE 0B <unsigned int16> (2 + 2) 
                             // starg.s num -> 10 <unsigned int8> (1 + 1)
-                            offset += (uint) (loc.Index.Value > byte.MaxValue ? 4 : 2);
+                            offset += (uint) (loc.Index > byte.MaxValue ? 4 : 2);
                         }
                         else
                         {
-                            switch (loc.Index.Value)
+                            switch (loc.Index)
                             {
                                 case 0:
                                 case 1:
@@ -158,7 +161,7 @@ namespace Backend.Transformations
                                 default:
                                     // stloc indx -> FE 0E <unsigned int16> (2 + 2) 
                                     // stloc.s indx -> 13 <unsigned int8> (1 + 1) 
-                                    offset += (uint) (loc.Index.Value > byte.MaxValue ? 4 : 2);
+                                    offset += (uint) (loc.Index > byte.MaxValue ? 4 : 2);
                                     break;
                             }
                         }
@@ -238,37 +241,10 @@ namespace Backend.Transformations
 
 
                                 break;
-                            case TemporalVariable _:
-                            {
-                                // FIXME hay casos sin sentido? a este no se entra nunca creo. Hay que revisar todo.
-                                var operand = instruction.Result.ToLocalVariable(); // fixme operand como en l otro caso qie cambie?
-                                bytecodeInstruction = new Bytecode.LoadInstruction(offset, Bytecode.LoadOperation.Content, operand);
-                                switch (operand.Index.Value)
-                                {
-                                    // ldloc.0,1,2,3 ldarg.0,1,2,3
-                                    case 0:
-                                    case 1:
-                                    case 2:
-                                    case 3:
-                                        offset++;
-                                        break;
-                                    default:
-                                        // ldloc indx -> FE 0C <unsigned int16>  (2 + 2) 
-                                        // ldloc.s indx -> 11 <unsigned int8> (1 + 1) 
-                                        // ldarg num -> FE 09 <unsigned int16> (2 + 2) 
-                                        // ldarg.s num -> 0E <unsigned int8>  (1 + 1)
-                                        offset += (uint) (operand.Index.Value > byte.MaxValue ? 4 : 2);
-                                        break;
-                                }
-
-                                break;
-                            }
                             case LocalVariable localVariable:
                             {
                                 bytecodeInstruction = new Bytecode.LoadInstruction(offset, Bytecode.LoadOperation.Content, localVariable);
-                                // fixme igual al caso de arriba? o estoy mezclando los casos? Creo que esta bien porque local y temporal ambas pueden
-                                // fixme ser parameter (esto determina si es ldloc o ldarg)
-                                switch (localVariable.Index.Value)
+                                switch (localVariable.Index)
                                 {
                                     // ldloc.0,1,2,3 ldarg.0,1,2,3
                                     case 0:
@@ -282,7 +258,7 @@ namespace Backend.Transformations
                                         // ldloc.s indx -> 11 <unsigned int8> (1 + 1) 
                                         // ldarg num -> FE 09 <unsigned int16> (2 + 2) 
                                         // ldarg.s num -> 0E <unsigned int8>  (1 + 1)
-                                        offset += (uint) (localVariable.Index.Value > byte.MaxValue ? 4 : 2);
+                                        offset += (uint) (localVariable.Index > byte.MaxValue ? 4 : 2);
                                         break;
                                 }
 
@@ -316,6 +292,7 @@ namespace Backend.Transformations
                                             (ArrayType) arrayElementAccess.Array.Type) {Method = arrayElementAccess.Method};
 
                                         // ldelema typeTok -> 8F <Token> (1 + 4) 
+                                        // ldobj typeTok -> 71 <Token> (1 + 4)
                                         offset += 5;
                                         break;
                                     }
@@ -327,7 +304,7 @@ namespace Backend.Transformations
                                         // ldloca.s indx -> 12 <unsigned int8> (1 + 1)
                                         // ldarga argNum -> FE 0A <unsigned int16> (2 + 2)
                                         // ldarga.s argNum -> 0F <unsigned int8> (1 + 1)
-                                        offset += (uint) (localVariable.Index.Value > byte.MaxValue ? 4 : 2);
+                                        offset += (uint) (localVariable.Index > byte.MaxValue ? 4 : 2);
                                         break;
                                     }
                                     case InstanceFieldAccess instanceFieldAccess:
@@ -388,11 +365,11 @@ namespace Backend.Transformations
                                     Bytecode.LoadArrayElementOperation.Content,
                                     type) {Method = arrayElementAccess.Method};
 
-                                if ((type.ElementsType.IsIntType() ||
+                                if (type.IsVector &&
+                                    (type.ElementsType.IsIntType() ||
                                      type.ElementsType.IsFloatType() ||
                                      type.ElementsType.Equals(PlatformTypes.IntPtr) ||
-                                     type.ElementsType.Equals(PlatformTypes.Object)) && ((ArrayType) arrayElementAccess.Array.Type).IsVector)
-                                    /// fixme cuaqluiera ese isvector?
+                                     type.ElementsType.Equals(PlatformTypes.Object)))
                                 {
                                     // 1 byte opcode
                                     offset++;
@@ -422,13 +399,11 @@ namespace Backend.Transformations
                     {
                         var type = (ArrayType) arrayElementAccess.Array.Type;
                         storeInstruction = new Bytecode.StoreArrayElementInstruction(offset, type) {Method = arrayElementAccess.Method};
-                        if (
+                        if (type.IsVector &&
                             (type.ElementsType.IsIntType() ||
                              type.ElementsType.IsFloatType() ||
                              type.ElementsType.Equals(PlatformTypes.IntPtr) ||
-                             type.ElementsType.Equals(PlatformTypes.Object)
-                            ) && ((ArrayType) arrayElementAccess.Array.Type).IsVector /// fixme cuaqluiera ese isvector?
-                        )
+                             type.ElementsType.Equals(PlatformTypes.Object)))
                         {
                             // 1 byte opcode
                             offset++;
@@ -807,7 +782,6 @@ namespace Backend.Transformations
                 throw new Exception();
             }
 
-            // FIXME ahora que calculo a mano los offsets, se puede sacar esta instruccion y ver bien cuando ponerla en el virtual call?
             public override void Visit(ConstrainedInstruction instruction)
             {
                 body.Instructions.Add(new Bytecode.ConstrainedInstruction(offset, instruction.ThisType));
@@ -816,6 +790,7 @@ namespace Backend.Transformations
             }
 
 
+            // FIXME: duplicate with method body generator
             private bool IsShortForm(BranchInstruction instruction)
             {
                 var nextInstructionOffset =
@@ -838,145 +813,6 @@ namespace Backend.Transformations
                     body.ExceptionInformation.AddRange(exceptionBlockBuilder.Build());
                 }
             }
-
-
-            #region ExceptionInformation
-
-            private class ProtectedBlockBuilder
-            {
-                private uint? tryStart;
-
-                public uint TryStart
-                {
-                    get => tryStart ?? throw new Exception("TryStart was not set");
-                    set
-                    {
-                        if (tryStart != null) throw new Exception("TryStart was already set");
-                        tryStart = value;
-                    }
-                }
-
-                private uint? tryEnd;
-
-                private uint TryEnd
-                {
-                    get => tryEnd ?? throw new Exception("TryEnd was not set");
-                    set
-                    {
-                        if (tryEnd != null) throw new Exception("TryEnd was already set");
-                        tryEnd = value;
-                    }
-                }
-
-                public uint HandlerCount { get; set; }
-
-                public bool AllHandlersAdded() => HandlerCount == Handlers.Count;
-
-                public readonly IList<ExceptionHandlerBlockBuilder> Handlers = new List<ExceptionHandlerBlockBuilder>();
-
-                public ProtectedBlockBuilder EndPreviousRegion(uint offset) => EndPreviousRegion(offset, () => true);
-
-                public ProtectedBlockBuilder EndPreviousRegion(uint offset, Func<bool> multipleHandlerCondition)
-                {
-                    if (Handlers.Count == 0) // first handler, ends try region
-                    {
-                        TryEnd = offset;
-                    }
-                    else if (multipleHandlerCondition()) // multiple handlers. End previous handler conditionally
-                    {
-                        Handlers.Last().HandlerEnd = offset;
-                    }
-
-                    return this;
-                }
-
-                public IList<ProtectedBlock> Build() =>
-                    Handlers
-                        .Select(handlerBuilder => handlerBuilder.Build())
-                        .Select(handler => new ProtectedBlock(TryStart, TryEnd) {Handler = handler})
-                        .ToList();
-            }
-
-            private class ExceptionHandlerBlockBuilder
-            {
-                private uint? filterStart;
-
-                public uint FilterStart
-                {
-                    get => filterStart ?? throw new Exception("FilterStart was not set");
-                    set
-                    {
-                        if (filterStart != null) throw new Exception("FilterStart was already set");
-                        filterStart = value;
-                    }
-                }
-
-                private uint? handlerStart;
-
-                public uint HandlerStart
-                {
-                    get => handlerStart ?? throw new Exception("HandlerStart was not set");
-                    set
-                    {
-                        if (handlerStart != null) throw new Exception("HandlerStart was already set");
-                        handlerStart = value;
-                    }
-                }
-
-                private uint? handlerEnd;
-
-                public uint HandlerEnd
-                {
-                    get => handlerEnd ?? throw new Exception("HandlerEnd was not set");
-                    set
-                    {
-                        if (handlerEnd != null) throw new Exception("HandlerEnd was already set");
-                        handlerEnd = value;
-                    }
-                }
-
-                private ExceptionHandlerBlockKind? handlerBlockKind;
-
-                public ExceptionHandlerBlockKind HandlerBlockKind
-                {
-                    get => handlerBlockKind ?? throw new Exception("HandlerBlockKind was not set");
-                    set
-                    {
-                        if (handlerBlockKind != null) throw new Exception("HandlerBlockKind was already set");
-                        handlerBlockKind = value;
-                    }
-                }
-
-                private IType exceptionType;
-
-                public IType ExceptionType
-                {
-                    get => exceptionType ?? throw new Exception("ExceptionType was not set");
-                    set
-                    {
-                        if (exceptionType != null) throw new Exception("ExceptionType was already set");
-                        exceptionType = value;
-                    }
-                }
-
-                public IExceptionHandler Build()
-                {
-                    switch (HandlerBlockKind)
-                    {
-                        case ExceptionHandlerBlockKind.Filter:
-                            return new FilterExceptionHandler(FilterStart, HandlerStart, HandlerEnd, ExceptionType);
-                        case ExceptionHandlerBlockKind.Catch:
-                            return new CatchExceptionHandler(HandlerStart, HandlerEnd, ExceptionType);
-                        case ExceptionHandlerBlockKind.Fault:
-                            return new FaultExceptionHandler(HandlerStart, HandlerEnd);
-                        case ExceptionHandlerBlockKind.Finally:
-                            return new FinallyExceptionHandler(HandlerStart, HandlerEnd);
-                        default: throw new UnknownValueException<ExceptionHandlerBlockKind>(HandlerBlockKind);
-                    }
-                }
-            }
-
-            #endregion
         }
     }
 }
