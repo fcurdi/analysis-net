@@ -516,17 +516,15 @@ namespace Backend.Transformations.Assembly
                 translatedInstructions.Add(basicInstruction);
             }
 
-            // fixme revisar de aca en adelante
             public override void Visit(UnconditionalBranchInstruction instruction)
             {
+                var target = Convert.ToUInt32(instruction.Target.Substring(2), 16);
+                Bytecode.Instruction branchInstruction;
                 switch (instruction.Operation)
                 {
                     case UnconditionalBranchOperation.Leave:
                     {
-                        var target = Convert.ToUInt32(instruction.Target.Substring(2), 16);
-                        var unconditionalBranchInstruction = new Bytecode.BranchInstruction(offset, Bytecode.BranchOperation.Leave, target);
-                        translatedInstructions.Add(unconditionalBranchInstruction);
-
+                        branchInstruction = new Bytecode.BranchInstruction(offset, Bytecode.BranchOperation.Leave, target);
                         // leave target -> DD <int32> (1 + 4)
                         // leave.s target -> DE <int8> (1 + 1)
                         offset += (uint) (IsShortForm(instruction) ? 2 : 5);
@@ -535,12 +533,7 @@ namespace Backend.Transformations.Assembly
                     }
                     case UnconditionalBranchOperation.Branch:
                     {
-                        var target = Convert.ToUInt32(instruction.Target.Substring(2), 16);
-                        var unconditionalBranchInstruction = new Bytecode.BranchInstruction(
-                            offset,
-                            Bytecode.BranchOperation.Branch,
-                            target);
-                        translatedInstructions.Add(unconditionalBranchInstruction);
+                        branchInstruction = new Bytecode.BranchInstruction(offset, Bytecode.BranchOperation.Branch, target);
                         // leave target -> 38 <int32> (1 + 4)
                         // leave.s target -> 2B <int8> (1 + 1)
                         offset += (uint) (IsShortForm(instruction) ? 2 : 5);
@@ -548,20 +541,22 @@ namespace Backend.Transformations.Assembly
                     }
                     case UnconditionalBranchOperation.EndFinally:
                     {
-                        translatedInstructions.Add(new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.EndFinally));
-                        offset++;
+                        branchInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.EndFinally);
+                        offset++; // 1 Byte OpCode
                         exceptionInformationBuilder.EndCurrentProtectedBlockAt(offset); // no more handlers after finally
                         break;
                     }
                     case UnconditionalBranchOperation.EndFilter:
                     {
                         // nothing is done with exceptionInformation since filter area is the gap between try end and handler start
-                        translatedInstructions.Add(new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.EndFilter));
-                        offset += 2; // 2byte opcode
+                        branchInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.EndFilter);
+                        offset += 2; // 2 Byte OpCode
                         break;
                     }
                     default: throw instruction.Operation.ToUnknownValueException();
                 }
+
+                translatedInstructions.Add(branchInstruction);
             }
 
             public override void Visit(ConvertInstruction instruction)
@@ -578,7 +573,7 @@ namespace Backend.Transformations.Assembly
                 switch (convertInstruction.Operation)
                 {
                     case Bytecode.ConvertOperation.Conv:
-                        offset++;
+                        offset++; // 1 Byte OpCode
                         break;
                     default:
                         // box typeTok -> 8C <Token> (1 + 4) 
@@ -595,17 +590,17 @@ namespace Backend.Transformations.Assembly
             {
                 var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Return);
                 translatedInstructions.Add(basicInstruction);
-                offset++;
+                offset++; // 1 Byte OpCode
             }
 
             public override void Visit(ConditionalBranchInstruction instruction)
             {
                 var target = Convert.ToUInt32(instruction.Target.Substring(2), 16);
-                var conditionalBranchInstruction = new Bytecode.BranchInstruction(
+                var branchInstruction = new Bytecode.BranchInstruction(
                     offset,
                     OperationHelper.ToBranchOperation(instruction.Operation, instruction.RightOperand),
                     target);
-                translatedInstructions.Add(conditionalBranchInstruction);
+                translatedInstructions.Add(branchInstruction);
                 // br* target -> 1ByteOpcode <int32> (1 + 4)
                 // br*.s target -> 1ByteOpcode <int8> (1 + 1)
                 offset += (uint) (IsShortForm(instruction) ? 2 : 5);
@@ -674,21 +669,21 @@ namespace Backend.Transformations.Assembly
             {
                 var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.CopyBlock);
                 translatedInstructions.Add(basicInstruction);
-                offset += 2; // 2ByteOpcode
+                offset += 2; // 2 Byte OpCode
             }
 
             public override void Visit(LocalAllocationInstruction instruction)
             {
                 var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.LocalAllocation);
                 translatedInstructions.Add(basicInstruction);
-                offset += 2; // 2ByteOpcode
+                offset += 2; // 2 Byte OpCode
             }
 
             public override void Visit(InitializeMemoryInstruction instruction)
             {
                 var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.InitBlock);
                 translatedInstructions.Add(basicInstruction);
-                offset += 2; // 2ByteOpcode
+                offset += 2; // 2 Byte OpCode
             }
 
             public override void Visit(InitializeObjectInstruction instruction)
@@ -709,12 +704,12 @@ namespace Backend.Transformations.Assembly
 
             public override void Visit(CreateArrayInstruction instruction)
             {
-                var createArrayInstruction =
-                    new Bytecode.CreateArrayInstruction(offset, new ArrayType(instruction.ElementType, instruction.Rank))
-                    {
-                        WithLowerBound = instruction.LowerBounds.Any(),
-                        Constructor = instruction.Constructor
-                    };
+                var arrayType = new ArrayType(instruction.ElementType, instruction.Rank);
+                var createArrayInstruction = new Bytecode.CreateArrayInstruction(offset, arrayType)
+                {
+                    WithLowerBound = instruction.LowerBounds.Any(),
+                    Constructor = instruction.Constructor
+                };
                 translatedInstructions.Add(createArrayInstruction);
                 // newobj ctor -> 73 <Token> (1 + 4)
                 // newarr etype -> 8D <Token> (1 + 4)
