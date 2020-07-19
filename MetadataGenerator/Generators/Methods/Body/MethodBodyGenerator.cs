@@ -25,12 +25,14 @@ namespace MetadataGenerator.Generators.Methods.Body
             var instructionEncoder = new ECMA335.InstructionEncoder(new SRM.BlobBuilder(), new ECMA335.ControlFlowBuilder());
             var controlFlowGenerator = new MethodBodyControlFlowGenerator(instructionEncoder, metadataContainer);
             controlFlowGenerator.ProcessExceptionInformation(body.ExceptionInformation);
-            controlFlowGenerator.DefineNeededBranchLabels(body.Instructions);
+            controlFlowGenerator.DefineNeededLabels(body.Instructions);
 
             foreach (var instruction in body.Instructions)
             {
-                controlFlowGenerator.MarkCurrentLabel();
-                if (instruction.Offset != instructionEncoder.Offset) throw new Exception("Real offset does not match with expected one");
+                controlFlowGenerator.MarkCurrentLabelIfNeeded(instruction.Label);
+                // FIXME sacar
+                //   if (instruction.Offset != instructionEncoder.Offset) throw new Exception("Real offset does not match with expected one"); se iria
+                // y se va tambien lo de que mmiro los labels del branch para saber? deberia irse tmb mepa porque ahora los labels ahora no incluyen los offsets
 
                 switch (instruction)
                 {
@@ -153,11 +155,8 @@ namespace MetadataGenerator.Generators.Methods.Body
                     case BranchInstruction branchInstruction:
                     {
                         SRM.ILOpCode opCode;
-                        var nextInstructionOffset =
-                            Convert.ToInt32(body.Instructions[body.Instructions.IndexOf(instruction) + 1].Label.Substring(2), 16);
-                        var currentInstructionOffset = Convert.ToInt32(branchInstruction.Label.Substring(2), 16);
-                        // short forms are 1 byte opcode + 1 byte target. normal forms are 1 byte opcode + 4 byte target
-                        var isShortForm = nextInstructionOffset - currentInstructionOffset == 2;
+                        var isShortForm = false;
+                        // FIXME logica de saber si es short o no. Mirando el target deberia salir. Leer bien el ecma de estas intrucciones
                         switch (branchInstruction.Operation)
                         {
                             case BranchOperation.False:
@@ -225,7 +224,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                             default:
                                 throw new UnhandledCase();
                         }
-
 
                         instructionEncoder.Branch(opCode, controlFlowGenerator.LabelHandleFor(branchInstruction.Target));
 
@@ -634,13 +632,15 @@ namespace MetadataGenerator.Generators.Methods.Body
                         break;
                     case SwitchInstruction switchInstruction:
                     {
-                        var nextInstructionOffset =
-                            Convert.ToInt32(body.Instructions[body.Instructions.IndexOf(instruction) + 1].Label.Substring(2), 16);
+                        // FIXME revisar pero casi seguro de que esto era cualquiera. Leer ecma. Como se lee no quiere decir que haya que restarle o si?
+                        // FIXME probar con algun ejemplo
+//                        var nextInstructionOffset =
+                        //                          Convert.ToInt32(body.Instructions[body.Instructions.IndexOf(instruction) + 1].Label.Substring(2), 16);
                         instructionEncoder.OpCode(SRM.ILOpCode.Switch);
                         instructionEncoder.Token(switchInstruction.Targets.Count);
                         switchInstruction.Targets
                             .Select(label => Convert.ToInt32(label.Substring(2), 16))
-                            .Select(targetOffset => targetOffset - nextInstructionOffset)
+                            //               .Select(targetOffset => targetOffset - nextInstructionOffset)
                             .ToList()
                             .ForEach(instructionEncoder.Token);
                         break;

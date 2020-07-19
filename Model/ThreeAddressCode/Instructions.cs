@@ -860,7 +860,7 @@ namespace Model.ThreeAddressCode.Instructions
 	public class SwitchInstruction : Instruction
 	{
 		public IVariable Operand { get; set; }
-		public IList<string> Targets { get; private set; }
+		public IList<string> Targets { get; set; }
 
 		public SwitchInstruction(uint offset, IVariable operand, IEnumerable<uint> targets)
 			: base(offset)

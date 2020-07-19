@@ -64,13 +64,13 @@
     <Compile Include="Model\PointsToGraph.cs" />
     <Compile Include="Transformations\Assembly\Assembler.cs" />
     <Compile Include="Transformations\Assembly\ExceptionInformation.cs" />
-    <Compile Include="Transformations\Assembly\CilInstructionSizeCalculator.cs" />
     <Compile Include="Transformations\Disassembler.cs" />
     <Compile Include="Transformations\StaticSingleAssignment.cs" />
     <Compile Include="Analyses\SymbolicAnalysis.cs" />
     <Compile Include="Analyses\TypeInferenceAnalysis.cs" />
     <Compile Include="Analyses\WebAnalysis.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Transformations\TacUniqueLabelGenerator.cs" />
     <Compile Include="Utils\Helper.cs" />
     <Compile Include="Utils\AnalysisInfo.cs" />
     <Compile Include="Utils\MethodAnalysisInfo.cs" />

@@ -38,7 +38,7 @@ namespace MetadataGenerator.Generators.Methods
             if (method.HasBody)
             {
                 // FIXME undo this. Just for testing assembler
-                // var og = method.Body;
+                 var og = method.Body;
                 var tac = new Backend.Transformations.Disassembler(method).Execute();
                 method.Body = tac;
                 var bytecode = new Backend.Transformations.Assembly.Assembler(method).Execute();

@@ -70,18 +70,11 @@ namespace Backend.Transformations.Assembly
             public readonly ExceptionInformationBuilder exceptionInformationBuilder = new ExceptionInformationBuilder();
 
             private readonly MethodBody bodyToProcess;
-            private uint offset;
             private readonly IDictionary<int, bool> ignoreInstruction = new Dictionary<int, bool>();
 
             public InstructionTranslator(MethodBody bodyToProcess)
             {
                 this.bodyToProcess = bodyToProcess;
-            }
-
-            private void Add(Bytecode.Instruction instruction, uint nextInstructionOffset)
-            {
-                translatedInstructions.Add(instruction);
-                offset += CilInstructionSizeCalculator.SizeOf(instruction, nextInstructionOffset);
             }
 
             public override bool ShouldVisit(Instruction instruction)
@@ -92,24 +85,26 @@ namespace Backend.Transformations.Assembly
 
             public override void Visit(PopInstruction instruction)
             {
-                var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Pop);
-                Add(basicInstruction, NextInstructionOffsetFor(instruction));
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Pop);
+                translatedInstructions.Add(basicInstruction);
             }
 
             public override void Visit(BinaryInstruction instruction)
             {
-                var basicInstruction = new Bytecode.BasicInstruction(offset, OperationHelper.ToBasicOperation(instruction.Operation))
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset,
+                    OperationHelper.ToBasicOperation(instruction.Operation))
                 {
                     OverflowCheck = instruction.OverflowCheck,
                     UnsignedOperands = instruction.UnsignedOperands
                 };
-                Add(basicInstruction, NextInstructionOffsetFor(instruction));
+                translatedInstructions.Add(basicInstruction);
             }
 
             public override void Visit(UnaryInstruction instruction)
             {
-                var basicInstruction = new Bytecode.BasicInstruction(offset, OperationHelper.ToBasicOperation(instruction.Operation));
-                Add(basicInstruction, NextInstructionOffsetFor(instruction));
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset,
+                    OperationHelper.ToBasicOperation(instruction.Operation));
+                translatedInstructions.Add(basicInstruction);
             }
 
             // FIXME revisar los casos, hay algunos que no estoy seguro de que esten bien. se repiten caminos ademas (sobretodo por el reference)
@@ -124,30 +119,32 @@ namespace Backend.Transformations.Assembly
                     }
                     else
                     {
-                        bytecodeInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Dup);
+                        bytecodeInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Dup);
                     }
                 }
                 else
                 {
                     if (instruction.Result is LocalVariable loc)
                     {
-                        bytecodeInstruction = new Bytecode.StoreInstruction(offset, loc);
+                        bytecodeInstruction = new Bytecode.StoreInstruction(instruction.Offset, loc);
                     }
                     else
                     {
                         switch (instruction.Operand)
                         {
                             case Constant constant:
-                                bytecodeInstruction = new Bytecode.LoadInstruction(offset, Bytecode.LoadOperation.Value, constant);
+                                bytecodeInstruction = new Bytecode.LoadInstruction(instruction.Offset,
+                                    Bytecode.LoadOperation.Value, constant);
                                 break;
                             case LocalVariable localVariable:
                             {
-                                bytecodeInstruction = new Bytecode.LoadInstruction(offset, Bytecode.LoadOperation.Content, localVariable);
+                                bytecodeInstruction = new Bytecode.LoadInstruction(instruction.Offset,
+                                    Bytecode.LoadOperation.Content, localVariable);
                                 break;
                             }
                             case Dereference dereference:
                             {
-                                bytecodeInstruction = new Bytecode.LoadIndirectInstruction(offset, dereference.Type);
+                                bytecodeInstruction = new Bytecode.LoadIndirectInstruction(instruction.Offset, dereference.Type);
                                 break;
                             }
                             case Reference reference:
@@ -156,7 +153,7 @@ namespace Backend.Transformations.Assembly
                                     case ArrayElementAccess arrayElementAccess:
                                     {
                                         bytecodeInstruction = new Bytecode.LoadArrayElementInstruction(
-                                            offset,
+                                            instruction.Offset,
                                             Bytecode.LoadArrayElementOperation.Address,
                                             (ArrayType) arrayElementAccess.Array.Type) {Method = arrayElementAccess.Method};
                                         break;
@@ -164,12 +161,14 @@ namespace Backend.Transformations.Assembly
 
                                     case LocalVariable localVariable:
                                     {
-                                        bytecodeInstruction = new Bytecode.LoadInstruction(offset, Bytecode.LoadOperation.Address, localVariable);
+                                        bytecodeInstruction = new Bytecode.LoadInstruction(instruction.Offset,
+                                            Bytecode.LoadOperation.Address,
+                                            localVariable);
                                         break;
                                     }
                                     case InstanceFieldAccess instanceFieldAccess:
                                         bytecodeInstruction = new Bytecode.LoadFieldInstruction(
-                                            offset,
+                                            instruction.Offset,
                                             Bytecode.LoadFieldOperation.Address,
                                             instanceFieldAccess.Field);
                                         break;
@@ -179,29 +178,30 @@ namespace Backend.Transformations.Assembly
 
                                 break;
                             case ArrayLengthAccess _:
-                                bytecodeInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.LoadArrayLength);
+                                bytecodeInstruction = new Bytecode.BasicInstruction(instruction.Offset,
+                                    Bytecode.BasicOperation.LoadArrayLength);
                                 break;
                             case VirtualMethodReference virtualMethodReference:
                                 bytecodeInstruction = new Bytecode.LoadMethodAddressInstruction(
-                                    offset,
+                                    instruction.Offset,
                                     Bytecode.LoadMethodAddressOperation.Virtual,
                                     virtualMethodReference.Method);
                                 break;
                             case StaticMethodReference staticMethodReference:
                                 bytecodeInstruction = new Bytecode.LoadMethodAddressInstruction(
-                                    offset,
+                                    instruction.Offset,
                                     Bytecode.LoadMethodAddressOperation.Static,
                                     staticMethodReference.Method);
                                 break;
                             case InstanceFieldAccess instanceFieldAccess:
                                 bytecodeInstruction = new Bytecode.LoadFieldInstruction(
-                                    offset,
+                                    instruction.Offset,
                                     Bytecode.LoadFieldOperation.Content,
                                     instanceFieldAccess.Field);
                                 break;
                             case StaticFieldAccess staticFieldAccess:
                                 bytecodeInstruction = new Bytecode.LoadFieldInstruction(
-                                    offset,
+                                    instruction.Offset,
                                     Bytecode.LoadFieldOperation.Content,
                                     staticFieldAccess.Field);
                                 break;
@@ -209,7 +209,7 @@ namespace Backend.Transformations.Assembly
                             {
                                 var type = (ArrayType) arrayElementAccess.Array.Type;
                                 bytecodeInstruction = new Bytecode.LoadArrayElementInstruction(
-                                    offset,
+                                    instruction.Offset,
                                     Bytecode.LoadArrayElementOperation.Content,
                                     type) {Method = arrayElementAccess.Method};
 
@@ -220,7 +220,7 @@ namespace Backend.Transformations.Assembly
                     }
                 }
 
-                Add(bytecodeInstruction, NextInstructionOffsetFor(instruction));
+                translatedInstructions.Add(bytecodeInstruction);
             }
 
             // FIXME revisar
@@ -232,43 +232,48 @@ namespace Backend.Transformations.Assembly
                     case ArrayElementAccess arrayElementAccess:
                     {
                         var type = (ArrayType) arrayElementAccess.Array.Type;
-                        storeInstruction = new Bytecode.StoreArrayElementInstruction(offset, type) {Method = arrayElementAccess.Method};
+                        storeInstruction = new Bytecode.StoreArrayElementInstruction(instruction.Offset, type)
+                            {Method = arrayElementAccess.Method};
                         break;
                     }
                     case Dereference dereference:
                     {
-                        storeInstruction = new Bytecode.StoreIndirectInstruction(offset, dereference.Type);
+                        storeInstruction = new Bytecode.StoreIndirectInstruction(instruction.Offset, dereference.Type);
                         break;
                     }
                     case InstanceFieldAccess instanceFieldAccess:
-                        storeInstruction = new Bytecode.StoreFieldInstruction(offset, instanceFieldAccess.Field);
+                        storeInstruction = new Bytecode.StoreFieldInstruction(instruction.Offset, instanceFieldAccess.Field);
                         break;
                     case StaticFieldAccess staticFieldAccess:
-                        storeInstruction = new Bytecode.StoreFieldInstruction(offset, staticFieldAccess.Field);
+                        storeInstruction = new Bytecode.StoreFieldInstruction(instruction.Offset, staticFieldAccess.Field);
                         break;
                     default:
                         throw new Exception(); // TODO msg
                 }
 
-                Add(storeInstruction, NextInstructionOffsetFor(instruction));
+                translatedInstructions.Add(storeInstruction);
             }
 
             public override void Visit(NopInstruction instruction)
             {
-                var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Nop);
-                Add(basicInstruction, NextInstructionOffsetFor(instruction));
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Nop);
+                translatedInstructions.Add(basicInstruction);
             }
 
             public override void Visit(BreakpointInstruction instruction)
             {
-                var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Breakpoint);
-                Add(basicInstruction, NextInstructionOffsetFor(instruction));
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Breakpoint);
+                translatedInstructions.Add(basicInstruction);
             }
 
             public override void Visit(TryInstruction instruction)
             {
                 // try with multiple handlers is modelled as multiple try instructions with the same label but different handlers.
-                // if label matches with the current try, then increase the number of expected handlers. If not, begin a new try block 
+                // if label matches with the current try, then increase the number of expected handlers. If not, begin a new try block
+                // FIxme add comment
+                var offset = bodyToProcess.Instructions
+                    .First(i => i.Offset > instruction.Offset && !(i is TryInstruction))
+                    .Offset;
                 if (exceptionInformationBuilder.CurrentProtectedBlockStartsAt(offset))
                 {
                     exceptionInformationBuilder.IncrementCurrentProtectedBlockExpectedHandlers();
@@ -281,31 +286,38 @@ namespace Backend.Transformations.Assembly
 
             public override void Visit(FaultInstruction instruction)
             {
-                exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(offset, ExceptionHandlerBlockKind.Fault);
+                // fixme estas deberian ser offset+1 tmb? replicar comment
+                exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(instruction.Offset+1, ExceptionHandlerBlockKind.Fault);
             }
 
             public override void Visit(FinallyInstruction instruction)
             {
-                exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(offset, ExceptionHandlerBlockKind.Finally);
+                // fixme estas deberian ser offset+1 tmb?
+                exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(instruction.Offset+1, ExceptionHandlerBlockKind.Finally);
             }
 
             public override void Visit(FilterInstruction instruction)
             {
-                exceptionInformationBuilder.AddFilterHandlerToCurrentProtectedBlock(offset, instruction.kind, instruction.ExceptionType);
+                // fixme estas deberian ser offset+1 tmb?
+                exceptionInformationBuilder.AddFilterHandlerToCurrentProtectedBlock(instruction.Offset+1, instruction.kind, instruction.ExceptionType);
             }
 
             public override void Visit(CatchInstruction instruction)
             {
-                exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(offset, ExceptionHandlerBlockKind.Catch, instruction.ExceptionType);
+                // fixme estas deberian ser offset+1 tmb?  replicar comment
+                exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(
+                    instruction.Offset + 1,
+                    ExceptionHandlerBlockKind.Catch,
+                    instruction.ExceptionType);
             }
 
             public override void Visit(ThrowInstruction instruction)
             {
                 var basicInstruction = instruction.HasOperand
-                    ? new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Throw)
-                    : new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Rethrow);
-                Add(basicInstruction, NextInstructionOffsetFor(instruction));
-                exceptionInformationBuilder.EndCurrentProtectedBlockIfAppliesAt(offset);
+                    ? new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Throw)
+                    : new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Rethrow);
+                translatedInstructions.Add(basicInstruction);
+                exceptionInformationBuilder.EndCurrentProtectedBlockIfAppliesAt(instruction.Offset + 1); // block ends after instruction
             }
 
             public override void Visit(UnconditionalBranchInstruction instruction)
@@ -315,29 +327,34 @@ namespace Backend.Transformations.Assembly
                 {
                     case UnconditionalBranchOperation.Leave:
                     {
-                        var branchInstruction = new Bytecode.BranchInstruction(offset, Bytecode.BranchOperation.Leave, target);
-                        Add(branchInstruction, NextInstructionOffsetFor(instruction));
-                        exceptionInformationBuilder.EndCurrentProtectedBlockIfAppliesAt(offset);
+                        var branchInstruction =
+                            new Bytecode.BranchInstruction(instruction.Offset, Bytecode.BranchOperation.Leave, target);
+                        translatedInstructions.Add(branchInstruction);
+                        exceptionInformationBuilder.EndCurrentProtectedBlockIfAppliesAt(instruction.Offset + 1); // block ends after instruction
                         break;
                     }
                     case UnconditionalBranchOperation.Branch:
                     {
-                        var branchInstruction = new Bytecode.BranchInstruction(offset, Bytecode.BranchOperation.Branch, target);
-                        Add(branchInstruction, NextInstructionOffsetFor(instruction));
+                        var branchInstruction =
+                            new Bytecode.BranchInstruction(instruction.Offset, Bytecode.BranchOperation.Branch, target);
+                        translatedInstructions.Add(branchInstruction);
                         break;
                     }
                     case UnconditionalBranchOperation.EndFinally:
                     {
-                        var branchInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.EndFinally);
-                        Add(branchInstruction, NextInstructionOffsetFor(instruction));
-                        exceptionInformationBuilder.EndCurrentProtectedBlockAt(offset); // no more handlers after finally
+                        var branchInstruction =
+                            new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.EndFinally);
+                        translatedInstructions.Add(branchInstruction);
+                        // no more handlers after finally
+                        exceptionInformationBuilder.EndCurrentProtectedBlockAt(instruction.Offset + 1); // block ends after instruction 
                         break;
                     }
                     case UnconditionalBranchOperation.EndFilter:
                     {
                         // nothing is done with exceptionInformation since filter area is the gap between try end and handler start
-                        var branchInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.EndFilter);
-                        Add(branchInstruction, NextInstructionOffsetFor(instruction));
+                        var branchInstruction =
+                            new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.EndFilter);
+                        translatedInstructions.Add(branchInstruction);
                         break;
                     }
                     default: throw instruction.Operation.ToUnknownValueException();
@@ -347,65 +364,68 @@ namespace Backend.Transformations.Assembly
             public override void Visit(ConvertInstruction instruction)
             {
                 var convertInstruction = new Bytecode.ConvertInstruction(
-                    offset,
+                    instruction.Offset,
                     OperationHelper.ToConvertOperation(instruction.Operation),
                     instruction.ConversionType)
                 {
                     OverflowCheck = instruction.OverflowCheck,
                     UnsignedOperands = instruction.UnsignedOperands,
                 };
-                Add(convertInstruction, NextInstructionOffsetFor(instruction));
+                translatedInstructions.Add(convertInstruction);
             }
 
             public override void Visit(ReturnInstruction instruction)
             {
-                var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.Return);
-                Add(basicInstruction, NextInstructionOffsetFor(instruction));
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Return);
+                translatedInstructions.Add(basicInstruction);
             }
 
             public override void Visit(ConditionalBranchInstruction instruction)
             {
                 var target = Convert.ToUInt32(instruction.Target.Substring(2), 16);
                 var branchInstruction = new Bytecode.BranchInstruction(
-                    offset,
+                    instruction.Offset,
                     OperationHelper.ToBranchOperation(instruction.Operation, instruction.RightOperand),
                     target);
-                Add(branchInstruction, NextInstructionOffsetFor(instruction));
+                translatedInstructions.Add(branchInstruction);
             }
 
             public override void Visit(SwitchInstruction instruction)
             {
-                var targets = instruction.Targets.Select(target => Convert.ToUInt32(target.Substring(2), 16)).ToList();
-                var switchInstruction = new Bytecode.SwitchInstruction(offset, targets);
-                Add(switchInstruction, NextInstructionOffsetFor(instruction));
+                var targets = instruction.Targets
+                    .Select(target => Convert.ToUInt32(target.Substring(2), 16))
+                    .ToList();
+                var switchInstruction = new Bytecode.SwitchInstruction(instruction.Offset, targets);
+                translatedInstructions.Add(switchInstruction);
             }
 
             public override void Visit(SizeofInstruction instruction)
             {
-                var sizeofInstruction = new Bytecode.SizeofInstruction(offset, instruction.MeasuredType);
-                Add(sizeofInstruction, NextInstructionOffsetFor(instruction));
+                var sizeofInstruction = new Bytecode.SizeofInstruction(instruction.Offset, instruction.MeasuredType);
+                translatedInstructions.Add(sizeofInstruction);
             }
 
             public override void Visit(LoadTokenInstruction instruction)
             {
-                var loadTokenInstruction = new Bytecode.LoadTokenInstruction(offset, instruction.Token);
-                Add(loadTokenInstruction, NextInstructionOffsetFor(instruction));
+                var loadTokenInstruction = new Bytecode.LoadTokenInstruction(instruction.Offset, instruction.Token);
+                translatedInstructions.Add(loadTokenInstruction);
             }
 
             public override void Visit(MethodCallInstruction instruction)
             {
                 var methodCallInstruction = new Bytecode.MethodCallInstruction(
-                    offset,
+                    instruction.Offset,
                     OperationHelper.ToMethodCallOperation(instruction.Operation),
                     instruction.Method
                 );
-                Add(methodCallInstruction, NextInstructionOffsetFor(instruction));
+                translatedInstructions.Add(methodCallInstruction);
             }
 
             public override void Visit(IndirectMethodCallInstruction instruction)
             {
-                var indirectMethodCallInstruction = new Bytecode.IndirectMethodCallInstruction(offset, instruction.Function);
-                Add(indirectMethodCallInstruction, NextInstructionOffsetFor(instruction));
+                var indirectMethodCallInstruction =
+                    new Bytecode.IndirectMethodCallInstruction(instruction.Offset, instruction.Function);
+                translatedInstructions.Add(indirectMethodCallInstruction);
             }
 
             public override void Visit(CreateObjectInstruction instruction)
@@ -415,67 +435,58 @@ namespace Backend.Transformations.Assembly
                 ignoreInstruction.Add(index + 1, true); // method call
                 ignoreInstruction.Add(index + 2, true); // load
 
-                var createObjectInstruction = new Bytecode.CreateObjectInstruction(offset, methodCallInstruction.Method);
-                var nextInstructionOffset = NextInstructionOffsetFor((Instruction) bodyToProcess.Instructions[index + 3]);
-                Add(createObjectInstruction, nextInstructionOffset);
+                var createObjectInstruction =
+                    new Bytecode.CreateObjectInstruction(instruction.Offset, methodCallInstruction.Method);
+                translatedInstructions.Add(createObjectInstruction);
             }
 
             public override void Visit(CopyMemoryInstruction instruction)
             {
-                var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.CopyBlock);
-                Add(basicInstruction, NextInstructionOffsetFor(instruction));
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.CopyBlock);
+                translatedInstructions.Add(basicInstruction);
             }
 
             public override void Visit(LocalAllocationInstruction instruction)
             {
-                var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.LocalAllocation);
-                Add(basicInstruction, NextInstructionOffsetFor(instruction));
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.LocalAllocation);
+                translatedInstructions.Add(basicInstruction);
             }
 
             public override void Visit(InitializeMemoryInstruction instruction)
             {
-                var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.InitBlock);
-                Add(basicInstruction, NextInstructionOffsetFor(instruction));
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.InitBlock);
+                translatedInstructions.Add(basicInstruction);
             }
 
             public override void Visit(InitializeObjectInstruction instruction)
             {
-                var initObjInstruction = new Bytecode.InitObjInstruction(offset, instruction.TargetAddress.Type);
-                Add(initObjInstruction, NextInstructionOffsetFor(instruction));
+                var initObjInstruction = new Bytecode.InitObjInstruction(instruction.Offset, instruction.TargetAddress.Type);
+                translatedInstructions.Add(initObjInstruction);
             }
 
             public override void Visit(CopyObjectInstruction instruction)
             {
-                var basicInstruction = new Bytecode.BasicInstruction(offset, Bytecode.BasicOperation.CopyObject);
-                Add(basicInstruction, NextInstructionOffsetFor(instruction));
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.CopyObject);
+                translatedInstructions.Add(basicInstruction);
             }
 
             public override void Visit(CreateArrayInstruction instruction)
             {
                 var arrayType = new ArrayType(instruction.ElementType, instruction.Rank);
-                var createArrayInstruction = new Bytecode.CreateArrayInstruction(offset, arrayType)
+                var createArrayInstruction = new Bytecode.CreateArrayInstruction(instruction.Offset, arrayType)
                 {
                     WithLowerBound = instruction.LowerBounds.Any(),
                     Constructor = instruction.Constructor
                 };
-                Add(createArrayInstruction, NextInstructionOffsetFor(instruction));
+                translatedInstructions.Add(createArrayInstruction);
             }
 
             public override void Visit(PhiInstruction instruction) => throw new Exception();
 
             public override void Visit(ConstrainedInstruction instruction)
             {
-                var constrainedInstruction = new Bytecode.ConstrainedInstruction(offset, instruction.ThisType);
-                Add(constrainedInstruction, NextInstructionOffsetFor(instruction));
-            }
-
-            // FIXME mmm medio medio esto
-            private uint NextInstructionOffsetFor(Instruction instruction)
-            {
-                var indexOf = bodyToProcess.Instructions.IndexOf(instruction) + 1;
-                return indexOf == bodyToProcess.Instructions.Count
-                    ? instruction.Offset
-                    : bodyToProcess.Instructions[indexOf].Offset;
+                var constrainedInstruction = new Bytecode.ConstrainedInstruction(instruction.Offset, instruction.ThisType);
+                translatedInstructions.Add(constrainedInstruction);
             }
         }
     }

@@ -1,8 +1,10 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using MetadataGenerator.Metadata;
 using Model;
 using Model.Bytecode;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
+using SwitchInstruction = Model.ThreeAddressCode.Instructions.SwitchInstruction;
 
 namespace MetadataGenerator.Generators.Methods.Body
 {
@@ -31,7 +33,7 @@ namespace MetadataGenerator.Generators.Methods.Body
         }
 
         // FIXME name, quiza hacer tmb con las exception information asi es mas prolijo? y despues en el labelHandle solo levantarla y nunca crearla
-        public void DefineNeededBranchLabels(IList<IInstruction> instructions)
+        public void DefineNeededLabels(IList<IInstruction> instructions)
         {
             foreach (var instruction in instructions)
             {
@@ -39,12 +41,19 @@ namespace MetadataGenerator.Generators.Methods.Body
                 {
                     LabelHandleFor(branchInstruction.Target);
                 }
+                else if (instruction is SwitchInstruction switchInstruction)
+                {
+                    foreach (var target in switchInstruction.Targets)
+                    {
+                        LabelHandleFor(target);
+                    }
+                }
             }
         }
 
-        public void MarkCurrentLabel()
+        public void MarkCurrentLabelIfNeeded(string label)
         {
-            if (labelHandles.TryGetValue(instructionEncoder.CurrentLabelString(), out var labelHandle))
+            if (labelHandles.TryGetValue(label.ToLower(), out var labelHandle))
             {
                 instructionEncoder.MarkLabel(labelHandle);
             }
