@@ -1,6 +1,8 @@
-﻿using Backend.Transformations.Assembly;
+﻿using System.Linq;
+using Backend.Transformations.Assembly;
 using MetadataGenerator.Generators.Methods.Body;
 using MetadataGenerator.Metadata;
+using Model.Bytecode;
 using Model.Types;
 using static MetadataGenerator.Metadata.AttributesProvider;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
@@ -37,7 +39,8 @@ namespace MetadataGenerator.Generators.Methods
             var methodBodyOffset = -1;
             if (method.HasBody)
             {
-                // FIXME undo this. Just for testing assembler
+                // FIXME undo this. Just for testing assembler.
+                // TODO probar que anda con y sin transofmracion del tac
                  var og = method.Body;
                 var tac = new Backend.Transformations.Disassembler(method).Execute();
                 method.Body = tac;

@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Globalization;
+using System.Collections.Generic;
 using System.Linq;
 using MetadataGenerator.Metadata;
 using Model;
@@ -26,14 +26,15 @@ namespace MetadataGenerator.Generators.Methods.Body
             var controlFlowGenerator = new MethodBodyControlFlowGenerator(instructionEncoder, metadataContainer);
             controlFlowGenerator.ProcessExceptionInformation(body.ExceptionInformation);
             controlFlowGenerator.DefineNeededLabels(body.Instructions);
+            var labelToEncoderOffset = new Dictionary<string, int>();
+            var switchInstructionsPlaceHolders = new List<SwitchInstructionPlaceholderInfo>();
 
             foreach (var instruction in body.Instructions)
             {
-                controlFlowGenerator.MarkCurrentLabelIfNeeded(instruction.Label);
-                // FIXME sacar
-                //   if (instruction.Offset != instructionEncoder.Offset) throw new Exception("Real offset does not match with expected one"); se iria
-                // y se va tambien lo de que mmiro los labels del branch para saber? deberia irse tmb mepa porque ahora los labels ahora no incluyen los offsets
+                labelToEncoderOffset[instruction.Label] = instructionEncoder.Offset;
 
+
+                controlFlowGenerator.MarkCurrentLabelIfNeeded(instruction.Label);
                 switch (instruction)
                 {
                     case BasicInstruction basicInstruction:
@@ -155,8 +156,9 @@ namespace MetadataGenerator.Generators.Methods.Body
                     case BranchInstruction branchInstruction:
                     {
                         SRM.ILOpCode opCode;
+                        // FIXME sacar lo de short form y explicar que no puedo hacerlo bien ya que no conozco bien los labels y demas.
+                        // (al menos en el caso de volver del tac)
                         var isShortForm = false;
-                        // FIXME logica de saber si es short o no. Mirando el target deberia salir. Leer bien el ecma de estas intrucciones
                         switch (branchInstruction.Operation)
                         {
                             case BranchOperation.False:
@@ -632,17 +634,20 @@ namespace MetadataGenerator.Generators.Methods.Body
                         break;
                     case SwitchInstruction switchInstruction:
                     {
-                        // FIXME revisar pero casi seguro de que esto era cualquiera. Leer ecma. Como se lee no quiere decir que haya que restarle o si?
-                        // FIXME probar con algun ejemplo
-//                        var nextInstructionOffset =
-                        //                          Convert.ToInt32(body.Instructions[body.Instructions.IndexOf(instruction) + 1].Label.Substring(2), 16);
+                        // fixme comments explicando
+                        var targetsCount = switchInstruction.Targets.Count;
                         instructionEncoder.OpCode(SRM.ILOpCode.Switch);
-                        instructionEncoder.Token(switchInstruction.Targets.Count);
-                        switchInstruction.Targets
-                            .Select(label => Convert.ToInt32(label.Substring(2), 16))
-                            //               .Select(targetOffset => targetOffset - nextInstructionOffset)
-                            .ToList()
-                            .ForEach(instructionEncoder.Token);
+                        instructionEncoder.Token(targetsCount);
+                        var placeholderTargetsSection = instructionEncoder.CodeBuilder.ReserveBytes(sizeof(int) * targetsCount);
+
+                        switchInstructionsPlaceHolders.Add(
+                            new SwitchInstructionPlaceholderInfo(
+                                instructionEncoder.Offset,
+                                placeholderTargetsSection,
+                                switchInstruction.Targets,
+                                labelToEncoderOffset
+                            )
+                        );
                         break;
                     }
                     case SizeofInstruction sizeofInstruction:
@@ -806,7 +811,43 @@ namespace MetadataGenerator.Generators.Methods.Body
                 }
             }
 
+            foreach (var switchInstructionPlaceholder in switchInstructionsPlaceHolders)
+            {
+                switchInstructionPlaceholder.WriteRealTargets();
+            }
+
             return instructionEncoder;
+        }
+
+        private class SwitchInstructionPlaceholderInfo //FIXME rename
+        {
+            private readonly SRM.Blob blob;
+            private readonly IList<string> targets;
+            private readonly IDictionary<string, int> labelToEncoderOffset;
+            private readonly int nextInstructionOffset;
+
+            public SwitchInstructionPlaceholderInfo(
+                int nextInstructionOffset,
+                SRM.Blob blob,
+                IList<string> targets,
+                IDictionary<string, int> labelToEncoderOffset)
+            {
+                this.nextInstructionOffset = nextInstructionOffset;
+                this.blob = blob;
+                this.targets = targets;
+                this.labelToEncoderOffset = labelToEncoderOffset;
+            }
+
+            public void WriteRealTargets() // fixme rename
+            {
+                var writer = new SRM.BlobWriter(blob);
+                foreach (var target in targets)
+                {
+                    // switch targets are offsets relative to the beginning of the next instruction.
+                    var offset = labelToEncoderOffset[target] - nextInstructionOffset;
+                    writer.WriteInt32(offset);
+                }
+            }
         }
     }
 
