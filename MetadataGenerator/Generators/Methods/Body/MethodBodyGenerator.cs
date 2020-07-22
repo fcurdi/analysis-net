@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using MetadataGenerator.Metadata;
 using Model;
 using Model.Bytecode;
@@ -27,13 +26,11 @@ namespace MetadataGenerator.Generators.Methods.Body
             controlFlowGenerator.ProcessExceptionInformation(body.ExceptionInformation);
             controlFlowGenerator.DefineNeededLabels(body.Instructions);
             var labelToEncoderOffset = new Dictionary<string, int>();
-            var switchInstructionsPlaceHolders = new List<SwitchInstructionPlaceholderInfo>();
+            var switchInstructionsPlaceHolders = new List<SwitchInstructionPlaceholder>();
 
             foreach (var instruction in body.Instructions)
             {
                 labelToEncoderOffset[instruction.Label] = instructionEncoder.Offset;
-
-
                 controlFlowGenerator.MarkCurrentLabelIfNeeded(instruction.Label);
                 switch (instruction)
                 {
@@ -634,20 +631,18 @@ namespace MetadataGenerator.Generators.Methods.Body
                         break;
                     case SwitchInstruction switchInstruction:
                     {
-                        // fixme comments explicando
+                        // switch is encoded as OpCode NumberOfTargets target1, target2, ....
+                        // the targets in SwitchInstruction are labels that refer to the Instructions in the method body
+                        // but when encoded they must be be offsets relative to the instructionEncoder offsets (real Cil offsets)
+                        // this offsets can't be determined until the whole body is generated so a space is reserved for the targets and filled up later
                         var targetsCount = switchInstruction.Targets.Count;
                         instructionEncoder.OpCode(SRM.ILOpCode.Switch);
                         instructionEncoder.Token(targetsCount);
-                        var placeholderTargetsSection = instructionEncoder.CodeBuilder.ReserveBytes(sizeof(int) * targetsCount);
-
-                        switchInstructionsPlaceHolders.Add(
-                            new SwitchInstructionPlaceholderInfo(
-                                instructionEncoder.Offset,
-                                placeholderTargetsSection,
-                                switchInstruction.Targets,
-                                labelToEncoderOffset
-                            )
-                        );
+                        var switchInstructionPlaceholder = new SwitchInstructionPlaceholder(
+                            instructionEncoder.Offset,
+                            instructionEncoder.CodeBuilder.ReserveBytes(sizeof(int) * targetsCount),
+                            switchInstruction.Targets);
+                        switchInstructionsPlaceHolders.Add(switchInstructionPlaceholder);
                         break;
                     }
                     case SizeofInstruction sizeofInstruction:
@@ -813,38 +808,33 @@ namespace MetadataGenerator.Generators.Methods.Body
 
             foreach (var switchInstructionPlaceholder in switchInstructionsPlaceHolders)
             {
-                switchInstructionPlaceholder.WriteRealTargets();
+                switchInstructionPlaceholder.FillWithRealTargets(labelToEncoderOffset);
             }
 
             return instructionEncoder;
         }
 
-        private class SwitchInstructionPlaceholderInfo //FIXME rename
+        private class SwitchInstructionPlaceholder
         {
+            private readonly int nextInstructionEncoderOffset;
             private readonly SRM.Blob blob;
             private readonly IList<string> targets;
-            private readonly IDictionary<string, int> labelToEncoderOffset;
-            private readonly int nextInstructionOffset;
 
-            public SwitchInstructionPlaceholderInfo(
-                int nextInstructionOffset,
-                SRM.Blob blob,
-                IList<string> targets,
-                IDictionary<string, int> labelToEncoderOffset)
+            public SwitchInstructionPlaceholder(int nextInstructionEncoderOffset, SRM.Blob blob, IList<string> targets)
             {
-                this.nextInstructionOffset = nextInstructionOffset;
+                this.nextInstructionEncoderOffset = nextInstructionEncoderOffset;
                 this.blob = blob;
                 this.targets = targets;
-                this.labelToEncoderOffset = labelToEncoderOffset;
             }
 
-            public void WriteRealTargets() // fixme rename
+            // labelToEncoderOffset is the translation of method body labels to the real cil offsets after generation
+            public void FillWithRealTargets(IDictionary<string, int> labelToEncoderOffset)
             {
                 var writer = new SRM.BlobWriter(blob);
                 foreach (var target in targets)
                 {
                     // switch targets are offsets relative to the beginning of the next instruction.
-                    var offset = labelToEncoderOffset[target] - nextInstructionOffset;
+                    var offset = labelToEncoderOffset[target] - nextInstructionEncoderOffset;
                     writer.WriteInt32(offset);
                 }
             }

@@ -1,10 +1,8 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using MetadataGenerator.Metadata;
 using Model;
 using Model.Bytecode;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
-using SwitchInstruction = Model.ThreeAddressCode.Instructions.SwitchInstruction;
 
 namespace MetadataGenerator.Generators.Methods.Body
 {
@@ -40,13 +38,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                 if (instruction is BranchInstruction branchInstruction)
                 {
                     LabelHandleFor(branchInstruction.Target);
-                }
-                else if (instruction is SwitchInstruction switchInstruction)
-                {
-                    foreach (var target in switchInstruction.Targets)
-                    {
-                        LabelHandleFor(target);
-                    }
                 }
             }
         }

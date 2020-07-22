@@ -3,8 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Model.ThreeAddressCode;
 using Backend.Utils;
 using Model.ThreeAddressCode.Values;
 using Tac = Model.ThreeAddressCode.Instructions;
@@ -1015,7 +1013,7 @@ namespace Backend.Transformations
 				body.UpdateVariables();
 			}
 			
-			new TacUniqueLabelGenerator(body.Instructions.Cast<Tac.Instruction>().ToList()).Execute();
+			new TacUniqueLabelsGenerator(body.Instructions.Cast<Tac.Instruction>().ToList()).Execute();
 
 			return body;
 		}

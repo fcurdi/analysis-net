@@ -5,24 +5,23 @@ using Model.ThreeAddressCode.Instructions;
 
 namespace Backend.Transformations
 {
-    public class TacUniqueLabelGenerator
+    public class TacUniqueLabelsGenerator
     {
         private readonly IList<Instruction> instructions;
         private uint offset;
 
-        public TacUniqueLabelGenerator(IList<Instruction> instructions)
+        public TacUniqueLabelsGenerator(IList<Instruction> instructions)
         {
             this.instructions = instructions;
         }
 
-        // FIXME Si esto anda, documentar donde se usa, esto de que para agregar isntrucciones hay que agregarlas con el mismo label
+        // FIXME documentar donde se usa, esto de que para agregar isntrucciones hay que agregarlas con el mismo label
         // de la instruccion anterior a donde agrego, etc
-        // ver ademas si tiene sentido hacerlo aca, o mientras se genera el tac. Tener en cuenta que las instrumentaciones se harian
-        // post generacion del tac.
         // FIXME se puede optimizar? son varias pasadas sino por las instrucciones
         public void Execute()
         {
             var originalTargets = new HashSet<string>();
+            var newTargets = new Dictionary<string, string>();
             foreach (var instruction in instructions)
             {
                 switch (instruction)
@@ -36,30 +35,28 @@ namespace Backend.Transformations
                 }
             }
 
-            var newBranchTargets = new Dictionary<string, string>();
-
+            // generate unique labels for all instructions and gather new target labels
             foreach (var instruction in instructions)
             {
-                // fixme lo de chequear que no este es para no pisarla si es una repetida
-                if (originalTargets.Contains(instruction.Label) && !newBranchTargets.TryGetValue(instruction.Label, out _))
+                var newLabel = $"L_{offset:X4}";
+                if (originalTargets.Contains(instruction.Label) && !newTargets.TryGetValue(instruction.Label, out _))
                 {
-                    newBranchTargets[instruction.Label] = string.Format("L_{0:X4}", offset);
+                    newTargets[instruction.Label] = newLabel;
                 }
 
                 instruction.Offset = offset;
-                instruction.Label = string.Format("L_{0:X4}", offset);
+                instruction.Label = newLabel;
                 offset++;
             }
 
+            // replace old targets
             foreach (var instruction in instructions)
             {
-                // FIXME esto es porque no necesariamente necesita traduccion. Ejemplo, hay algunas branch que saltan al siguiente entonces
-                // hay mas casos? Esta bien esto?
                 switch (instruction)
                 {
                     case BranchInstruction branchInstruction:
                     {
-                        if (newBranchTargets.TryGetValue(branchInstruction.Target, out var newTarget))
+                        if (newTargets.TryGetValue(branchInstruction.Target, out var newTarget))
                         {
                             branchInstruction.Target = newTarget;
                         }
@@ -68,7 +65,7 @@ namespace Backend.Transformations
                     }
                     case SwitchInstruction switchInstruction:
                         switchInstruction.Targets = switchInstruction.Targets
-                            .Select(target => newBranchTargets.TryGetValue(target, out var newTarget)
+                            .Select(target => newTargets.TryGetValue(target, out var newTarget)
                                 ? newTarget
                                 : target)
                             .ToList();
