@@ -638,9 +638,10 @@ namespace MetadataGenerator.Generators.Methods.Body
                         var targetsCount = switchInstruction.Targets.Count;
                         instructionEncoder.OpCode(SRM.ILOpCode.Switch);
                         instructionEncoder.Token(targetsCount);
+                        var targetsReserveBytes = instructionEncoder.CodeBuilder.ReserveBytes(sizeof(int) * targetsCount);
                         var switchInstructionPlaceholder = new SwitchInstructionPlaceholder(
                             instructionEncoder.Offset,
-                            instructionEncoder.CodeBuilder.ReserveBytes(sizeof(int) * targetsCount),
+                            targetsReserveBytes,
                             switchInstruction.Targets);
                         switchInstructionsPlaceHolders.Add(switchInstructionPlaceholder);
                         break;
