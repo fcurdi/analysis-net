@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Linq;
 using MetadataGenerator.Metadata;
 using Model;
 using Model.Bytecode;
@@ -24,14 +24,13 @@ namespace MetadataGenerator.Generators.Methods.Body
             var instructionEncoder = new ECMA335.InstructionEncoder(new SRM.BlobBuilder(), new ECMA335.ControlFlowBuilder());
             var controlFlowGenerator = new MethodBodyControlFlowGenerator(instructionEncoder, metadataContainer);
             controlFlowGenerator.ProcessExceptionInformation(body.ExceptionInformation);
-            controlFlowGenerator.DefineNeededLabels(body.Instructions);
-            var labelToEncoderOffset = new Dictionary<string, int>();
-            var switchInstructionsPlaceHolders = new List<SwitchInstructionPlaceholder>();
+            controlFlowGenerator.DefineNeededBranchLabels(body.Instructions);
 
             foreach (var instruction in body.Instructions)
             {
-                labelToEncoderOffset[instruction.Label] = instructionEncoder.Offset;
-                controlFlowGenerator.MarkCurrentLabelIfNeeded(instruction.Label);
+                controlFlowGenerator.MarkCurrentLabel();
+                if (instruction.Offset != instructionEncoder.Offset) throw new Exception("Real offset does not match with expected one");
+
                 switch (instruction)
                 {
                     case BasicInstruction basicInstruction:
@@ -153,9 +152,11 @@ namespace MetadataGenerator.Generators.Methods.Body
                     case BranchInstruction branchInstruction:
                     {
                         SRM.ILOpCode opCode;
-                        // FIXME sacar lo de short form y explicar que no puedo hacerlo bien ya que no conozco bien los labels y demas.
-                        // (al menos en el caso de volver del tac)
-                        var isShortForm = false;
+                        var nextInstructionOffset =
+                            Convert.ToInt32(body.Instructions[body.Instructions.IndexOf(instruction) + 1].Label.Substring(2), 16);
+                        var currentInstructionOffset = Convert.ToInt32(branchInstruction.Label.Substring(2), 16);
+                        // short forms are 1 byte opcode + 1 byte target. normal forms are 1 byte opcode + 4 byte target	
+                        var isShortForm = nextInstructionOffset - currentInstructionOffset == 2;
                         switch (branchInstruction.Operation)
                         {
                             case BranchOperation.False:
@@ -631,19 +632,15 @@ namespace MetadataGenerator.Generators.Methods.Body
                         break;
                     case SwitchInstruction switchInstruction:
                     {
-                        // switch is encoded as OpCode NumberOfTargets target1, target2, ....
-                        // the targets in SwitchInstruction are labels that refer to the Instructions in the method body
-                        // but when encoded they must be be offsets relative to the instructionEncoder offsets (real Cil offsets)
-                        // this offsets can't be determined until the whole body is generated so a space is reserved for the targets and filled up later
-                        var targetsCount = switchInstruction.Targets.Count;
+                        var nextInstructionOffset =
+                            Convert.ToInt32(body.Instructions[body.Instructions.IndexOf(instruction) + 1].Label.Substring(2), 16);
                         instructionEncoder.OpCode(SRM.ILOpCode.Switch);
-                        instructionEncoder.Token(targetsCount);
-                        var targetsReserveBytes = instructionEncoder.CodeBuilder.ReserveBytes(sizeof(int) * targetsCount);
-                        var switchInstructionPlaceholder = new SwitchInstructionPlaceholder(
-                            instructionEncoder.Offset,
-                            targetsReserveBytes,
-                            switchInstruction.Targets);
-                        switchInstructionsPlaceHolders.Add(switchInstructionPlaceholder);
+                        instructionEncoder.Token(switchInstruction.Targets.Count);
+                        switchInstruction.Targets
+                            .Select(label => Convert.ToInt32(label.Substring(2), 16))
+                            .Select(targetOffset => targetOffset - nextInstructionOffset)
+                            .ToList()
+                            .ForEach(instructionEncoder.Token);
                         break;
                     }
                     case SizeofInstruction sizeofInstruction:
@@ -807,38 +804,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                 }
             }
 
-            foreach (var switchInstructionPlaceholder in switchInstructionsPlaceHolders)
-            {
-                switchInstructionPlaceholder.FillWithRealTargets(labelToEncoderOffset);
-            }
-
             return instructionEncoder;
-        }
-
-        private class SwitchInstructionPlaceholder
-        {
-            private readonly int nextInstructionEncoderOffset;
-            private readonly SRM.Blob blob;
-            private readonly IList<string> targets;
-
-            public SwitchInstructionPlaceholder(int nextInstructionEncoderOffset, SRM.Blob blob, IList<string> targets)
-            {
-                this.nextInstructionEncoderOffset = nextInstructionEncoderOffset;
-                this.blob = blob;
-                this.targets = targets;
-            }
-
-            // labelToEncoderOffset is the translation of method body labels to the real cil offsets after generation
-            public void FillWithRealTargets(IDictionary<string, int> labelToEncoderOffset)
-            {
-                var writer = new SRM.BlobWriter(blob);
-                foreach (var target in targets)
-                {
-                    // switch targets are offsets relative to the beginning of the next instruction.
-                    var offset = labelToEncoderOffset[target] - nextInstructionEncoderOffset;
-                    writer.WriteInt32(offset);
-                }
-            }
         }
     }
 

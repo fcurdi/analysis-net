@@ -31,7 +31,7 @@ namespace MetadataGenerator.Generators.Methods.Body
         }
 
         // FIXME name, quiza hacer tmb con las exception information asi es mas prolijo? y despues en el labelHandle solo levantarla y nunca crearla
-        public void DefineNeededLabels(IList<IInstruction> instructions)
+        public void DefineNeededBranchLabels(IList<IInstruction> instructions)
         {
             foreach (var instruction in instructions)
             {
@@ -42,9 +42,9 @@ namespace MetadataGenerator.Generators.Methods.Body
             }
         }
 
-        public void MarkCurrentLabelIfNeeded(string label)
+        public void MarkCurrentLabel()
         {
-            if (labelHandles.TryGetValue(label.ToLower(), out var labelHandle))
+            if (labelHandles.TryGetValue(instructionEncoder.CurrentLabelString(), out var labelHandle))
             {
                 instructionEncoder.MarkLabel(labelHandle);
             }
