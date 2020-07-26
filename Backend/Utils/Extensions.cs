@@ -1026,7 +1026,7 @@ namespace Backend.Utils
 					return new LocalVariable(temporalVariable.Name, temporalVariable.IsParameter)
 					{
 						Type = temporalVariable.Type,
-						Index = (int?) temporalVariable.Index
+						Index = (int) temporalVariable.Index
 					};
 				case LocalVariable localVariable: return localVariable;
 				default: throw new NotImplementedException();

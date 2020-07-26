@@ -52,7 +52,7 @@ namespace Backend.Transformations
             }
 
             body.UpdateVariables();
-            var newLocals = body.LocalVariables.OfType<LocalVariable>().OrderBy(local => local.Index.Value).ToList();
+            var newLocals = body.LocalVariables.OfType<LocalVariable>().OrderBy(local => local.Index).ToList();
             body.LocalVariables.Clear();
             body.LocalVariables.AddRange(newLocals);
 
@@ -143,11 +143,11 @@ namespace Backend.Transformations
                         {
                             // starg num -> FE 0B <unsigned int16> (2 + 2) 
                             // starg.s num -> 10 <unsigned int8> (1 + 1)
-                            offset += (uint) (loc.Index.Value > byte.MaxValue ? 4 : 2);
+                            offset += (uint) (loc.Index > byte.MaxValue ? 4 : 2);
                         }
                         else
                         {
-                            switch (loc.Index.Value)
+                            switch (loc.Index)
                             {
                                 case 0:
                                 case 1:
@@ -158,7 +158,7 @@ namespace Backend.Transformations
                                 default:
                                     // stloc indx -> FE 0E <unsigned int16> (2 + 2) 
                                     // stloc.s indx -> 13 <unsigned int8> (1 + 1) 
-                                    offset += (uint) (loc.Index.Value > byte.MaxValue ? 4 : 2);
+                                    offset += (uint) (loc.Index > byte.MaxValue ? 4 : 2);
                                     break;
                             }
                         }
@@ -243,7 +243,7 @@ namespace Backend.Transformations
                                 // FIXME hay casos sin sentido? a este no se entra nunca creo. Hay que revisar todo.
                                 var operand = instruction.Result.ToLocalVariable(); // fixme operand como en l otro caso qie cambie?
                                 bytecodeInstruction = new Bytecode.LoadInstruction(offset, Bytecode.LoadOperation.Content, operand);
-                                switch (operand.Index.Value)
+                                switch (operand.Index)
                                 {
                                     // ldloc.0,1,2,3 ldarg.0,1,2,3
                                     case 0:
@@ -257,7 +257,7 @@ namespace Backend.Transformations
                                         // ldloc.s indx -> 11 <unsigned int8> (1 + 1) 
                                         // ldarg num -> FE 09 <unsigned int16> (2 + 2) 
                                         // ldarg.s num -> 0E <unsigned int8>  (1 + 1)
-                                        offset += (uint) (operand.Index.Value > byte.MaxValue ? 4 : 2);
+                                        offset += (uint) (operand.Index > byte.MaxValue ? 4 : 2);
                                         break;
                                 }
 
@@ -268,7 +268,7 @@ namespace Backend.Transformations
                                 bytecodeInstruction = new Bytecode.LoadInstruction(offset, Bytecode.LoadOperation.Content, localVariable);
                                 // fixme igual al caso de arriba? o estoy mezclando los casos? Creo que esta bien porque local y temporal ambas pueden
                                 // fixme ser parameter (esto determina si es ldloc o ldarg)
-                                switch (localVariable.Index.Value)
+                                switch (localVariable.Index)
                                 {
                                     // ldloc.0,1,2,3 ldarg.0,1,2,3
                                     case 0:
@@ -282,7 +282,7 @@ namespace Backend.Transformations
                                         // ldloc.s indx -> 11 <unsigned int8> (1 + 1) 
                                         // ldarg num -> FE 09 <unsigned int16> (2 + 2) 
                                         // ldarg.s num -> 0E <unsigned int8>  (1 + 1)
-                                        offset += (uint) (localVariable.Index.Value > byte.MaxValue ? 4 : 2);
+                                        offset += (uint) (localVariable.Index > byte.MaxValue ? 4 : 2);
                                         break;
                                 }
 
@@ -327,7 +327,7 @@ namespace Backend.Transformations
                                         // ldloca.s indx -> 12 <unsigned int8> (1 + 1)
                                         // ldarga argNum -> FE 0A <unsigned int16> (2 + 2)
                                         // ldarga.s argNum -> 0F <unsigned int8> (1 + 1)
-                                        offset += (uint) (localVariable.Index.Value > byte.MaxValue ? 4 : 2);
+                                        offset += (uint) (localVariable.Index > byte.MaxValue ? 4 : 2);
                                         break;
                                     }
                                     case InstanceFieldAccess instanceFieldAccess:

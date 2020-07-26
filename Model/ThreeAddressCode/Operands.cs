@@ -327,12 +327,12 @@ namespace Model.ThreeAddressCode.Values
 
 			return other != null &&
 				this.Name.Equals(other.Name) &&
-				this.Index.Value.Equals(this.Index.Value); // FIXME Hacer que no sea nullable, sino en el CCI por ejemplo fallaria por no estar seteado
+				this.Index.Equals(this.Index);
 		}
 
 		public override int GetHashCode()
 		{
-			return (Name.GetHashCode() * 397) ^ Index.Value.GetHashCode();
+			return (Name.GetHashCode() * 397) ^ Index.GetHashCode();
 		}
 
 		public override string ToString()
