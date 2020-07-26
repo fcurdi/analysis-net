@@ -953,7 +953,6 @@ namespace Backend.Transformations
 			body.MaxStack = method.Body.MaxStack;
 			body.Parameters.AddRange(method.Body.Parameters);
 			body.LocalVariables.AddRange(method.Body.LocalVariables);
-//			body.ExceptionInformation.AddRange(method.Body.ExceptionInformation); fixme creo que esto no habria que hacerlo, ya que en tac son instrucciones todo lo del exception handling
 
 			if (method.Body.Instructions.Count > 0)
 			{
@@ -1013,8 +1012,6 @@ namespace Backend.Transformations
 				body.UpdateVariables();
 			}
 			
-			new TacUniqueLabelsGenerator(body.Instructions.Cast<Tac.Instruction>().ToList()).Execute();
-
 			return body;
 		}
 
