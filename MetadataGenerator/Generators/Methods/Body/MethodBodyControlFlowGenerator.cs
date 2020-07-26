@@ -42,9 +42,9 @@ namespace MetadataGenerator.Generators.Methods.Body
             }
         }
 
-        public void MarkCurrentLabel()
+        public void MarkCurrentLabelIfNeeded(string label)
         {
-            if (labelHandles.TryGetValue(instructionEncoder.CurrentLabelString(), out var labelHandle))
+            if (labelHandles.TryGetValue(label.ToLower(), out var labelHandle))
             {
                 instructionEncoder.MarkLabel(labelHandle);
             }

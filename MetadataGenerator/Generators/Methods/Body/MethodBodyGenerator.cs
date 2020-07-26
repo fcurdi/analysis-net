@@ -1,6 +1,5 @@
 ﻿using System;
-using System.Globalization;
-using System.Linq;
+using System.Collections.Generic;
 using MetadataGenerator.Metadata;
 using Model;
 using Model.Bytecode;
@@ -26,11 +25,13 @@ namespace MetadataGenerator.Generators.Methods.Body
             var controlFlowGenerator = new MethodBodyControlFlowGenerator(instructionEncoder, metadataContainer);
             controlFlowGenerator.ProcessExceptionInformation(body.ExceptionInformation);
             controlFlowGenerator.DefineNeededBranchLabels(body.Instructions);
+            var labelToEncoderOffset = new Dictionary<string, int>();
+            var switchInstructionsPlaceHolders = new List<SwitchInstructionPlaceholder>();
 
             foreach (var instruction in body.Instructions)
             {
-                controlFlowGenerator.MarkCurrentLabel();
-                if (instruction.Offset != instructionEncoder.Offset) throw new Exception("Real offset does not match with expected one");
+                labelToEncoderOffset[instruction.Label] = instructionEncoder.Offset;
+                controlFlowGenerator.MarkCurrentLabelIfNeeded(instruction.Label);
 
                 switch (instruction)
                 {
@@ -153,74 +154,42 @@ namespace MetadataGenerator.Generators.Methods.Body
                     case BranchInstruction branchInstruction:
                     {
                         SRM.ILOpCode opCode;
-                        var nextInstructionOffset =
-                            Convert.ToInt32(body.Instructions[body.Instructions.IndexOf(instruction) + 1].Label.Substring(2), 16);
-                        var currentInstructionOffset = Convert.ToInt32(branchInstruction.Label.Substring(2), 16);
-                        // short forms are 1 byte opcode + 1 byte target. normal forms are 1 byte opcode + 4 byte target
-                        var isShortForm = nextInstructionOffset - currentInstructionOffset == 2;
+                        // targets of branch instructions reference other instructions (labels) in the body. But this labels are not going to be
+                        // the same as the ones in the final CIL (the ones that instructionEncoder generates) because the instructions in the model
+                        // do not know about the size they will occupy in CIL. Due to this, it is not possible to know if the branches could be cil
+                        // short forms or not. So regular forms are used in all cases. This does not change functionality, it just means that the 
+                        // generated CIL will not be optimal in size.
                         switch (branchInstruction.Operation)
                         {
                             case BranchOperation.False:
-                                opCode = isShortForm ? SRM.ILOpCode.Brfalse_s : SRM.ILOpCode.Brfalse;
+                                opCode = SRM.ILOpCode.Brfalse;
                                 break;
                             case BranchOperation.True:
-                                opCode = isShortForm ? SRM.ILOpCode.Brtrue_s : SRM.ILOpCode.Brtrue;
+                                opCode = SRM.ILOpCode.Brtrue;
                                 break;
                             case BranchOperation.Eq:
-                                opCode = isShortForm ? SRM.ILOpCode.Beq_s : SRM.ILOpCode.Beq;
+                                opCode = SRM.ILOpCode.Beq;
                                 break;
                             case BranchOperation.Neq:
-                                opCode = isShortForm ? SRM.ILOpCode.Bne_un_s : SRM.ILOpCode.Bne_un;
+                                opCode = SRM.ILOpCode.Bne_un;
                                 break;
                             case BranchOperation.Lt:
-                                if (branchInstruction.UnsignedOperands)
-                                {
-                                    opCode = isShortForm ? SRM.ILOpCode.Blt_un_s : SRM.ILOpCode.Blt_un;
-                                }
-                                else
-                                {
-                                    opCode = isShortForm ? SRM.ILOpCode.Blt_s : SRM.ILOpCode.Blt;
-                                }
-
+                                opCode = branchInstruction.UnsignedOperands ? SRM.ILOpCode.Blt_un : SRM.ILOpCode.Blt;
                                 break;
                             case BranchOperation.Le:
-                                if (branchInstruction.UnsignedOperands)
-                                {
-                                    opCode = isShortForm ? SRM.ILOpCode.Ble_un_s : SRM.ILOpCode.Ble_un;
-                                }
-                                else
-                                {
-                                    opCode = isShortForm ? SRM.ILOpCode.Ble_s : SRM.ILOpCode.Ble;
-                                }
-
+                                opCode = branchInstruction.UnsignedOperands ? SRM.ILOpCode.Ble_un : SRM.ILOpCode.Ble;
                                 break;
                             case BranchOperation.Gt:
-                                if (branchInstruction.UnsignedOperands)
-                                {
-                                    opCode = isShortForm ? SRM.ILOpCode.Bgt_un_s : SRM.ILOpCode.Bgt_un;
-                                }
-                                else
-                                {
-                                    opCode = isShortForm ? SRM.ILOpCode.Bgt_s : SRM.ILOpCode.Bgt;
-                                }
-
+                                opCode = branchInstruction.UnsignedOperands ? SRM.ILOpCode.Bgt_un : SRM.ILOpCode.Bgt;
                                 break;
                             case BranchOperation.Ge:
-                                if (branchInstruction.UnsignedOperands)
-                                {
-                                    opCode = isShortForm ? SRM.ILOpCode.Bge_un_s : SRM.ILOpCode.Bge_un;
-                                }
-                                else
-                                {
-                                    opCode = isShortForm ? SRM.ILOpCode.Bge_s : SRM.ILOpCode.Bge;
-                                }
-
+                                opCode = branchInstruction.UnsignedOperands ? SRM.ILOpCode.Bge_un : SRM.ILOpCode.Bge;
                                 break;
                             case BranchOperation.Branch:
-                                opCode = isShortForm ? SRM.ILOpCode.Br_s : SRM.ILOpCode.Br;
+                                opCode = SRM.ILOpCode.Br;
                                 break;
                             case BranchOperation.Leave:
-                                opCode = isShortForm ? SRM.ILOpCode.Leave_s : SRM.ILOpCode.Leave;
+                                opCode = SRM.ILOpCode.Leave;
                                 break;
                             default:
                                 throw new UnhandledCase();
@@ -634,15 +603,19 @@ namespace MetadataGenerator.Generators.Methods.Body
                         break;
                     case SwitchInstruction switchInstruction:
                     {
-                        var nextInstructionOffset =
-                            Convert.ToInt32(body.Instructions[body.Instructions.IndexOf(instruction) + 1].Label.Substring(2), 16);
+                        // switch is encoded as OpCode NumberOfTargets target1, target2, ....
+                        // the targets in SwitchInstruction are labels that refer to the Instructions in the method body
+                        // but when encoded they must be be offsets relative to the instructionEncoder offsets (real Cil offsets)
+                        // this offsets can't be determined until the whole body is generated so a space is reserved for the targets and filled up later
+                        var targetsCount = switchInstruction.Targets.Count;
                         instructionEncoder.OpCode(SRM.ILOpCode.Switch);
-                        instructionEncoder.Token(switchInstruction.Targets.Count);
-                        switchInstruction.Targets
-                            .Select(label => Convert.ToInt32(label.Substring(2), 16))
-                            .Select(targetOffset => targetOffset - nextInstructionOffset)
-                            .ToList()
-                            .ForEach(instructionEncoder.Token);
+                        instructionEncoder.Token(targetsCount);
+                        var targetsReserveBytes = instructionEncoder.CodeBuilder.ReserveBytes(sizeof(int) * targetsCount);
+                        var switchInstructionPlaceholder = new SwitchInstructionPlaceholder(
+                            instructionEncoder.Offset,
+                            targetsReserveBytes,
+                            switchInstruction.Targets);
+                        switchInstructionsPlaceHolders.Add(switchInstructionPlaceholder);
                         break;
                     }
                     case SizeofInstruction sizeofInstruction:
@@ -806,7 +779,38 @@ namespace MetadataGenerator.Generators.Methods.Body
                 }
             }
 
+            foreach (var switchInstructionPlaceholder in switchInstructionsPlaceHolders)
+            {
+                switchInstructionPlaceholder.FillWithRealTargets(labelToEncoderOffset);
+            }
+
             return instructionEncoder;
+        }
+
+        private class SwitchInstructionPlaceholder
+        {
+            private readonly int nextInstructionEncoderOffset;
+            private readonly SRM.Blob blob;
+            private readonly IList<string> targets;
+
+            public SwitchInstructionPlaceholder(int nextInstructionEncoderOffset, SRM.Blob blob, IList<string> targets)
+            {
+                this.nextInstructionEncoderOffset = nextInstructionEncoderOffset;
+                this.blob = blob;
+                this.targets = targets;
+            }
+
+            // labelToEncoderOffset is the translation of method body labels to the real cil offsets after generation
+            public void FillWithRealTargets(IDictionary<string, int> labelToEncoderOffset)
+            {
+                var writer = new SRM.BlobWriter(blob);
+                foreach (var target in targets)
+                {
+                    // switch targets are offsets relative to the beginning of the next instruction.
+                    var offset = labelToEncoderOffset[target] - nextInstructionEncoderOffset;
+                    writer.WriteInt32(offset);
+                }
+            }
         }
     }
 
