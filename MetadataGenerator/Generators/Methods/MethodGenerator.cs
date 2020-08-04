@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using Backend.Analyses;
 using Backend.Transformations.Assembly;
 using MetadataGenerator.Generators.Methods.Body;
 using MetadataGenerator.Metadata;
@@ -40,15 +41,25 @@ namespace MetadataGenerator.Generators.Methods
             if (method.HasBody)
             {
                 // FIXME undo this. Just for testing assembler.
-                var og = method.Body;
                 var tac = new Backend.Transformations.Disassembler(method).Execute();
                 method.Body = tac;
-                var bytecode = new Backend.Transformations.Assembly.Assembler(method).Execute();
-//                method.Body = bytecode;
-                 method.Body = og;
+                
+                var cfanalysis = new ControlFlowAnalysis(method.Body);
+                var cfg = cfanalysis.GenerateExceptionalControlFlow();
+
+                var webAnalysis = new WebAnalysis(cfg);
+                webAnalysis.Analyze();
+                webAnalysis.Transform();
+                method.Body.UpdateVariables();
+
+                var typeInferenceAnalysis = new TypeInferenceAnalysis(cfg, method.ReturnType);
+                typeInferenceAnalysis.Analyze();
+                
+                var bytecode = new Backend.Transformations.Assembly.Assembler(method).Execute(); 
+                method.Body = bytecode;
 
                 // FIXME maxStack should be computed from instructions. When a dll is read, the maxStack will be available (Model) but if code is generated 
-                // programatically then the maxStack is gonna be missing
+                // programatically then the maxStamck is gonna be missing
                 var maxStack = method.Body.MaxStack;
                 methodBodyOffset = metadataContainer.MethodBodyStream.AddMethodBody(
                     instructionEncoder: methodBodyGenerator.Generate(method.Body),

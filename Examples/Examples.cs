@@ -796,7 +796,7 @@ namespace MethodBody
             Action<int> x = LoadAddress; // ldftn $method
             Action<int> y = null; // ldnull
         }
-
+/*
         public string LoadIndirect(ref int g)
         {
             unsafe
@@ -852,7 +852,9 @@ namespace MethodBody
 
             return outByte + outDouble + outClass.readOnlyIntField;
         }
-
+        
+        // FIXME rompen estos dos casos de indirect
+*/
         public bool Compare(int b, int x)
         {
             var a = b == 2; // ceq
@@ -1030,7 +1032,7 @@ namespace MethodBody
             }
         }
 
-
+/*
         public void ExceptionHandlingMultipleFilter(int x)
         {
             try
@@ -1046,7 +1048,7 @@ namespace MethodBody
                 Console.WriteLine(ex.Message);
             }
         }
-
+        
         public void ExceptionHandlingFilterCatch(int x)
         {
             try
@@ -1078,7 +1080,8 @@ namespace MethodBody
                 Console.WriteLine(ex.Message);
             }
         }
-
+        // FIXME se cuelga en el type inference
+*/
         public void ExceptionHandlingMultipleCatchs(int x)
         {
             try

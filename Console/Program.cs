@@ -375,6 +375,29 @@ namespace Console
 			System.Console.WriteLine($"Reading {input}");
 			var loader = new MetadataProvider.Loader(host);
 			loader.LoadAssembly(input);
+			
+		/*	var allDefinedMethods = from a in host.Assemblies
+				from t in a.RootNamespace.GetAllTypes()
+				from m in t.Members.OfType<MethodDefinition>()
+				where m.HasBody
+				select m;
+
+			foreach (var method in allDefinedMethods)
+			{
+				var tac = new Backend.Transformations.Disassembler(method).Execute();
+				method.Body = tac;
+                
+				var cfanalysis = new ControlFlowAnalysis(method.Body);
+				var cfg = cfanalysis.GenerateExceptionalControlFlow();
+
+				var webAnalysis = new WebAnalysis(cfg);
+				webAnalysis.Analyze();
+				webAnalysis.Transform();
+				method.Body.UpdateVariables();
+
+				var typeInferenceAnalysis = new TypeInferenceAnalysis(cfg, method.ReturnType);
+				typeInferenceAnalysis.Analyze();
+			}*/
 
 			var generator = new MetadataGenerator.Generator();
 
@@ -388,14 +411,14 @@ namespace Console
 		{
 			var inputs = new[]
 			{
-				new[] {"../../../Examples/bin/Debug/Examples.dll"},
-				new[]
+				new[] {"../../../Examples/bin/Debug/Examples.dll"}, //FIXME se rompe/se cuelga el type inference
+		/*		new[] FIXME rompe el type inference
 				{
 					"../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser/bin/Debug/net45/TinyCsvParser.dll",
 					"../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser.Test/bin/Debug/net45/TinyCsvParser.Test.dll"
 				},
-
-				new[]
+*/
+		/*		new[]
 				{
 					"../../../../DSA/DSA/DSA/bin/Debug/net45/DSA.dll",
 					"../../../../DSA/DSA/DSAUnitTests/bin/Debug/net45/DSAUnitTests.dll"
@@ -412,7 +435,7 @@ namespace Console
 					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Tests.dll",
 					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Utilities.dll",
 					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.dll"
-				}
+				}*/
 			};
 
 			foreach (var input in inputs)

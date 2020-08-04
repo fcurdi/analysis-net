@@ -246,15 +246,7 @@ namespace Backend.Transformations
 			private void ProcessDup(Bytecode.BasicInstruction op)
 			{
 				var source = stack.Top();
-				// recover type
-				var type = body.Instructions
-					.Reverse()
-					.Select(instructions => instructions.Variables)
-					.First(variables => variables.Any(variable => variable.Equals(source)))
-					.First(variable => variable.Equals(source))
-					.Type;
-				source = source.MakeCopy(type);
-				var dest = stack.Push().MakeCopy(type);
+				var dest = stack.Push();
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
@@ -263,6 +255,7 @@ namespace Backend.Transformations
 			{
 				stack.Clear();
 
+				// jump target is always next instruction. This relies on CIL instruction size which is 1 byte 
 				var instruction = new Tac.UnconditionalBranchInstruction(op.Offset, op.Offset+1, Tac.UnconditionalBranchOperation.EndFinally);
 				body.Instructions.Add(instruction);
 
@@ -289,7 +282,8 @@ namespace Backend.Transformations
 			{
 				stack.Clear();
 
-				var instruction = new Tac.UnconditionalBranchInstruction(op.Offset, op.Offset+1, Tac.UnconditionalBranchOperation.EndFilter);
+				// jump target is always next instruction. This relies on CIL instruction size which is 2 byte
+				var instruction = new Tac.UnconditionalBranchInstruction(op.Offset, op.Offset+2, Tac.UnconditionalBranchOperation.EndFilter);
 				body.Instructions.Add(instruction);
 			}
 
@@ -314,7 +308,7 @@ namespace Backend.Transformations
 
 			public override void Visit(Bytecode.InitObjInstruction op)
 			{
-				var targetAddress = stack.Pop().MakeCopy(op.Type);
+				var targetAddress = stack.Pop();
 				var instruction = new Tac.InitializeObjectInstruction(op.Offset, targetAddress);
 				body.Instructions.Add(instruction);
 			}
@@ -481,8 +475,8 @@ namespace Backend.Transformations
 			public override void Visit(Bytecode.ConvertInstruction op)
 			{
 				var operation = OperationHelper.ToConvertOperation(op.Operation);
-				var operand = stack.Pop().MakeCopy(op.ConversionType);
-				var result = stack.Push().MakeCopy(op.ConversionType);
+				var operand = stack.Pop();
+				var result = stack.Push();
 
 				var instruction = new Tac.ConvertInstruction(op.Offset, result, operand, operation, op.ConversionType);
 				instruction.OverflowCheck = op.OverflowCheck;
@@ -513,7 +507,7 @@ namespace Backend.Transformations
 				lowerBounds.Reverse();
 				sizes.Reverse();
 
-				var result = stack.Push().MakeCopy(op.Type);
+				var result = stack.Push();
 				var instruction = new Tac.CreateArrayInstruction(op.Offset, result, op.Type.ElementsType, op.Type.Rank, lowerBounds, sizes)
 				{
 					Constructor = op.Constructor
@@ -547,11 +541,11 @@ namespace Backend.Transformations
                     indices.Add(operand);
                 }
 
-                var array = stack.Pop().MakeCopy(op.Array); 
+                var array = stack.Pop(); 
                 indices.Reverse();
 
                 var source = new ArrayElementAccess(array, indices) { Method = op.Method};
-                var dest = stack.Push().MakeCopy(source.Type);
+                var dest = stack.Push();
                 var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
                 body.Instructions.Add(instruction);
             }
@@ -566,13 +560,13 @@ namespace Backend.Transformations
 					indices.Add(operand);
 				}
 
-				var array = stack.Pop().MakeCopy(op.Array);
+				var array = stack.Pop();
 
 				indices.Reverse();
 
 				var access = new ArrayElementAccess(array, indices) { Method = op.Method};;
 				var source = new Reference(access);
-				var dest = stack.Push().MakeCopy(source.Type);
+				var dest = stack.Push();
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
@@ -580,7 +574,7 @@ namespace Backend.Transformations
 			public override void Visit(Bytecode.StoreArrayElementInstruction op)
 			{
 				var indices = new List<IVariable>();
-				var source = stack.Pop().MakeCopy(op.Array.ElementsType);
+				var source = stack.Pop();
 
 				for (uint i = 0; i < op.Array.Rank; i++)
 				{
@@ -588,7 +582,7 @@ namespace Backend.Transformations
 					indices.Add(operand);
 				}
 
-				var array = stack.Pop().MakeCopy(op.Array);
+				var array = stack.Pop();
 				indices.Reverse();
 				var dest = new ArrayElementAccess(array, indices) { Method = op.Method};
 				var instruction = new Tac.StoreInstruction(op.Offset, dest, source);
@@ -599,14 +593,14 @@ namespace Backend.Transformations
 			{
 				stack.IncrementCapacity();
 
-				var allocationResult = stack.Push().MakeCopy(op.Constructor.ContainingType);
+				var allocationResult = stack.Push();
 				stack.Pop();
 
 				var arguments = new List<IVariable>();
 
 				foreach (var parameter in op.Constructor.Parameters)
 				{
-					var arg = stack.Pop().MakeCopy(parameter.Type);
+					var arg = stack.Pop();
 					arguments.Add(arg);
 				}
 
@@ -624,11 +618,13 @@ namespace Backend.Transformations
 				body.Instructions.Add(instruction);
 
 				instruction = new Tac.MethodCallInstruction(op.Offset, null, Tac.MethodCallOperation.Static, op.Constructor, arguments);
+				instruction.Label += "'"; // ensure unique label
 				body.Instructions.Add(instruction);
 
-				var result = stack.Push().MakeCopy(allocationResult.Type);
+				var result = stack.Push();
 
 				instruction = new Tac.LoadInstruction(op.Offset, result, allocationResult);
+				instruction.Label += "''"; // ensure unique label
 				body.Instructions.Add(instruction);
 
 				stack.DecrementCapacity();
@@ -642,7 +638,7 @@ namespace Backend.Transformations
 
 				foreach (var parameter in op.Function.Parameters)
 				{
-					var arg = stack.Pop().MakeCopy(parameter.Type);
+					var arg = stack.Pop();
 					arguments.Add(arg);
 				}
 
@@ -707,7 +703,7 @@ namespace Backend.Transformations
 			private void ProcessLoadStaticField(Bytecode.LoadFieldInstruction op)
 			{
 				var source = new StaticFieldAccess(op.Field);
-				var dest = stack.Push().MakeCopy(source.Type);
+				var dest = stack.Push();
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
@@ -716,7 +712,7 @@ namespace Backend.Transformations
 			{
 				var obj = stack.Pop();
 				var source = new InstanceFieldAccess(obj, op.Field);
-				var dest = stack.Push().MakeCopy(source.Type);
+				var dest = stack.Push();
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
@@ -725,7 +721,7 @@ namespace Backend.Transformations
 			{
 				var access = new StaticFieldAccess(op.Field);
 				var source = new Reference(access);
-				var dest = stack.Push().MakeCopy(source.Type);
+				var dest = stack.Push();
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
@@ -735,15 +731,15 @@ namespace Backend.Transformations
 				var obj = stack.Pop();
 				var access = new InstanceFieldAccess(obj, op.Field);
 				var source = new Reference(access);
-				var dest = stack.Push().MakeCopy(source.Type);
+				var dest = stack.Push();
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
             public override void Visit(Bytecode.LoadIndirectInstruction op)
             {
-                var address = stack.Pop().MakeCopy(new PointerType(op.Type));
+                var address = stack.Pop();
                 var source = new Dereference(address);
-                var dest = stack.Push().MakeCopy(source.Type);
+                var dest = stack.Push();
                 var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
                 body.Instructions.Add(instruction);
             }
@@ -769,14 +765,14 @@ namespace Backend.Transformations
 
 			private void ProcessLoadConstant(Bytecode.LoadInstruction op)
 			{
-				var dest = stack.Push().MakeCopy(op.Operand.Type);
+				var dest = stack.Push();
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, op.Operand);
 				body.Instructions.Add(instruction);
 			}
 
 			private void ProcessLoadVariable(Bytecode.LoadInstruction op)
 			{
-				var dest = stack.Push().MakeCopy(op.Operand.Type);
+				var dest = stack.Push();
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, op.Operand);
 				body.Instructions.Add(instruction);
 			}
@@ -785,7 +781,7 @@ namespace Backend.Transformations
 			{				
 				var operand = (IVariable)op.Operand;
 				var source = new Reference(operand);
-				var dest = stack.Push().MakeCopy(source.Type);
+				var dest = stack.Push();
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
@@ -809,7 +805,7 @@ namespace Backend.Transformations
 			public void ProcessLoadStaticMethodAddress(Bytecode.LoadMethodAddressInstruction op)
 			{
 				var source = new StaticMethodReference(op.Method);
-				var dest = stack.Push().MakeCopy(source.Type);
+				var dest = stack.Push();
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
@@ -818,14 +814,14 @@ namespace Backend.Transformations
 			{
 				var obj = stack.Pop();
 				var source = new VirtualMethodReference(obj, op.Method);
-				var dest = stack.Push().MakeCopy(source.Type);
+				var dest = stack.Push();
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
 
 			public override void Visit(Bytecode.LoadTokenInstruction op)
 			{
-				var result = stack.Push().MakeCopy(TypeHelper.TokenType(op.Token));
+				var result = stack.Push();
 				var instruction = new Tac.LoadTokenInstruction(op.Offset, result, op.Token);
 				body.Instructions.Add(instruction);
 			}
@@ -838,7 +834,7 @@ namespace Backend.Transformations
 
 				foreach (var parameter in op.Method.Parameters)
 				{
-					var arg = stack.Pop().MakeCopy(parameter.Type);
+					var arg = stack.Pop();
 					arguments.Add(arg);
 				}
 
@@ -851,7 +847,7 @@ namespace Backend.Transformations
 				if (!op.Method.IsStatic)
 				{
 					// Adding implicit this parameter
-					var argThis = stack.Pop().MakeCopy(op.Method.ContainingType);
+					var argThis = stack.Pop();
 					arguments.Add(argThis);
 				}
 
@@ -859,7 +855,7 @@ namespace Backend.Transformations
 
 				if (!op.Method.ReturnType.Equals(PlatformTypes.Void))
 				{
-					result = stack.Push().MakeCopy(op.Method.ReturnType);
+					result = stack.Push();
 				}
 
 				var instruction = new Tac.MethodCallInstruction(op.Offset, result, operation, op.Method, arguments);
@@ -868,7 +864,7 @@ namespace Backend.Transformations
 
 			public override void Visit(Bytecode.SizeofInstruction op)
 			{
-				var result = stack.Push().MakeCopy(PlatformTypes.Int32);
+				var result = stack.Push();
 				var instruction = new Tac.SizeofInstruction(op.Offset, result, op.MeasuredType);
 				body.Instructions.Add(instruction);
 			}
@@ -887,7 +883,7 @@ namespace Backend.Transformations
 
 			private void ProcessStoreStaticField(Bytecode.StoreFieldInstruction op)
 			{
-				var source = stack.Pop().MakeCopy(op.Field.Type);
+				var source = stack.Pop();
 				var dest = new StaticFieldAccess(op.Field);
 				var instruction = new Tac.StoreInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
@@ -895,7 +891,7 @@ namespace Backend.Transformations
 
 			private void ProcessStoreInstanceField(Bytecode.StoreFieldInstruction op)
 			{
-				var source = stack.Pop().MakeCopy(op.Field.Type);
+				var source = stack.Pop();
 				var obj = stack.Pop();
 				var dest = new InstanceFieldAccess(obj, op.Field);
 				var instruction = new Tac.StoreInstruction(op.Offset, dest, source);
@@ -904,8 +900,8 @@ namespace Backend.Transformations
 
             public override void Visit(Bytecode.StoreIndirectInstruction op)
             {
-                var source = stack.Pop().MakeCopy(op.Type);
-                var address = stack.Pop().MakeCopy(new PointerType(op.Type));
+                var source = stack.Pop();
+                var address = stack.Pop();
                 var dest = new Dereference(address);
                 var instruction = new Tac.StoreInstruction(op.Offset, dest, source);
                 body.Instructions.Add(instruction);
@@ -913,14 +909,14 @@ namespace Backend.Transformations
 
             public override void Visit(Bytecode.StoreInstruction op)
 			{
-				var source = stack.Pop().MakeCopy(op.Target.Type);
+				var source = stack.Pop();
 				var instruction = new Tac.LoadInstruction(op.Offset, op.Target, source);
 				body.Instructions.Add(instruction);
 			}
 
 			public override void Visit(Bytecode.SwitchInstruction op)
 			{
-				var operand = stack.Pop().MakeCopy(PlatformTypes.List);
+				var operand = stack.Pop();
 				var instruction = new Tac.SwitchInstruction(op.Offset, operand, op.Targets);
 				body.Instructions.Add(instruction);
 			}

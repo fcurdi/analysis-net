@@ -139,12 +139,10 @@ namespace Backend.Utils
 			return result;
 		}
 		
-		public static Bytecode.BranchOperation ToBranchOperation(Tac.BranchOperation operation, IInmediateValue value)
+		public static Bytecode.BranchOperation ToBranchOperation(Tac.BranchOperation operation)
 		{
 			switch (operation)
 			{
-				case Tac.BranchOperation.Eq when new Constant(true).Equals(value): return Bytecode.BranchOperation.True;
-				case Tac.BranchOperation.Eq when new Constant(false).Equals(value): return Bytecode.BranchOperation.False;
 				case Tac.BranchOperation.Eq: return Bytecode.BranchOperation.Eq;
 				case Tac.BranchOperation.Neq: return Bytecode.BranchOperation.Neq;
 				case Tac.BranchOperation.Lt: return Bytecode.BranchOperation.Lt;

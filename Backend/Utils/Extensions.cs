@@ -1015,7 +1015,5 @@ namespace Backend.Utils
 
 			return escapeInfo;
 		}
-		public static TemporalVariable MakeCopy(this TemporalVariable temporalVariable, IType type) =>
-			new TemporalVariable(temporalVariable.Prefix, temporalVariable.Index) { Type = type };
 	}
 }

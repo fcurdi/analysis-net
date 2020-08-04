@@ -887,8 +887,14 @@ namespace Model.ThreeAddressCode.Values
 		{
 			get
 			{
-				var pointerType = this.Reference.Type as PointerType;
-				return pointerType.TargetType;
+				switch (Reference.Type)
+				{
+					case PointerType pointerType:
+						return pointerType.TargetType;
+					case ManagedPointerType managedPointerType:
+						return managedPointerType.TargetType;
+					default: throw new Exception(); // FIXME
+				}
 			}
 		}
 
