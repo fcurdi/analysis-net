@@ -712,8 +712,7 @@ namespace MetadataProvider
 
 				var v = new LocalVariable("this", true)
 				{
-					Type = type,
-					Index = parameters.Count
+					Type = type
 				};
 				parameters.Add(v);
 			}
@@ -722,8 +721,7 @@ namespace MetadataProvider
 			{
 				var v = new LocalVariable(parameter.Name, true)
 				{
-					Type = parameter.Type,
-					Index = parameters.Count
+					Type = parameter.Type
 				};
 
 				parameters.Add(v);
@@ -742,8 +740,7 @@ namespace MetadataProvider
 				var type = types[i];
 				var v = new LocalVariable(name)
 				{
-					Type = type,
-					Index = i
+					Type = type
 				};
 
 				variables.Add(v);
