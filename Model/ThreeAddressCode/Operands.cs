@@ -292,7 +292,6 @@ namespace Model.ThreeAddressCode.Values
 		public string Name { get; set; }
 		public IType Type { get; set; }
 		public bool IsParameter { get; set; }
-		public int Index { get; set; }
 
 		public LocalVariable(string name, bool isParameter = false)
 		{
