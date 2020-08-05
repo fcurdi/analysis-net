@@ -386,18 +386,20 @@ namespace MetadataGenerator.Generators.Methods.Body
 
                         break;
                     case LoadInstruction loadInstruction:
+                    {
                         switch (loadInstruction.Operation)
                         {
                             case LoadOperation.Address:
                             {
-                                var variable = (LocalVariable) loadInstruction.Operand;
-                                var index = variable.Index;
+                                var variable = (IVariable) loadInstruction.Operand;
                                 if (variable.IsParameter)
                                 {
+                                    var index = body.Parameters.IndexOf(variable);
                                     instructionEncoder.LoadArgumentAddress(index);
                                 }
                                 else
                                 {
+                                    var index = body.LocalVariables.IndexOf(variable);
                                     instructionEncoder.LoadLocalAddress(index);
                                 }
 
@@ -405,14 +407,15 @@ namespace MetadataGenerator.Generators.Methods.Body
                             }
                             case LoadOperation.Content:
                             {
-                                var variable = (LocalVariable) loadInstruction.Operand;
-                                var index = variable.Index;
+                                var variable = (IVariable) loadInstruction.Operand;
                                 if (variable.IsParameter)
                                 {
+                                    var index = body.Parameters.IndexOf(variable);
                                     instructionEncoder.LoadArgument(index);
                                 }
                                 else
                                 {
+                                    var index = body.LocalVariables.IndexOf(variable);
                                     instructionEncoder.LoadLocal(index);
                                 }
 
@@ -466,6 +469,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                         }
 
                         break;
+                    }
                     case LoadFieldInstruction loadFieldInstruction:
                         switch (loadFieldInstruction.Operation)
                         {
@@ -584,13 +588,15 @@ namespace MetadataGenerator.Generators.Methods.Body
                     }
                     case StoreInstruction storeInstruction:
                     {
-                        var index = ((LocalVariable) storeInstruction.Target).Index;
-                        if (storeInstruction.Target.IsParameter)
+                        var target = storeInstruction.Target;
+                        if (target.IsParameter)
                         {
+                            var index = body.Parameters.IndexOf(target);
                             instructionEncoder.StoreArgument(index);
                         }
                         else
                         {
+                            var index = body.LocalVariables.IndexOf(target);
                             instructionEncoder.StoreLocal(index);
                         }
 
