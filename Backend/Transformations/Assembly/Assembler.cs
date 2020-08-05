@@ -58,10 +58,21 @@ namespace Backend.Transformations.Assembly
                 instructionTranslator.Visit(method.Body);
 
                 // FIXME revisar y generar bien la exception information
-         //       body.ExceptionInformation.AddRange(instructionTranslator.exceptionInformationBuilder.Build()); 
+                //       body.ExceptionInformation.AddRange(instructionTranslator.exceptionInformationBuilder.Build()); 
                 body.Instructions.AddRange(instructionTranslator.translatedInstructions);
-                
-                body.UpdateVariables();// FIXME hay qeu hacer esto?
+
+                body.UpdateVariables(); // deja las variables que se usen en base a las instrucciones que hay
+                // esto de abajo lo que hace es ordenarlas, que no es necesario, pero lo que si es que regenera los indices. Esto es porque 
+                // en la tranformacion al tac y la vuelta, variables que no se usaban por ejemplo se pierden. Y entonces despues esas variables
+                // tienen indices 
+                var locals = body.LocalVariables.Cast<LocalVariable>().OrderBy(i => i.Index).ToList();
+                for (var index = 0; index < locals.Count; index++)
+                {
+                    locals[index].Index = index;
+                }
+
+                body.LocalVariables.Clear();
+                body.LocalVariables.AddRange(locals);
             }
 
 /*            body.UpdateVariables();
@@ -100,7 +111,6 @@ namespace Backend.Transformations.Assembly
 
             public override void Visit(BinaryInstruction instruction)
             {
-                
                 // FIXME tiene sentido esto?
                 if (instruction.Operation == BinaryOperation.Neq)
                 {
