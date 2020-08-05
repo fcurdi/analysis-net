@@ -47,19 +47,16 @@ namespace MetadataProvider
                     return result;
                 };
 
-                var ok = reader.TryOpenAssociatedPortablePdb(fileName, streamProvider,
-                    out SRM.MetadataReaderProvider pdbProvider, out _);
-
-                var assembly = ExtractAssembly(reader, pdbProvider);
+                var assembly = ExtractAssembly(reader);
 
 				this.Host.Assemblies.Add(assembly);
 				return assembly;
 			}
 		}
 
-		private Assembly ExtractAssembly(SRPE.PEReader reader, SRM.MetadataReaderProvider pdbProvider)
+		private Assembly ExtractAssembly(SRPE.PEReader reader)
 		{
-			var extractor = new AssemblyExtractor(this.Host, reader, pdbProvider);
+			var extractor = new AssemblyExtractor(this.Host, reader);
 			var result = extractor.Extract();
 			return result;
 		}

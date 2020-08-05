@@ -19,7 +19,6 @@ namespace MetadataProvider
 
 		private SRPE.PEReader reader;
 		private SRM.MetadataReader metadata;
-        private SRM.MetadataReader pdbMetadata;
         private GenericContext defGenericContext;
 		private GenericContext refGenericContext;
 		private SignatureTypeProvider signatureTypeProvider;
@@ -27,10 +26,9 @@ namespace MetadataProvider
 		private Namespace currentNamespace;
 		private TypeDefinition currentType;
 		private MethodDefinition currentMethod;
-        private IDictionary<int, string> currentMethodLocalVariablesNames;
         private readonly CustomAttributeTypeProvider customAttributeTypeProvider;
 
-        public AssemblyExtractor(Host host, SRPE.PEReader reader, SRM.MetadataReaderProvider pdbProvider = null)
+        public AssemblyExtractor(Host host, SRPE.PEReader reader)
 		{
 			this.Host = host;
 			this.reader = reader;
@@ -43,11 +41,7 @@ namespace MetadataProvider
 			this.signatureTypeProvider = new SignatureTypeProvider(this);
 			this.customAttributeTypeProvider = new CustomAttributeTypeProvider(signatureTypeProvider);
 
-            if (pdbProvider != null)
-            {
-                this.pdbMetadata = pdbProvider.GetMetadataReader();
-            }
-        }
+		}
 
 		public Host Host { get; private set; }
 
@@ -590,7 +584,6 @@ namespace MetadataProvider
 				ExtractParameter(signature, handle);
 			}
 
-            ExtractLocalVariablesNames(methoddefHandle);
             ExtractMethodBody(methoddef.RelativeVirtualAddress);
             
             var methodOverride = methodOverrides.FirstOrDefault(m => method.MatchSignature(m.newMethodImplementation));
@@ -662,27 +655,7 @@ namespace MetadataProvider
 
 			return result;
 		}
-
-        private void ExtractLocalVariablesNames(SRM.MethodDefinitionHandle methoddefHandle)
-        {
-            if (pdbMetadata == null)
-            {
-                currentMethodLocalVariablesNames = null;
-            }
-            else
-            {
-                var localVariablesNames = from scopeHandle in pdbMetadata.GetLocalScopes(methoddefHandle)
-                                          let localScope = pdbMetadata.GetLocalScope(scopeHandle)
-                                          from localHandle in localScope.GetLocalVariables()
-                                          let local = pdbMetadata.GetLocalVariable(localHandle)
-                                          let name = pdbMetadata.GetString(local.Name)
-                                          select new { Name = name, Index = local.Index };
-
-                currentMethodLocalVariablesNames = localVariablesNames.ToDictionary(x => x.Index, x => x.Name);
-            }
-        }
-
-        private void ExtractMethodBody(int relativeVirtualAddress)
+		private void ExtractMethodBody(int relativeVirtualAddress)
 		{
 			if (relativeVirtualAddress == 0) return;
 			var bodyBlock = SRM.PEReaderExtensions.GetMethodBody(reader, relativeVirtualAddress);
@@ -736,7 +709,7 @@ namespace MetadataProvider
 
 			for (var i = 0; i < types.Length; ++i)
 			{
-				var name = GetLocalSourceName(i);
+				var name = string.Format("local_{0}", i);
 				var type = types[i];
 				var v = new LocalVariable(name)
 				{
@@ -746,22 +719,6 @@ namespace MetadataProvider
 				variables.Add(v);
 			}
 		}
-
-		private string GetLocalSourceName(int localVariableIndex)
-		{
-            string name = null;
-
-            var ok = currentMethodLocalVariablesNames != null &&
-                currentMethodLocalVariablesNames.TryGetValue(localVariableIndex, out name);
-            
-            if (!ok)
-            {
-                name = string.Format("local_{0}", localVariableIndex);
-            }
-
-            return name;
-		}
-
 		private void ExtractExceptionInformation(SRM.MethodBodyBlock bodyBlock, IList<ProtectedBlock> handlers)
 		{
 			foreach (var region in bodyBlock.ExceptionRegions)
