@@ -796,6 +796,7 @@ namespace MethodBody
             Action<int> x = LoadAddress; // ldftn $method
             Action<int> y = null; // ldnull
         }
+
 /*
         public string LoadIndirect(ref int g)
         {
@@ -1032,7 +1033,6 @@ namespace MethodBody
             }
         }
 
-/*
         public void ExceptionHandlingMultipleFilter(int x)
         {
             try
@@ -1048,40 +1048,40 @@ namespace MethodBody
                 Console.WriteLine(ex.Message);
             }
         }
-        
-        public void ExceptionHandlingFilterCatch(int x)
-        {
-            try
-            {
-                var y = 1 / x;
-            }
-            catch (EntryPointNotFoundException e) when (e.Message.Contains(""))
-            {
-                Console.WriteLine(e.Message);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-        }
-
-        public void ExceptionHandlingCatchFilter(int x)
-        {
-            try
-            {
-                var y = 1 / x;
-            }
-            catch (EntryPointNotFoundException e)
-            {
-                Console.WriteLine(e.Message);
-            }
-            catch (Exception ex) when (ex.Message.Contains(""))
-            {
-                Console.WriteLine(ex.Message);
-            }
-        }
-        // FIXME se cuelga en el type inference
-*/
+    
+          public void ExceptionHandlingFilterCatch(int x)
+          {
+              try
+              {
+                  var y = 1 / x;
+              }
+              catch (EntryPointNotFoundException e) when (e.Message.Contains(""))
+              {
+                  Console.WriteLine(e.Message);
+              }
+              catch (Exception ex)
+              {
+                  Console.WriteLine(ex.Message);
+              }
+          }
+  
+          public void ExceptionHandlingCatchFilter(int x)
+          {
+              try
+              {
+                  var y = 1 / x;
+              }
+              catch (EntryPointNotFoundException e)
+              {
+                  Console.WriteLine(e.Message);
+              }
+              catch (Exception ex) when (ex.Message.Contains(""))
+              {
+                  Console.WriteLine(ex.Message);
+              }
+          }
+          // FIXME se cuelga en el type inference
+  
         public void ExceptionHandlingMultipleCatchs(int x)
         {
             try
@@ -1097,24 +1097,6 @@ namespace MethodBody
                 Console.WriteLine(ex.Message);
             }
         }
-
-        /* FIXME finally end label is wrong in the model (one more that it should be, that label does not exist)? this example results in an
-         FIXME unmarked label. The IL though is generated correctly
-        public void ExceptionHandlingTryCatchFinally(Exception e)
-        {
-            try
-            {
-                throw e;
-            }
-            catch
-            {
-                throw; // rethrow
-            }
-            finally
-            {
-                Console.WriteLine("finally");
-            }
-        }*/
     }
 }
 

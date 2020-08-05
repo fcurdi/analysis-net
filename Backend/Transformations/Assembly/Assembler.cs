@@ -45,12 +45,8 @@ namespace Backend.Transformations.Assembly
         {
             var body = new MethodBody(MethodBodyKind.Bytecode);
 
-            body.MaxStack = method.Body.MaxStack; // FIXME 
+            body.MaxStack = 10; // FIXME calcular (ver StackSize)
             body.Parameters.AddRange(method.Body.Parameters);
-
-            // FIXME entiendo que no iria esto
-            // this is updated later on. Needed to preserver variables that are declared but not used
-//            body.LocalVariables.AddRange(method.Body.LocalVariables);
 
             if (method.Body.Instructions.Count > 0)
             {
@@ -61,33 +57,18 @@ namespace Backend.Transformations.Assembly
                 //       body.ExceptionInformation.AddRange(instructionTranslator.exceptionInformationBuilder.Build()); 
                 body.Instructions.AddRange(instructionTranslator.translatedInstructions);
 
-                body.UpdateVariables(); // deja las variables que se usen en base a las instrucciones que hay
-                // esto de abajo lo que hace es ordenarlas, que no es necesario, pero lo que si es que regenera los indices. Esto es porque 
-                // en la tranformacion al tac y la vuelta, variables que no se usaban por ejemplo se pierden. Y entonces despues esas variables
-                // tienen indices 
-                var locals = body.LocalVariables.Cast<LocalVariable>().OrderBy(i => i.Index).ToList();
-                for (var index = 0; index < locals.Count; index++)
-                {
-                    locals[index].Index = index;
-                }
-
-                body.LocalVariables.Clear();
-                body.LocalVariables.AddRange(locals);
+                body.UpdateVariables();
             }
-
-/*            body.UpdateVariables();
-            var newLocals = body.LocalVariables.OfType<LocalVariable>().OrderBy(local => local.Index).ToList();
-            body.LocalVariables.Clear();
-            body.LocalVariables.AddRange(newLocals);
-*/
 
             return body;
         }
 
         private class InstructionTranslator : InstructionVisitor
         {
+            // FIXMe hay que ver si no es mas prolijo quiza que sean del  y que se las pase para que las rellene, mas que que este las tenga public
             public readonly IList<Bytecode.Instruction> translatedInstructions = new List<Bytecode.Instruction>();
             public readonly ExceptionInformationBuilder exceptionInformationBuilder = new ExceptionInformationBuilder();
+            public readonly StackSize stackSize;
 
             private readonly MethodBody bodyToProcess;
             private readonly IDictionary<int, bool> ignoreInstruction = new Dictionary<int, bool>();
@@ -95,6 +76,7 @@ namespace Backend.Transformations.Assembly
             public InstructionTranslator(MethodBody bodyToProcess)
             {
                 this.bodyToProcess = bodyToProcess;
+                stackSize = new StackSize();
             }
 
             public override bool ShouldVisit(Instruction instruction)
@@ -389,11 +371,13 @@ namespace Backend.Transformations.Assembly
                         bytecodeInstruction = new Bytecode.BranchInstruction(instruction.Offset, Bytecode.BranchOperation.Leave, target);
                         // FIXME mismo aca, no deberia usar offsets, sino labels.
                         exceptionInformationBuilder.EndCurrentProtectedBlockIfAppliesAt(instruction.Offset + 1); // block ends after instruction
+
                         break;
                     }
                     case UnconditionalBranchOperation.Branch:
                     {
                         bytecodeInstruction = new Bytecode.BranchInstruction(instruction.Offset, Bytecode.BranchOperation.Branch, target);
+
                         break;
                     }
                     case UnconditionalBranchOperation.EndFinally:
@@ -597,6 +581,39 @@ namespace Backend.Transformations.Assembly
                     Label = instruction.Label
                 };
                 translatedInstructions.Add(constrainedInstruction);
+            }
+        }
+
+        // FIXME se podria ir calculando. Pero ahi hay que ir contando segun la instruccion (si suma o vacia el stack). Es esta la mejor forma?
+        private class StackSize
+        {
+            private uint currentStackSize;
+            public uint MaxStackSize { get; private set; }
+
+            public StackSize()
+            {
+                currentStackSize = 0;
+                MaxStackSize = 0;
+            }
+
+            public void Increment()
+            {
+                currentStackSize += 1;
+                if (currentStackSize > MaxStackSize)
+                {
+                    MaxStackSize = currentStackSize;
+                }
+            }
+
+            public void Decrement()
+            {
+                if (currentStackSize == 0) throw new Exception("Current stack size is 0");
+                currentStackSize -= 1;
+            }
+
+            public void Clear()
+            {
+                currentStackSize = 0;
             }
         }
     }

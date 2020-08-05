@@ -325,6 +325,11 @@ namespace Backend.Analyses
 					}
 				}
 			}
+			public override void Visit(FilterInstruction instruction)
+			{
+				instruction.Result.Type = instruction.ExceptionType;
+			}
+			// FIXME hay varias instrucciones que no estan aca implementadas en este visitor, faltara agregarlas?
 		}
 
 		#endregion
