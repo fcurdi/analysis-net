@@ -1041,7 +1041,7 @@ namespace Backend.Transformations
 			if (exceptionHandlersStart.ContainsKey(operation.Label))
 			{
 				var handlerBlocks = exceptionHandlersStart[operation.Label];
-
+				var labelSuffix = "'";
 				foreach (var block in handlerBlocks)
 				{
 					Tac.Instruction instruction;
@@ -1081,7 +1081,9 @@ namespace Backend.Transformations
 							throw new Exception("Unknown ExceptionHandlerBlockKind.");
 					}
 
+					instruction.Label = operation.Label + labelSuffix;
 					body.Instructions.Add(instruction);
+					labelSuffix += "'";
 				}
 			}
 		}

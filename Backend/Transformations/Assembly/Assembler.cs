@@ -53,8 +53,7 @@ namespace Backend.Transformations.Assembly
                 var instructionTranslator = new InstructionTranslator(method.Body);
                 instructionTranslator.Visit(method.Body);
 
-                // FIXME revisar y generar bien la exception information
-                //       body.ExceptionInformation.AddRange(instructionTranslator.exceptionInformationBuilder.Build()); 
+                body.ExceptionInformation.AddRange(instructionTranslator.exceptionInformationBuilder.Build());
                 body.Instructions.AddRange(instructionTranslator.translatedInstructions);
 
                 body.UpdateVariables();
@@ -299,52 +298,60 @@ namespace Backend.Transformations.Assembly
 
             public override void Visit(TryInstruction instruction)
             {
-                // try with multiple handlers is modelled as multiple try instructions with the same label but different handlers.
-                // if label matches with the current try, then increase the number of expected handlers. If not, begin a new try block
-                // FIxme add comment
-                // FIXME revisar esto. No deberia basarme en offsets probablemnente en ningun lado. Ya que la posta son los labels.
-                // FIXME me podrian venir los offsets en 0 o en cualqueira y los labels no. Arreglar
-                var offset = bodyToProcess.Instructions
-                    .First(i => i.Offset > instruction.Offset && !(i is TryInstruction))
-                    .Offset;
-                if (exceptionInformationBuilder.CurrentProtectedBlockStartsAt(offset))
+                // try with multiple handlers is modelled as multiple consecutive try instructions with different handlers.
+                var instructionIndex = bodyToProcess.Instructions.IndexOf(instruction);
+                var previousInstructionIsTry = instructionIndex > 0 && bodyToProcess.Instructions[instructionIndex - 1] is TryInstruction;
+                if (previousInstructionIsTry)
                 {
                     exceptionInformationBuilder.IncrementCurrentProtectedBlockExpectedHandlers();
                 }
                 else
                 {
-                    exceptionInformationBuilder.BeginProtectedBlockAt(offset);
+                    // try starts at the instruction following the try instruction. 
+                    var label = "";
+                    for (var i = instructionIndex + 1; i < bodyToProcess.Instructions.Count; i++)
+                    {
+                        var currentInstruction = bodyToProcess.Instructions[i];
+                        if (!(currentInstruction is TryInstruction))
+                        {
+                            label = currentInstruction.Label;
+                            break;
+                        }
+                    }
+
+                    exceptionInformationBuilder.BeginProtectedBlockAt(label);
                 }
             }
 
-            // FIXME mismo aca, no deberia usar offsets, sino labels.
             public override void Visit(FaultInstruction instruction)
             {
-                // fixme estas deberian ser offset+1 tmb? replicar comment
-                exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(instruction.Offset + 1, ExceptionHandlerBlockKind.Fault);
+                // FIXME comment, esta duplicado en todos ademas. Hay una form amas eficiente de hacer esto? 
+                var index = bodyToProcess.Instructions.IndexOf(instruction);
+                var label = bodyToProcess.Instructions[index + 1].Label;
+                exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(label, ExceptionHandlerBlockKind.Fault);
             }
 
-            // FIXME mismo aca, no deberia usar offsets, sino labels.
             public override void Visit(FinallyInstruction instruction)
             {
-                // fixme estas deberian ser offset+1 tmb?
-                exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(instruction.Offset + 1, ExceptionHandlerBlockKind.Finally);
+                var index = bodyToProcess.Instructions.IndexOf(instruction);
+                var label = bodyToProcess.Instructions[index + 1].Label;
+                exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(label, ExceptionHandlerBlockKind.Finally);
             }
 
-            // FIXME mismo aca, no deberia usar offsets, sino labels.
+
             public override void Visit(FilterInstruction instruction)
             {
-                // fixme estas deberian ser offset+1 tmb?
-                exceptionInformationBuilder.AddFilterHandlerToCurrentProtectedBlock(instruction.Offset + 1, instruction.kind,
-                    instruction.ExceptionType);
+                var index = bodyToProcess.Instructions.IndexOf(instruction);
+                var label = bodyToProcess.Instructions[index + 1].Label;
+                exceptionInformationBuilder.AddFilterHandlerToCurrentProtectedBlock(label, instruction.kind, instruction.ExceptionType);
             }
 
-            // FIXME mismo aca, no deberia usar offsets, sino labels.
             public override void Visit(CatchInstruction instruction)
             {
-                // fixme estas deberian ser offset+1 tmb?  replicar comment
+                var index = bodyToProcess.Instructions.IndexOf(instruction);
+                var label = bodyToProcess.Instructions[index + 1].Label;
                 exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(
-                    instruction.Offset + 1,
+                    label,
                     ExceptionHandlerBlockKind.Catch,
                     instruction.ExceptionType);
             }
@@ -356,8 +363,12 @@ namespace Backend.Transformations.Assembly
                     : new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Rethrow);
                 basicInstruction.Label = instruction.Label;
                 translatedInstructions.Add(basicInstruction);
-                // FIXME mismo aca, no deberia usar offsets, sino labels.
-                exceptionInformationBuilder.EndCurrentProtectedBlockIfAppliesAt(instruction.Offset + 1); // block ends after instruction
+                if (!bodyToProcess.Instructions.Last().Equals(instruction)) // FIXME medio choto esto
+                {
+                    var index = bodyToProcess.Instructions.IndexOf(instruction);
+                    var label = bodyToProcess.Instructions[index + 1].Label;
+                    exceptionInformationBuilder.EndCurrentProtectedBlockIfAppliesAt(label); // block ends after instruction
+                }
             }
 
             public override void Visit(UnconditionalBranchInstruction instruction)
@@ -369,8 +380,9 @@ namespace Backend.Transformations.Assembly
                     case UnconditionalBranchOperation.Leave:
                     {
                         bytecodeInstruction = new Bytecode.BranchInstruction(instruction.Offset, Bytecode.BranchOperation.Leave, target);
-                        // FIXME mismo aca, no deberia usar offsets, sino labels.
-                        exceptionInformationBuilder.EndCurrentProtectedBlockIfAppliesAt(instruction.Offset + 1); // block ends after instruction
+                        var index = bodyToProcess.Instructions.IndexOf(instruction);
+                        var label = bodyToProcess.Instructions[index + 1].Label;
+                        exceptionInformationBuilder.EndCurrentProtectedBlockIfAppliesAt(label); // block ends after instruction
 
                         break;
                     }
@@ -384,8 +396,9 @@ namespace Backend.Transformations.Assembly
                     {
                         bytecodeInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.EndFinally);
                         // no more handlers after finally
-                        // FIXME mismo aca, no deberia usar offsets, sino labels.
-                        exceptionInformationBuilder.EndCurrentProtectedBlockAt(instruction.Offset + 1); // block ends after instruction 
+                        var index = bodyToProcess.Instructions.IndexOf(instruction);
+                        var label = bodyToProcess.Instructions[index + 1].Label;
+                        exceptionInformationBuilder.EndCurrentProtectedBlockAt(label); // block ends after instruction 
                         break;
                     }
                     case UnconditionalBranchOperation.EndFilter:

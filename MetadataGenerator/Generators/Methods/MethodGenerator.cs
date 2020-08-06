@@ -4,6 +4,7 @@ using Backend.Transformations.Assembly;
 using MetadataGenerator.Generators.Methods.Body;
 using MetadataGenerator.Metadata;
 using Model.Bytecode;
+using Model.ThreeAddressCode.Instructions;
 using Model.Types;
 using static MetadataGenerator.Metadata.AttributesProvider;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
@@ -54,6 +55,8 @@ namespace MetadataGenerator.Generators.Methods
 
                 var typeInferenceAnalysis = new TypeInferenceAnalysis(cfg, method.ReturnType);
                 typeInferenceAnalysis.Analyze();
+
+                var x = method.Body.Instructions.OfType<TryInstruction>().Count() > 1;
                 
                 var bytecode = new Backend.Transformations.Assembly.Assembler(method).Execute(); 
                 method.Body = bytecode;

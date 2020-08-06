@@ -18,82 +18,80 @@ namespace Backend.Transformations.Assembly
             return result;
         }
 
-        public void BeginProtectedBlockAt(uint offset)
+        public void BeginProtectedBlockAt(string label)
         {
-            var protectedBlockBuilder = new ProtectedBlockBuilder {TryStart = offset, HandlerCount = 1};
+            var protectedBlockBuilder = new ProtectedBlockBuilder {TryStart = label, HandlerCount = 1};
             protectedBlocks.Push(protectedBlockBuilder);
         }
 
-        public bool CurrentProtectedBlockStartsAt(uint offset) => protectedBlocks.Count > 0 && protectedBlocks.Peek().TryStart.Equals(offset);
         public void IncrementCurrentProtectedBlockExpectedHandlers() => protectedBlocks.Peek().HandlerCount++;
 
-        public void AddHandlerToCurrentProtectedBlock(uint offset, ExceptionHandlerBlockKind handlerBlockKind, IType exceptionType) =>
+        public void AddHandlerToCurrentProtectedBlock(string label, ExceptionHandlerBlockKind handlerBlockKind, IType exceptionType) =>
             protectedBlocks
                 .Peek()
-                .EndPreviousRegionAt(offset)
+                .EndPreviousRegionAt(label)
                 .Handlers.Add(new ProtectedBlockHandlerBuilder
                 {
-                    HandlerStart = offset,
+                    HandlerStart = label,
                     HandlerBlockKind = handlerBlockKind,
                     ExceptionType = exceptionType
                 });
 
-        public void AddHandlerToCurrentProtectedBlock(uint offset, ExceptionHandlerBlockKind handlerBlockKind) =>
-            AddHandlerToCurrentProtectedBlock(offset, handlerBlockKind, null);
+        public void AddHandlerToCurrentProtectedBlock(string label, ExceptionHandlerBlockKind handlerBlockKind) =>
+            AddHandlerToCurrentProtectedBlock(label, handlerBlockKind, null);
 
         // filter is a special case since it has a two regions (filter and handler). A filter in this TAC is modeled as two FilterInstruction
         // with different kinds, one for each region. If the previous region is a Filter, it must be ended only if it is in it's handler region.
-        public void AddFilterHandlerToCurrentProtectedBlock(uint offset, FilterInstructionKind kind, IType exceptionType)
+        public void AddFilterHandlerToCurrentProtectedBlock(string label, FilterInstructionKind kind, IType exceptionType)
         {
             var protectedBlockBuilder = protectedBlocks.Peek();
 
             bool EndPreviousHandlerCondition() => protectedBlockBuilder.Handlers.Last().HandlerBlockKind != ExceptionHandlerBlockKind.Filter ||
                                                   kind == FilterInstructionKind.FilterSection;
 
-            protectedBlockBuilder.EndPreviousRegionAt(offset, EndPreviousHandlerCondition);
+            protectedBlockBuilder.EndPreviousRegionAt(label, EndPreviousHandlerCondition);
 
             switch (kind)
             {
                 case FilterInstructionKind.FilterSection:
                     protectedBlockBuilder.Handlers.Add(new ProtectedBlockHandlerBuilder
                     {
-                        FilterStart = offset,
+                        FilterStart = label,
                         HandlerBlockKind = ExceptionHandlerBlockKind.Filter
                     });
                     break;
                 case FilterInstructionKind.FilterHandler:
                     var handler = protectedBlockBuilder.Handlers.Last();
-                    handler.HandlerStart = offset;
+                    handler.HandlerStart = label;
                     handler.ExceptionType = exceptionType;
                     break;
                 default: throw kind.ToUnknownValueException();
             }
         }
 
-        public void EndCurrentProtectedBlockIfAppliesAt(uint offset)
+        public void EndCurrentProtectedBlockIfAppliesAt(string label)
         {
             if (protectedBlocks.Count > 0 && protectedBlocks.Peek().AllHandlersAdded())
             {
-                EndCurrentProtectedBlockAt(offset);
+                EndCurrentProtectedBlockAt(label);
             }
         }
 
-        public void EndCurrentProtectedBlockAt(uint offset)
+        public void EndCurrentProtectedBlockAt(string label)
         {
             var exceptionBlockBuilder = protectedBlocks.Pop();
             exceptionBlockBuilder
                 .Handlers
                 .Last()
-                .HandlerEnd = offset;
+                .HandlerEnd = label;
             result.AddRange(exceptionBlockBuilder.Build());
         }
-
-
+        
         private class ProtectedBlockBuilder
         {
-            private uint? tryStart;
+            private string tryStart;
 
-            public uint TryStart
+            public string TryStart
             {
                 get => tryStart ?? throw new Exception("TryStart was not set");
                 set
@@ -103,9 +101,9 @@ namespace Backend.Transformations.Assembly
                 }
             }
 
-            private uint? tryEnd;
+            private string tryEnd;
 
-            private uint TryEnd
+            private string TryEnd
             {
                 get => tryEnd ?? throw new Exception("TryEnd was not set");
                 set
@@ -121,17 +119,17 @@ namespace Backend.Transformations.Assembly
 
             public readonly IList<ProtectedBlockHandlerBuilder> Handlers = new List<ProtectedBlockHandlerBuilder>();
 
-            public ProtectedBlockBuilder EndPreviousRegionAt(uint offset) => EndPreviousRegionAt(offset, () => true);
+            public ProtectedBlockBuilder EndPreviousRegionAt(string label) => EndPreviousRegionAt(label, () => true);
 
-            public ProtectedBlockBuilder EndPreviousRegionAt(uint offset, Func<bool> multipleHandlerCondition)
+            public ProtectedBlockBuilder EndPreviousRegionAt(string label, Func<bool> multipleHandlerCondition)
             {
                 if (Handlers.Count == 0) // first handler, ends try region
                 {
-                    TryEnd = offset;
+                    TryEnd = label;
                 }
                 else if (multipleHandlerCondition()) // multiple handlers. End previous handler conditionally
                 {
-                    Handlers.Last().HandlerEnd = offset;
+                    Handlers.Last().HandlerEnd = label;
                 }
 
                 return this;
@@ -147,9 +145,9 @@ namespace Backend.Transformations.Assembly
 
         private class ProtectedBlockHandlerBuilder
         {
-            private uint? filterStart;
+            private string filterStart;
 
-            public uint FilterStart
+            public string FilterStart
             {
                 get => filterStart ?? throw new Exception("FilterStart was not set");
                 set
@@ -159,9 +157,9 @@ namespace Backend.Transformations.Assembly
                 }
             }
 
-            private uint? handlerStart;
+            private string handlerStart;
 
-            public uint HandlerStart
+            public string HandlerStart
             {
                 get => handlerStart ?? throw new Exception("HandlerStart was not set");
                 set
@@ -171,9 +169,9 @@ namespace Backend.Transformations.Assembly
                 }
             }
 
-            private uint? handlerEnd;
+            private string handlerEnd;
 
-            public uint HandlerEnd
+            public string HandlerEnd
             {
                 get => handlerEnd ?? throw new Exception("HandlerEnd was not set");
                 set
