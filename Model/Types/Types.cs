@@ -663,53 +663,19 @@ namespace Model.Types
 			return result;
 		}
 	}
-	
-	public class ManagedPointerType : IReferenceType
-	{
-		public ISet<CustomAttribute> Attributes { get; private set; }
-		public IType TargetType { get; set; }
-
-		public ManagedPointerType(IType targetType)
-		{
-			this.TargetType = targetType;
-			this.Attributes = new HashSet<CustomAttribute>();
-		}
-
-		public TypeKind TypeKind
-		{
-			get { return TypeKind.ReferenceType; }
-		}
-
-		public override string ToString()
-		{
-			return string.Format("{0}&", this.TargetType);
-		}
-
-		public override int GetHashCode()
-		{
-			return this.TargetType.GetHashCode();
-		}
-
-		public override bool Equals(object obj)
-		{
-			var other = obj as ManagedPointerType;
-
-			var result = other != null &&
-			             this.TargetType.Equals(other.TargetType);
-
-			return result;
-		}
-	}
 
 	public class PointerType : IReferenceType
 	{
 		public ISet<CustomAttribute> Attributes { get; private set; }
 		public IType TargetType { get; set; }
 
-		public PointerType(IType targetType)
+		public bool Managed { get; private set; }
+
+		public PointerType(IType targetType, bool managed = false)
 		{
 			this.TargetType = targetType;
 			this.Attributes = new HashSet<CustomAttribute>();
+			this.Managed = managed;
 		}
 
 		public TypeKind TypeKind
@@ -724,7 +690,7 @@ namespace Model.Types
 
 		public override int GetHashCode()
 		{
-			return this.TargetType.GetHashCode();
+			return this.TargetType.GetHashCode() ^ this.Managed.GetHashCode();
 		}
 
 		public override bool Equals(object obj)
@@ -732,7 +698,8 @@ namespace Model.Types
 			var other = obj as PointerType;
 
 			var result = other != null &&
-						 this.TargetType.Equals(other.TargetType);
+						 this.TargetType.Equals(other.TargetType) &&
+						 this.Managed.Equals(other.Managed);
 
 			return result;
 		}
