@@ -329,6 +329,9 @@ namespace Backend.Analyses
 			{
 				instruction.Result.Type = instruction.ExceptionType;
 			}
+			
+			
+			
 			// FIXME hay varias instrucciones que no estan aca implementadas en este visitor, faltara agregarlas?
 		}
 

@@ -797,7 +797,6 @@ namespace MethodBody
             Action<int> y = null; // ldnull
         }
 
-/*
         public string LoadIndirect(ref int g)
         {
             unsafe
@@ -853,9 +852,7 @@ namespace MethodBody
 
             return outByte + outDouble + outClass.readOnlyIntField;
         }
-        
-        // FIXME rompen estos dos casos de indirect
-*/
+  
         public bool Compare(int b, int x)
         {
             var a = b == 2; // ceq

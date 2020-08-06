@@ -55,8 +55,6 @@ namespace MetadataGenerator.Generators.Methods
 
                 var typeInferenceAnalysis = new TypeInferenceAnalysis(cfg, method.ReturnType);
                 typeInferenceAnalysis.Analyze();
-
-                var x = method.Body.Instructions.OfType<TryInstruction>().Count() > 1;
                 
                 var bytecode = new Backend.Transformations.Assembly.Assembler(method).Execute(); 
                 method.Body = bytecode;
