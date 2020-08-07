@@ -57,9 +57,6 @@ namespace Backend.Transformations.Assembly
             }
 
             body.UpdateVariables();
-            var newLocals = body.LocalVariables.OfType<LocalVariable>().OrderBy(local => local.Index).ToList();
-            body.LocalVariables.Clear();
-            body.LocalVariables.AddRange(newLocals);
 
             return body;
         }

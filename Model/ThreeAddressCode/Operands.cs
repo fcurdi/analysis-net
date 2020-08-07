@@ -325,13 +325,12 @@ namespace Model.ThreeAddressCode.Values
 			var other = obj as LocalVariable;
 
 			return other != null &&
-				this.Name.Equals(other.Name) &&
-				this.Index.Equals(this.Index);
+			       this.Name.Equals(other.Name);
 		}
 
 		public override int GetHashCode()
 		{
-			return (Name.GetHashCode() * 397) ^ Index.GetHashCode();
+			return Name.GetHashCode();
 		}
 
 		public override string ToString()

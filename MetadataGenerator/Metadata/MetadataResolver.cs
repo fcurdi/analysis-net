@@ -316,20 +316,6 @@ namespace MetadataGenerator.Metadata
 
                         break;
                     }
-                    case ManagedPointerType managedPointerType: // FIXME tiene sentido esto? Es igual al pointer type....
-                    {
-                        var targetType = managedPointerType.TargetType;
-                        if (targetType.Equals(PlatformTypes.Void))
-                        {
-                            encoder.VoidPointer();
-                        }
-                        else
-                        {
-                            Encode(targetType, encoder.Pointer());
-                        }
-
-                        break;
-                    }
                     case FunctionPointerType _:
                     {
                         encoder.FunctionPointer();
