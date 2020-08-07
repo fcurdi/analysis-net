@@ -67,13 +67,14 @@ namespace Backend.Transformations.Assembly
             // FIXMe hay que ver si no es mas prolijo quiza que sean del  y que se las pase para que las rellene, mas que que este las tenga public
             public readonly IList<Bytecode.Instruction> translatedInstructions = new List<Bytecode.Instruction>();
             public readonly ExceptionInformationBuilder exceptionInformationBuilder = new ExceptionInformationBuilder();
+
             public readonly StackSize stackSize;
 /*
             FIXME
             Tema maxStack. quiza convenga validar con edgar como hacerlo. Porque ya veo que quiza hay que usar el CFG en vez de recorrer asi para calcularlo
             ver como lo calcula en el dissasembler (eso de stack size at entry y demas)
             */
-            
+
             private readonly MethodBody bodyToProcess;
             private readonly IDictionary<int, bool> ignoreInstruction = new Dictionary<int, bool>();
 
@@ -562,7 +563,8 @@ namespace Backend.Transformations.Assembly
 
             public override void Visit(InitializeObjectInstruction instruction)
             {
-                var initObjInstruction = new Bytecode.InitObjInstruction(instruction.Offset, instruction.TargetAddress.Type)
+                var type = ((PointerType) instruction.TargetAddress.Type).TargetType;
+                var initObjInstruction = new Bytecode.InitObjInstruction(instruction.Offset, type)
                 {
                     Label = instruction.Label
                 };

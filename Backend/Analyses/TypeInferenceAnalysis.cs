@@ -10,6 +10,7 @@ using Model.ThreeAddressCode.Visitor;
 using Backend.Model;
 using Model.ThreeAddressCode.Values;
 using Backend.Utils;
+using Model;
 
 namespace Backend.Analyses
 {

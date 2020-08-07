@@ -797,6 +797,7 @@ namespace MethodBody
             Action<int> y = null; // ldnull
         }
 
+        /*
         public string LoadIndirect(ref int g)
         {
             unsafe
@@ -852,7 +853,8 @@ namespace MethodBody
 
             return outByte + outDouble + outClass.readOnlyIntField;
         }
-  
+        fixme rompe el type inferer
+  */
         public bool Compare(int b, int x)
         {
             var a = b == 2; // ceq
@@ -1077,7 +1079,7 @@ namespace MethodBody
                   Console.WriteLine(ex.Message);
               }
           }
-          // FIXME se cuelga en el type inference
+
   
         public void ExceptionHandlingMultipleCatchs(int x)
         {

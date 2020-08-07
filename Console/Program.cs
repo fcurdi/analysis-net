@@ -411,19 +411,19 @@ namespace Console
 		{
 			var inputs = new[]
 			{
-				new[] {"../../../Examples/bin/Debug/Examples.dll"}, //FIXME se rompe/se cuelga el type inference
-		/*		new[] FIXME rompe el type inference
+				new[] {"../../../Examples/bin/Debug/Examples.dll"},
+		/*		new[]
 				{
 					"../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser/bin/Debug/net45/TinyCsvParser.dll",
 					"../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser.Test/bin/Debug/net45/TinyCsvParser.Test.dll"
 				},
 */
-		/*		new[]
+				new[]
 				{
 					"../../../../DSA/DSA/DSA/bin/Debug/net45/DSA.dll",
 					"../../../../DSA/DSA/DSAUnitTests/bin/Debug/net45/DSAUnitTests.dll"
 				},
-
+/*
 				new[]
 				{
 					"../../../../Fleck/src/Fleck.Tests/bin/Debug/net45/Fleck.dll",

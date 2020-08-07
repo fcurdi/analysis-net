@@ -423,46 +423,31 @@ namespace MetadataGenerator.Generators.Methods.Body
                             }
                             case LoadOperation.Value:
                             {
-                                var value = (loadInstruction.Operand as Constant).Value;
-                                if (value == null)
+                                switch ((loadInstruction.Operand as Constant).Value)
                                 {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldnull);
-                                }
-                                else
-                                {
-                                    if (loadInstruction.Operand.Type.Equals(PlatformTypes.String))
-                                    {
-                                        instructionEncoder.LoadString(metadataContainer.MetadataBuilder.GetOrAddUserString((string) value));
-                                    }
-
-                                    else if (loadInstruction.Operand.Type.IsOneOf(PlatformTypes.Int8, PlatformTypes.UInt8))
-                                    {
-                                        instructionEncoder.OpCode(SRM.ILOpCode.Ldc_i4_s);
-                                        instructionEncoder.Token((int) value);
-                                    }
-                                    else if (loadInstruction.Operand.Type.IsOneOf(PlatformTypes.Int16, PlatformTypes.Int32, PlatformTypes.UInt16,
-                                        PlatformTypes.UInt32))
-                                    {
-                                        instructionEncoder.LoadConstantI4((int) value);
-                                    }
-                                    else if (loadInstruction.Operand.Type.IsOneOf(PlatformTypes.Int64, PlatformTypes.UInt64))
-                                    {
-                                        instructionEncoder.LoadConstantI8((long) value);
-                                    }
-                                    else if (loadInstruction.Operand.Type.Equals(PlatformTypes.Float32))
-                                    {
-                                        instructionEncoder.LoadConstantR4((float) value);
-                                    }
-                                    else if (loadInstruction.Operand.Type.Equals(PlatformTypes.Float64))
-                                    {
-                                        instructionEncoder.LoadConstantR8((double) value);
-                                    }
-                                    else if (loadInstruction.Operand.Type.Equals(PlatformTypes.Boolean))
-                                    {
-                                        var boolAsInt = (bool) value ? 1 : 0;
-                                        instructionEncoder.LoadConstantI4(boolAsInt);
-                                    }
-                                    else throw new UnhandledCase();
+                                    case null:
+                                        instructionEncoder.OpCode(SRM.ILOpCode.Ldnull);
+                                        break;
+                                    case string value:
+                                        instructionEncoder.LoadString(metadataContainer.MetadataBuilder.GetOrAddUserString(value));
+                                        break;
+                                    case int value:
+                                        instructionEncoder.LoadConstantI4(value);
+                                        break;
+                                    case long value:
+                                        instructionEncoder.LoadConstantI8(value);
+                                        break;
+                                    case float value:
+                                        instructionEncoder.LoadConstantR4(value);
+                                        break;
+                                    case double value:
+                                        instructionEncoder.LoadConstantR8(value);
+                                        break;
+                                    case bool value:
+                                        instructionEncoder.LoadConstantI4(value ? 1 : 0);
+                                        break;
+                                    default:
+                                        throw new UnhandledCase();
                                 }
 
                                 break;
