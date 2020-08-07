@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Collections.Immutable;
 using MetadataGenerator.Metadata;
 using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
@@ -69,10 +68,10 @@ namespace MetadataGenerator.Generators.Methods
                         {
                             var isByRef = false;
                             var type = parameter.Type;
-                            if (parameter.Type is ManagedPointerType managedPointerType)
+                            if (parameter.Type is PointerType pointerType)
                             {
-                                isByRef = true;
-                                type = managedPointerType.TargetType;
+                                isByRef = pointerType.Managed;
+                                type = pointerType.TargetType;
                             }
 
                             var encoder = parametersEncoder.AddParameter().Type(isByRef);
