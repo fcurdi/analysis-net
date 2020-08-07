@@ -84,7 +84,7 @@ namespace MetadataGenerator.Metadata
                     {
                         case IBasicType basicType:
                             return GetOrAddTypeReference(basicType);
-                        case IType iType when iType is ArrayType || iType is PointerType || iType is ManagedPointerType || iType is IGenericParameterReference:
+                        case IType iType when iType is ArrayType || iType is PointerType  || iType is IGenericParameterReference:
                             return GetOrAddTypeSpecificationFor(iType);
                         default:
                             throw new Exception($"type {type} not yet supported");
@@ -305,20 +305,6 @@ namespace MetadataGenerator.Metadata
                     case PointerType pointerType:
                     {
                         var targetType = pointerType.TargetType;
-                        if (targetType.Equals(PlatformTypes.Void))
-                        {
-                            encoder.VoidPointer();
-                        }
-                        else
-                        {
-                            Encode(targetType, encoder.Pointer());
-                        }
-
-                        break;
-                    }
-                    case ManagedPointerType managedPointerType: // FIXME tiene sentido esto? Es igual al pointer type....
-                    {
-                        var targetType = managedPointerType.TargetType;
                         if (targetType.Equals(PlatformTypes.Void))
                         {
                             encoder.VoidPointer();

@@ -155,7 +155,7 @@ namespace MetadataProvider
 
 		public virtual IType GetByReferenceType(IType targetType)
 		{
-			var result = new ManagedPointerType(targetType);
+			var result = new PointerType(targetType, true);
 			return result;
 		}
 
