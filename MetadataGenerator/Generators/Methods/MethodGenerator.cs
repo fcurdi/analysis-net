@@ -44,7 +44,7 @@ namespace MetadataGenerator.Generators.Methods
                 // FIXME undo this. Just for testing assembler.
                 var tac = new Backend.Transformations.Disassembler(method).Execute();
                 method.Body = tac;
-                
+
                 var cfanalysis = new ControlFlowAnalysis(method.Body);
                 var cfg = cfanalysis.GenerateExceptionalControlFlow();
 
@@ -55,8 +55,8 @@ namespace MetadataGenerator.Generators.Methods
 
                 var typeInferenceAnalysis = new TypeInferenceAnalysis(cfg, method.ReturnType);
                 typeInferenceAnalysis.Analyze();
-                
-                var bytecode = new Backend.Transformations.Assembly.Assembler(method).Execute(); 
+
+                var bytecode = new Backend.Transformations.Assembly.Assembler(method).Execute();
                 method.Body = bytecode;
 
                 // FIXME maxStack should be computed from instructions. When a dll is read, the maxStack will be available (Model) but if code is generated 

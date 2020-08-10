@@ -21,10 +21,6 @@ using Bytecode = Model.Bytecode;
 using ConstrainedInstruction = Model.ThreeAddressCode.Instructions.ConstrainedInstruction;
 using Instruction = Model.ThreeAddressCode.Instructions.Instruction;
 
-// FIXME revisar los usos de operand y result. Cuando hay que usar uno y cuando otro? lo mismo lo de mirar si son temporal variables y eso
-// FIXME me suena a que esta mal
-// FIXME reveer ademas toda la parte de las local variables y demas. La traduccion no tiene que dejar el bytecod eigual al original, sino 
-// FIXME semanticamente igual. Por ende no tengo porque tener las mismas variables que antes. Puede haber mas, puede haber menos.
 namespace Backend.Transformations.Assembly
 {
     public class Assembler
@@ -90,6 +86,8 @@ namespace Backend.Transformations.Assembly
                 return shouldProcessInstruction;
             }
 
+
+            // FIXME hace falta esta realmente?
             public override void Visit(PopInstruction instruction)
             {
                 var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Pop) {Label = instruction.Label};
@@ -98,7 +96,6 @@ namespace Backend.Transformations.Assembly
 
             public override void Visit(BinaryInstruction instruction)
             {
-                // FIXME tiene sentido esto?
                 if (instruction.Operation == BinaryOperation.Neq)
                 {
                     var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Eq)
@@ -133,124 +130,111 @@ namespace Backend.Transformations.Assembly
                 translatedInstructions.Add(basicInstruction);
             }
 
-            // FIXME revisar los casos, hay algunos que no estoy seguro de que esten bien. se repiten caminos ademas (sobretodo por el reference)
             public override void Visit(LoadInstruction instruction)
             {
                 Bytecode.Instruction bytecodeInstruction;
-                if (instruction.Operand is TemporalVariable && instruction.Result is TemporalVariable)
+                if (instruction.Result is TemporalVariable)
                 {
-                    if (instruction.Operand.Equals(instruction.Result))
+                    switch (instruction.Operand)
                     {
-                        return;
-                    }
-                    else
-                    {
-                        bytecodeInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Dup);
+                        case TemporalVariable _:
+                            bytecodeInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Dup);
+                            break;
+                        case Constant constant:
+                            bytecodeInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Value, constant);
+                            break;
+                        case LocalVariable localVariable:
+                        {
+                            bytecodeInstruction = new Bytecode.LoadInstruction(
+                                instruction.Offset,
+                                Bytecode.LoadOperation.Content,
+                                localVariable);
+                            break;
+                        }
+                        case Dereference dereference:
+                        {
+                            bytecodeInstruction = new Bytecode.LoadIndirectInstruction(instruction.Offset, dereference.Type);
+                            break;
+                        }
+                        case Reference reference:
+                            switch (reference.Value)
+                            {
+                                case ArrayElementAccess arrayElementAccess:
+                                {
+                                    bytecodeInstruction = new Bytecode.LoadArrayElementInstruction(
+                                        instruction.Offset,
+                                        Bytecode.LoadArrayElementOperation.Address,
+                                        (ArrayType) arrayElementAccess.Array.Type) {Method = arrayElementAccess.Method};
+                                    break;
+                                }
+
+                                case LocalVariable localVariable:
+                                {
+                                    bytecodeInstruction = new Bytecode.LoadInstruction(
+                                        instruction.Offset,
+                                        Bytecode.LoadOperation.Address,
+                                        localVariable);
+                                    break;
+                                }
+                                case InstanceFieldAccess instanceFieldAccess:
+                                    bytecodeInstruction = new Bytecode.LoadFieldInstruction(
+                                        instruction.Offset,
+                                        Bytecode.LoadFieldOperation.Address,
+                                        instanceFieldAccess.Field);
+                                    break;
+                                default:
+                                    throw new Exception(); // TODO
+                            }
+
+                            break;
+                        case ArrayLengthAccess _:
+                            bytecodeInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.LoadArrayLength);
+                            break;
+                        case VirtualMethodReference virtualMethodReference:
+                            bytecodeInstruction = new Bytecode.LoadMethodAddressInstruction(
+                                instruction.Offset,
+                                Bytecode.LoadMethodAddressOperation.Virtual,
+                                virtualMethodReference.Method);
+                            break;
+                        case StaticMethodReference staticMethodReference:
+                            bytecodeInstruction = new Bytecode.LoadMethodAddressInstruction(
+                                instruction.Offset,
+                                Bytecode.LoadMethodAddressOperation.Static,
+                                staticMethodReference.Method);
+                            break;
+                        case InstanceFieldAccess instanceFieldAccess:
+                            bytecodeInstruction = new Bytecode.LoadFieldInstruction(
+                                instruction.Offset,
+                                Bytecode.LoadFieldOperation.Content,
+                                instanceFieldAccess.Field);
+                            break;
+                        case StaticFieldAccess staticFieldAccess:
+                            bytecodeInstruction = new Bytecode.LoadFieldInstruction(
+                                instruction.Offset,
+                                Bytecode.LoadFieldOperation.Content,
+                                staticFieldAccess.Field);
+                            break;
+                        case ArrayElementAccess arrayElementAccess:
+                        {
+                            bytecodeInstruction = new Bytecode.LoadArrayElementInstruction(
+                                instruction.Offset,
+                                Bytecode.LoadArrayElementOperation.Content,
+                                (ArrayType) arrayElementAccess.Array.Type) {Method = arrayElementAccess.Method};
+
+                            break;
+                        }
+                        default: throw new Exception(); // TODO
                     }
                 }
                 else
                 {
-                    if (instruction.Result is LocalVariable loc)
-                    {
-                        bytecodeInstruction = new Bytecode.StoreInstruction(instruction.Offset, loc);
-                    }
-                    else
-                    {
-                        switch (instruction.Operand)
-                        {
-                            case Constant constant:
-                                bytecodeInstruction = new Bytecode.LoadInstruction(instruction.Offset,
-                                    Bytecode.LoadOperation.Value, constant);
-                                break;
-                            case LocalVariable localVariable:
-                            {
-                                bytecodeInstruction = new Bytecode.LoadInstruction(instruction.Offset,
-                                    Bytecode.LoadOperation.Content, localVariable);
-                                break;
-                            }
-                            case Dereference dereference:
-                            {
-                                bytecodeInstruction = new Bytecode.LoadIndirectInstruction(instruction.Offset, dereference.Type);
-                                break;
-                            }
-                            case Reference reference:
-                                switch (reference.Value)
-                                {
-                                    case ArrayElementAccess arrayElementAccess:
-                                    {
-                                        bytecodeInstruction = new Bytecode.LoadArrayElementInstruction(
-                                            instruction.Offset,
-                                            Bytecode.LoadArrayElementOperation.Address,
-                                            (ArrayType) arrayElementAccess.Array.Type) {Method = arrayElementAccess.Method};
-                                        break;
-                                    }
-
-                                    case LocalVariable localVariable:
-                                    {
-                                        bytecodeInstruction = new Bytecode.LoadInstruction(instruction.Offset,
-                                            Bytecode.LoadOperation.Address,
-                                            localVariable);
-                                        break;
-                                    }
-                                    case InstanceFieldAccess instanceFieldAccess:
-                                        bytecodeInstruction = new Bytecode.LoadFieldInstruction(
-                                            instruction.Offset,
-                                            Bytecode.LoadFieldOperation.Address,
-                                            instanceFieldAccess.Field);
-                                        break;
-                                    default:
-                                        throw new Exception(); // TODO
-                                }
-
-                                break;
-                            case ArrayLengthAccess _:
-                                bytecodeInstruction = new Bytecode.BasicInstruction(instruction.Offset,
-                                    Bytecode.BasicOperation.LoadArrayLength);
-                                break;
-                            case VirtualMethodReference virtualMethodReference:
-                                bytecodeInstruction = new Bytecode.LoadMethodAddressInstruction(
-                                    instruction.Offset,
-                                    Bytecode.LoadMethodAddressOperation.Virtual,
-                                    virtualMethodReference.Method);
-                                break;
-                            case StaticMethodReference staticMethodReference:
-                                bytecodeInstruction = new Bytecode.LoadMethodAddressInstruction(
-                                    instruction.Offset,
-                                    Bytecode.LoadMethodAddressOperation.Static,
-                                    staticMethodReference.Method);
-                                break;
-                            case InstanceFieldAccess instanceFieldAccess:
-                                bytecodeInstruction = new Bytecode.LoadFieldInstruction(
-                                    instruction.Offset,
-                                    Bytecode.LoadFieldOperation.Content,
-                                    instanceFieldAccess.Field);
-                                break;
-                            case StaticFieldAccess staticFieldAccess:
-                                bytecodeInstruction = new Bytecode.LoadFieldInstruction(
-                                    instruction.Offset,
-                                    Bytecode.LoadFieldOperation.Content,
-                                    staticFieldAccess.Field);
-                                break;
-                            case ArrayElementAccess arrayElementAccess:
-                            {
-                                var type = (ArrayType) arrayElementAccess.Array.Type;
-                                bytecodeInstruction = new Bytecode.LoadArrayElementInstruction(
-                                    instruction.Offset,
-                                    Bytecode.LoadArrayElementOperation.Content,
-                                    type) {Method = arrayElementAccess.Method};
-
-                                break;
-                            }
-                            default: throw new Exception(); // TODO
-                        }
-                    }
+                    bytecodeInstruction = new Bytecode.StoreInstruction(instruction.Offset, (LocalVariable) instruction.Result);
                 }
 
                 bytecodeInstruction.Label = instruction.Label;
                 translatedInstructions.Add(bytecodeInstruction);
             }
 
-            // FIXME revisar
             public override void Visit(StoreInstruction instruction)
             {
                 Bytecode.Instruction storeInstruction;
@@ -258,8 +242,7 @@ namespace Backend.Transformations.Assembly
                 {
                     case ArrayElementAccess arrayElementAccess:
                     {
-                        var type = (ArrayType) arrayElementAccess.Array.Type;
-                        storeInstruction = new Bytecode.StoreArrayElementInstruction(instruction.Offset, type)
+                        storeInstruction = new Bytecode.StoreArrayElementInstruction(instruction.Offset, (ArrayType) arrayElementAccess.Array.Type)
                         {
                             Method = arrayElementAccess.Method
                         };
@@ -331,7 +314,9 @@ namespace Backend.Transformations.Assembly
 
             public override void Visit(FaultInstruction instruction)
             {
-                // FIXME comment, esta duplicado en todos ademas. Hay una form amas eficiente de hacer esto? 
+                // FIXME comment, esta duplicado en todos ademas. Hay una form amas eficiente de hacer esto?. Quiza si no uso el visitor, puedo recorrerlas
+                // en orden e ir pasando tambien el indice de la instruccion que estoy procesando. Si hago eso, lo de ignore insturctions
+                // no hace falta que este en el visitor
                 var index = bodyToProcess.Instructions.IndexOf(instruction);
                 var label = bodyToProcess.Instructions[index + 1].Label;
                 exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(label, ExceptionHandlerBlockKind.Fault);
@@ -395,7 +380,6 @@ namespace Backend.Transformations.Assembly
                     case UnconditionalBranchOperation.Branch:
                     {
                         bytecodeInstruction = new Bytecode.BranchInstruction(instruction.Offset, Bytecode.BranchOperation.Branch, target);
-
                         break;
                     }
                     case UnconditionalBranchOperation.EndFinally:
@@ -445,22 +429,30 @@ namespace Backend.Transformations.Assembly
 
             public override void Visit(ConditionalBranchInstruction instruction)
             {
-                // FIXME esto se puede optimizar. Porque esto hace que por ejemplo haga un load false y despues haga un branc eq. EN vez
-                // FIXME de de una hacer brfalse. Por otro lado, agarro solo los constant (literales) porque los demas casos son variables y se supone
-                // FIXME que ya se cargaron en la instruccion anterior
-                switch (instruction.RightOperand)
+                var branchOperation = OperationHelper.ToBranchOperation(instruction.Operation);
+                if (instruction.RightOperand is Constant constant)
                 {
-                    case Constant constant:
-                        var a = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Value, constant);
-                        a.Label += "'"; // FIXME
-                        translatedInstructions.Add(a);
-                        break;
+                    switch (constant.Value)
+                    {
+                        case null:
+                            branchOperation = instruction.Operation == BranchOperation.Eq
+                                ? Bytecode.BranchOperation.True
+                                : Bytecode.BranchOperation.False;
+                            break;
+                        default:
+                            var loadInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Value, constant)
+                            {
+                                Label = instruction.Label + "'"
+                            };
+                            translatedInstructions.Add(loadInstruction);
+                            break;
+                    }
                 }
 
                 var target = Convert.ToUInt32(instruction.Target.Substring(2), 16);
                 var branchInstruction = new Bytecode.BranchInstruction(
                     instruction.Offset,
-                    OperationHelper.ToBranchOperation(instruction.Operation),
+                    branchOperation,
                     target)
                 {
                     Label = instruction.Label

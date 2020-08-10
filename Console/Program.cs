@@ -412,30 +412,28 @@ namespace Console
 			var inputs = new[]
 			{
 				new[] {"../../../Examples/bin/Debug/Examples.dll"},
-		/*		new[]
+				new[]
 				{
 					"../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser/bin/Debug/net45/TinyCsvParser.dll",
 					"../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser.Test/bin/Debug/net45/TinyCsvParser.Test.dll"
 				},
-*/
 				new[]
 				{
 					"../../../../DSA/DSA/DSA/bin/Debug/net45/DSA.dll",
 					"../../../../DSA/DSA/DSAUnitTests/bin/Debug/net45/DSAUnitTests.dll"
 				},
-/*
 				new[]
 				{
 					"../../../../Fleck/src/Fleck.Tests/bin/Debug/net45/Fleck.dll",
 					"../../../../Fleck/src/Fleck.Tests/bin/Debug/net45/Fleck.Tests.dll"
-				},
+				}, 
 				new[]
 				{
 					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Async.dll",
 					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Tests.dll",
 					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Utilities.dll",
 					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.dll"
-				}*/
+				}
 			};
 
 			foreach (var input in inputs)
