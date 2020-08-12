@@ -41,7 +41,7 @@ namespace Backend.Transformations.Assembly
         {
             var body = new MethodBody(MethodBodyKind.Bytecode);
 
-            body.MaxStack = 10; // FIXME calcular (ver StackSize)
+            body.MaxStack = 20; // FIXME calcular (ver StackSize)
             body.Parameters.AddRange(method.Body.Parameters);
 
             if (method.Body.Instructions.Count > 0)
@@ -436,8 +436,8 @@ namespace Backend.Transformations.Assembly
                     {
                         case null:
                             branchOperation = instruction.Operation == BranchOperation.Eq
-                                ? Bytecode.BranchOperation.True
-                                : Bytecode.BranchOperation.False;
+                                ? Bytecode.BranchOperation.False
+                                : Bytecode.BranchOperation.True;
                             break;
                         default:
                             var loadInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Value, constant)
