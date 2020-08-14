@@ -84,7 +84,7 @@ namespace MetadataGenerator.Metadata
                     {
                         case IBasicType basicType:
                             return GetOrAddTypeReference(basicType);
-                        case IType iType when iType is ArrayType || iType is PointerType  || iType is IGenericParameterReference:
+                        case IType iType when iType is ArrayType || iType is PointerType || iType is IGenericParameterReference:
                             return GetOrAddTypeSpecificationFor(iType);
                         default:
                             throw new Exception($"type {type} not yet supported");

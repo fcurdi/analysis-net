@@ -443,38 +443,8 @@ namespace Console
 					DisassembleAndThenAssemble(file);
 				}
 			}
-
-/*		foreach (var input in inputs)
-		{
-			foreach (var file in input)
-			{
-				System.Console.WriteLine("Processing file: " + file);
-				var host = new Host();
-
-				PlatformTypes.Resolve(host);
-
-				var loader = new Loader(host);
-				var assembly = loader.LoadAssembly(file);
-				var methods =
-					from types in assembly.RootNamespace.GetAllTypes()
-					from m in types.Methods
-					where m.HasBody
-					select m;
-
-				foreach (var method in methods)
-				{
-					method.Body = new Disassembler(method).Execute(); // to tac
-					var newBody = new Assembler(method).Execute(); // to bytecode
-					var exOriginal = method.Body.ExceptionInformation;
-					var exGenerated = newBody.ExceptionInformation;
-					var x = 1;
-				}
-			}
-		}*/
 		
-		
-		
-		System.Console.WriteLine("Done!");
+			System.Console.WriteLine("Done!");
 		}
 	}
 }

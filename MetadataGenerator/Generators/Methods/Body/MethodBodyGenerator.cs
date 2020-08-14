@@ -28,15 +28,8 @@ namespace MetadataGenerator.Generators.Methods.Body
             var labelToEncoderOffset = new Dictionary<string, int>();
             var switchInstructionsPlaceHolders = new List<SwitchInstructionPlaceholder>();
 
-            var ignoreInstructions = new HashSet<int>();
-
-            for (var i = 0; i < body.Instructions.Count; i++)
+            foreach (var instruction in body.Instructions)
             {
-                var instruction = body.Instructions[i];
-                if (ignoreInstructions.Contains(i))
-                    continue; // FIXME quiza se puede hacer lo de antes del for en el constructor y que sea de insrtnacia
-                // fixme y dejar el for con esto de ignore y demas y despues un metodo aparte que hace todo. 
-
                 labelToEncoderOffset[instruction.Label] = instructionEncoder.Offset;
                 controlFlowGenerator.MarkCurrentLabelIfNeeded(instruction.Label);
 
@@ -103,23 +96,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 instructionEncoder.OpCode(basicInstruction.UnsignedOperands ? SRM.ILOpCode.Shr_un : SRM.ILOpCode.Shr);
                                 break;
                             case BasicOperation.Eq:
-                                var previousInstructionIsLoadNull =
-                                    body.Instructions[i - 1] is LoadInstruction loadInstruction &&
-                                    loadInstruction.Operand is Constant constant &&
-                                    constant.Value == null;
-                                var nexInstructionIsNeg = body.Instructions[i + 1] is BasicInstruction bi && bi.Operation == BasicOperation.Neg;
-                                if (previousInstructionIsLoadNull && nexInstructionIsNeg)
-                                {
-                                    // cgt_un is used as a compare-not-equal with null.
-                                    // ldnull - ceq - neq => ldnull - cgt_un
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Cgt_un);
-                                    ignoreInstructions.Add(i + 1);
-                                }
-                                else
-                                {
-                                    instructionEncoder.OpCode(SRM.ILOpCode.Ceq);
-                                }
-
+                                instructionEncoder.OpCode(SRM.ILOpCode.Ceq);
                                 break;
                             case BasicOperation.Lt:
                                 instructionEncoder.OpCode(basicInstruction.UnsignedOperands ? SRM.ILOpCode.Clt_un : SRM.ILOpCode.Clt);
@@ -217,6 +194,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                             default:
                                 throw new UnhandledCase();
                         }
+
 
                         instructionEncoder.Branch(opCode, controlFlowGenerator.LabelHandleFor(branchInstruction.Target));
 
@@ -446,32 +424,44 @@ namespace MetadataGenerator.Generators.Methods.Body
                             }
                             case LoadOperation.Value:
                             {
-                                switch ((loadInstruction.Operand as Constant).Value)
+                                if (((Constant) loadInstruction.Operand).Value == null)
                                 {
-                                    case null:
-                                        instructionEncoder.OpCode(SRM.ILOpCode.Ldnull);
-                                        break;
-                                    case string value:
-                                        instructionEncoder.LoadString(metadataContainer.MetadataBuilder.GetOrAddUserString(value));
-                                        break;
-                                    case int value:
-                                        instructionEncoder.LoadConstantI4(value);
-                                        break;
-                                    case long value:
-                                        instructionEncoder.LoadConstantI8(value);
-                                        break;
-                                    case float value:
-                                        instructionEncoder.LoadConstantR4(value);
-                                        break;
-                                    case double value:
-                                        instructionEncoder.LoadConstantR8(value);
-                                        break;
-                                    case bool value:
-                                        instructionEncoder.LoadConstantI4(value ? 1 : 0);
-                                        break;
-                                    default:
-                                        throw new UnhandledCase();
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldnull);
                                 }
+                                else if (loadInstruction.Operand.Type.Equals(PlatformTypes.String))
+                                {
+                                    var value = (string) (loadInstruction.Operand as Constant).Value;
+                                    instructionEncoder.LoadString(metadataContainer.MetadataBuilder.GetOrAddUserString(value));
+                                }
+
+                                else if (loadInstruction.Operand.Type.IsOneOf(PlatformTypes.Int8, PlatformTypes.UInt8))
+                                {
+                                    var value = (int) (loadInstruction.Operand as Constant).Value;
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Ldc_i4_s);
+                                    instructionEncoder.Token(value);
+                                }
+                                else if (loadInstruction.Operand.Type.IsOneOf(PlatformTypes.Int16, PlatformTypes.Int32, PlatformTypes.UInt16,
+                                    PlatformTypes.UInt32))
+                                {
+                                    var value = (int) (loadInstruction.Operand as Constant).Value;
+                                    instructionEncoder.LoadConstantI4(value);
+                                }
+                                else if (loadInstruction.Operand.Type.IsOneOf(PlatformTypes.Int64, PlatformTypes.UInt64))
+                                {
+                                    var value = (long) (loadInstruction.Operand as Constant).Value;
+                                    instructionEncoder.LoadConstantI8(value);
+                                }
+                                else if (loadInstruction.Operand.Type.Equals(PlatformTypes.Float32))
+                                {
+                                    var value = (float) (loadInstruction.Operand as Constant).Value;
+                                    instructionEncoder.LoadConstantR4(value);
+                                }
+                                else if (loadInstruction.Operand.Type.Equals(PlatformTypes.Float64))
+                                {
+                                    var value = (double) (loadInstruction.Operand as Constant).Value;
+                                    instructionEncoder.LoadConstantR8(value);
+                                }
+                                else throw new UnhandledCase();
 
                                 break;
                             }
