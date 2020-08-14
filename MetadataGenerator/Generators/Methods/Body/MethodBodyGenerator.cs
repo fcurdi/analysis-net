@@ -28,8 +28,15 @@ namespace MetadataGenerator.Generators.Methods.Body
             var labelToEncoderOffset = new Dictionary<string, int>();
             var switchInstructionsPlaceHolders = new List<SwitchInstructionPlaceholder>();
 
-            foreach (var instruction in body.Instructions)
+            var ignoreInstructions = new HashSet<int>();
+
+            for (var i = 0; i < body.Instructions.Count; i++)
             {
+                var instruction = body.Instructions[i];
+                if (ignoreInstructions.Contains(i))
+                    continue; // FIXME quiza se puede hacer lo de antes del for en el constructor y que sea de insrtnacia
+                // fixme y dejar el for con esto de ignore y demas y despues un metodo aparte que hace todo. 
+
                 labelToEncoderOffset[instruction.Label] = instructionEncoder.Offset;
                 controlFlowGenerator.MarkCurrentLabelIfNeeded(instruction.Label);
 
@@ -96,7 +103,23 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 instructionEncoder.OpCode(basicInstruction.UnsignedOperands ? SRM.ILOpCode.Shr_un : SRM.ILOpCode.Shr);
                                 break;
                             case BasicOperation.Eq:
-                                instructionEncoder.OpCode(SRM.ILOpCode.Ceq);
+                                var previousInstructionIsLoadNull =
+                                    body.Instructions[i - 1] is LoadInstruction loadInstruction &&
+                                    loadInstruction.Operand is Constant constant &&
+                                    constant.Value == null;
+                                var nexInstructionIsNeg = body.Instructions[i + 1] is BasicInstruction bi && bi.Operation == BasicOperation.Neg;
+                                if (previousInstructionIsLoadNull && nexInstructionIsNeg)
+                                {
+                                    // cgt_un is used as a compare-not-equal with null.
+                                    // ldnull - ceq - neq => ldnull - cgt_un
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Cgt_un);
+                                    ignoreInstructions.Add(i + 1);
+                                }
+                                else
+                                {
+                                    instructionEncoder.OpCode(SRM.ILOpCode.Ceq);
+                                }
+
                                 break;
                             case BasicOperation.Lt:
                                 instructionEncoder.OpCode(basicInstruction.UnsignedOperands ? SRM.ILOpCode.Clt_un : SRM.ILOpCode.Clt);

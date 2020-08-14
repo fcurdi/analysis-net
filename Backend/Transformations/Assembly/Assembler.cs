@@ -100,12 +100,16 @@ namespace Backend.Transformations.Assembly
                 {
                     var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Eq)
                     {
-                        Label = instruction.Label
+                        Label = instruction.Label,
+                        OverflowCheck = instruction.OverflowCheck,
+                        UnsignedOperands = instruction.UnsignedOperands
                     };
                     translatedInstructions.Add(basicInstruction);
                     basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Neg)
                     {
-                        Label = instruction.Label
+                        Label = instruction.Label + "'",
+                        OverflowCheck = instruction.OverflowCheck,
+                        UnsignedOperands = instruction.UnsignedOperands
                     };
                     translatedInstructions.Add(basicInstruction);
                 }
@@ -316,7 +320,7 @@ namespace Backend.Transformations.Assembly
             {
                 // FIXME comment, esta duplicado en todos ademas. Hay una form amas eficiente de hacer esto?. Quiza si no uso el visitor, puedo recorrerlas
                 // en orden e ir pasando tambien el indice de la instruccion que estoy procesando. Si hago eso, lo de ignore insturctions
-                // no hace falta que este en el visitor
+                // no hace falta que este en el visitor. La realidad es que necesito indices asi que el visitor mucho no me sirve
                 var index = bodyToProcess.Instructions.IndexOf(instruction);
                 var label = bodyToProcess.Instructions[index + 1].Label;
                 exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(label, ExceptionHandlerBlockKind.Fault);
@@ -432,21 +436,11 @@ namespace Backend.Transformations.Assembly
                 var branchOperation = OperationHelper.ToBranchOperation(instruction.Operation);
                 if (instruction.RightOperand is Constant constant)
                 {
-                    switch (constant.Value)
+                    var loadInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Value, constant)
                     {
-                        case null:
-                            branchOperation = instruction.Operation == BranchOperation.Eq
-                                ? Bytecode.BranchOperation.False
-                                : Bytecode.BranchOperation.True;
-                            break;
-                        default:
-                            var loadInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Value, constant)
-                            {
-                                Label = instruction.Label + "'"
-                            };
-                            translatedInstructions.Add(loadInstruction);
-                            break;
-                    }
+                        Label = instruction.Label + "'"
+                    };
+                    translatedInstructions.Add(loadInstruction);
                 }
 
                 var target = Convert.ToUInt32(instruction.Target.Substring(2), 16);

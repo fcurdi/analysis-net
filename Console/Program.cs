@@ -426,13 +426,13 @@ namespace Console
 				{
 					"../../../../Fleck/src/Fleck.Tests/bin/Debug/net45/Fleck.dll",
 					"../../../../Fleck/src/Fleck.Tests/bin/Debug/net45/Fleck.Tests.dll"
-				}, 
+				},
 				new[]
 				{
+					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.dll",
 					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Async.dll",
 					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Tests.dll",
-					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Utilities.dll",
-					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.dll"
+					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Utilities.dll"
 				}
 			};
 

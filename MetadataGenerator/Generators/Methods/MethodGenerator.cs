@@ -7,6 +7,8 @@ using Model.Bytecode;
 using Model.ThreeAddressCode.Instructions;
 using Model.Types;
 using static MetadataGenerator.Metadata.AttributesProvider;
+using BranchInstruction = Model.Bytecode.BranchInstruction;
+using BranchOperation = Model.Bytecode.BranchOperation;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SR = System.Reflection;
 using SRM = System.Reflection.Metadata;
@@ -41,6 +43,8 @@ namespace MetadataGenerator.Generators.Methods
             var methodBodyOffset = -1;
             if (method.HasBody)
             {
+                // FIXME PROBAR generar y correr tests (+pedump) CONVIRTIENDO Y SIN CONVERTIR 
+
                 // FIXME undo this. Just for testing assembler.
                 var tac = new Backend.Transformations.Disassembler(method).Execute();
                 method.Body = tac;
