@@ -68,7 +68,7 @@ namespace MetadataGenerator.Generators.Methods
                         {
                             var isByRef = false;
                             var type = parameter.Type;
-                            if (parameter.Type is PointerType pointerType)
+                            if (type is PointerType pointerType)
                             {
                                 isByRef = pointerType.Managed;
                                 type = pointerType.TargetType;

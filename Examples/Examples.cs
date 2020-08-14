@@ -796,62 +796,6 @@ namespace MethodBody
             Action<int> y = null; // ldnull
         }
 
-        public string LoadIndirect(ref int g)
-        {
-            unsafe
-            {
-                sbyte a_1 = sbyte.MinValue;
-                byte a_2 = byte.MinValue;
-                short b_1 = short.MinValue;
-                ushort b_2 = ushort.MinValue;
-                int c_1 = int.MinValue;
-                uint c_2 = uint.MinValue;
-                long d = long.MinValue;
-                float e = float.MinValue;
-                double f = double.MinValue;
-                IntPtr h = default;
-
-                var x1 = *&a_1; // ldind.i1 
-                var x2 = *&a_2; // ldind.u1 
-                var x3 = *&b_1; // ldind.i2 
-                var x4 = *&b_2; // ldind.u2 
-                var x5 = *&c_1; // ldind.i4 
-                var x6 = *&c_2; // ldind.u4 
-                var x7 = *&d; // ldind.i8 (ldind.u8 is alias for ldind.i8)
-                var x8 = *&e; // ldind.r4 
-                var x9 = *&f; // ldind.r8
-                var x10 = *&h; // ldind.i
-                var x11 = g; // ldind.ref
-
-                return a_1 + c_2.ToString() + x4 + x11 + g.ToString().Length;
-            }
-        }
-
-        public double StoreIndirect(
-            out sbyte outByte,
-            out short outShort,
-            out int outInt,
-            out long outLong,
-            out float outFloat,
-            out double outDouble,
-            out IntPtr outIntPtr,
-            out SimpleClass outClass
-        )
-        {
-            IntPtr h = default;
-
-            outByte = 1; // stind.i1 
-            outShort = 2; // stind.i2 
-            outInt = 3; // stind.i4 
-            outLong = 4; // stind.i8 (stind.u8 is alias for stind.i8)
-            outFloat = 5; // stind.r4 
-            outDouble = 6; // stind.r8
-            outIntPtr = h; // stind.i
-            outClass = new SimpleClass(1, ""); // stind.ref
-
-            return outByte + outDouble + outClass.readOnlyIntField;
-        }
-
         public bool Compare(int b, int x)
         {
             var a = b == 2; // ceq
@@ -1041,24 +985,6 @@ namespace MethodBody
                 Console.WriteLine(ex.Message);
             }
         }
-
-        /* FIXME finally end label is wrong in the model (one more that it should be, that label does not exist)? this example results in an
-         FIXME unmarked label. The IL though is generated correctly
-        public void ExceptionHandlingTryCatchFinally(Exception e)
-        {
-            try
-            {
-                throw e;
-            }
-            catch
-            {
-                throw; // rethrow
-            }
-            finally
-            {
-                Console.WriteLine("finally");
-            }
-        }*/
     }
 }
 

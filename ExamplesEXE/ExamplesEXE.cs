@@ -44,10 +44,6 @@ namespace ExamplesEXE
             Console.WriteLine(methodBodyExamples.Nothing(new object()));
             Console.WriteLine(methodBodyExamples.Alloc());
             methodBodyExamples.LoadAddress(4);
-            Console.WriteLine(methodBodyExamples.LoadIndirect(ref g));
-            Console.WriteLine(methodBodyExamples.StoreIndirect(out sbyte b, out short q, out int i, out long l, out float f, out double d,
-                out IntPtr ip,
-                out SimpleClass s));
             Console.WriteLine(methodBodyExamples.LoadToken<Exception>());
             Console.WriteLine(sc.ReceivesArraysAndReturnsIntArray(new[] {""}, new[] {new Exception()}));
             unsafe
