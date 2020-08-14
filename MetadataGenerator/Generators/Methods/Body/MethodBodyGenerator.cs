@@ -195,7 +195,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 throw new UnhandledCase();
                         }
 
-
                         instructionEncoder.Branch(opCode, controlFlowGenerator.LabelHandleFor(branchInstruction.Target));
 
                         break;

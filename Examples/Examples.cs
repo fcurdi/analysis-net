@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection.Metadata;
+using System.Runtime.ConstrainedExecution;
 using Classes;
 using Enums;
 using Hierarchy;
@@ -1030,13 +1031,65 @@ namespace MethodBody
         }
 
 
-        public void ExceptionHandlingTryCatchFilter(int x)
+        public void ExceptionHandlingMultipleFilter(int x)
         {
             try
             {
                 var y = 1 / x;
             }
+            catch (EntryPointNotFoundException e) when (e.Message.Contains(""))
+            {
+                Console.WriteLine(e.Message);
+            }
             catch (Exception ex) when (ex.Message.Contains("by zero"))
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public void ExceptionHandlingFilterCatch(int x)
+        {
+            try
+            {
+                var y = 1 / x;
+            }
+            catch (EntryPointNotFoundException e) when (e.Message.Contains(""))
+            {
+                Console.WriteLine(e.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public void ExceptionHandlingCatchFilter(int x)
+        {
+            try
+            {
+                var y = 1 / x;
+            }
+            catch (EntryPointNotFoundException e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            catch (Exception ex) when (ex.Message.Contains(""))
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public void ExceptionHandlingMultipleCatchs(int x)
+        {
+            try
+            {
+                var y = 1 / x;
+            }
+            catch (EntryPointNotFoundException e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
             }
