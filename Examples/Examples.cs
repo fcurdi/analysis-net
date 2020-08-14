@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection.Metadata;
-using System.Runtime.ConstrainedExecution;
 using Classes;
 using Enums;
 using Hierarchy;
 using Interfaces;
+using Nested;
 using Nested.NestedNamespace.NestedNestedNamesace;
 using NUnit.Framework;
 using Structs;
@@ -167,7 +167,6 @@ namespace Classes
         public abstract void AbstractMethod();
     }
 
-    // TODO var arggs, optional parameters, named arguments, 
     public class ClassWithMoreComplexFieldsAndParametersOrReturnTypes
     {
         public string[] stringArrayField;
@@ -487,8 +486,6 @@ namespace Generics
         where H : class, new()
         where I : List<int>
         where J : List<D>
-    // where K : unmanaged FIXME framework read not implemented
-    // where L : D FIXME framework read is not working
     {
         public C genericClassTypeField;
         public Dictionary<string, Exception> genericField;
@@ -624,7 +621,6 @@ namespace MethodBody
         {
         }
 
-        // TODO more generic method calls examples
         public int Calls(SimpleClass simpleClass, Func<int, int> func)
         {
             Console.WriteLine("A method call"); // static
@@ -636,21 +632,7 @@ namespace MethodBody
             var result = func(1);
             result += l.Count;
 
-            // TODO calli (indirect)
-
-            // FIXME
-            // not working when reading dll
-            //var g = new Generics.Generic<int, Exception>();
-            //g.PrintGeneric("hola");
-            //g.PrintGeneric(1);
-            //
-
             Nothing2<int>();
-            // FIXME
-            //not working when reading dll
-            //Nothing2<ClassThatContainsNestedGenericClass.NestedGenericClass<int>>();
-            //Nothing2<GenericClassContainingOtherClasses<string>.NestedClassThatAddsNewGenericParameters<int, long>.NestedNestedClassThatDoesNotAddNewGenericParameters>();
-            //
 
             return result;
         }
@@ -702,14 +684,10 @@ namespace MethodBody
             int x4 = (int) x1; // conv.i4
             x1 = (long) d; // conv.i8
             float f = (float) d; // conv.r4
-            //TODO conv.r8
             byte x5 = (byte) x1; // conv.u1
             ushort x6 = (ushort) x1; // conv.u2
             uint x7 = (uint) x1; // conv.u4
             var x8 = (ulong) d; // conv.u8
-            // TODO conv.i
-            // TODO conv.u
-            // TODO conv.r.un
 
             string s = (string) (object) "asd"; // castclass $class
             var x = (int[]) (object) new int[] { };
@@ -718,8 +696,6 @@ namespace MethodBody
 
             object l = 1; // box int
             int i = (int) l; // unbox.any int
-
-            // TODO unbox (unbox ptr)
 
             return i + x6 + s.Length + l.ToString().Length + o.ToString().Length;
         }
@@ -755,7 +731,6 @@ namespace MethodBody
             var i2 = arg2; // ldarg.2
             var i3 = arg3; // ldarg.3
             var i4 = arg4; // ldarg.s $value
-            // TODO ldarg $value (see ecma)
 
             return arg2 + arg1 + i4 + i0;
         }
@@ -773,7 +748,6 @@ namespace MethodBody
             var y2 = x2; // ldloc.2
             var y3 = x3; // ldloc.3
             var y4 = x4; // ldloc.s $index (=4)
-            // TODO ldloc $index (see ecma)
 
             return x0 + x1 + y4 + y2;
         }
@@ -783,9 +757,7 @@ namespace MethodBody
             unsafe
             {
                 var p = default(int*); // ldloca.s 0 + initobj int*
-                // TODO ldloca $argNum
                 var q = &x; // ldarga.s 0
-                // TODO ldarga $argNum
 
                 Console.WriteLine(*q);
             }
@@ -795,62 +767,6 @@ namespace MethodBody
         {
             Action<int> x = LoadAddress; // ldftn $method
             Action<int> y = null; // ldnull
-        }
-
-        public string LoadIndirect(ref int g)
-        {
-            unsafe
-            {
-                sbyte a_1 = sbyte.MinValue;
-                byte a_2 = byte.MinValue;
-                short b_1 = short.MinValue;
-                ushort b_2 = ushort.MinValue;
-                int c_1 = int.MinValue;
-                uint c_2 = uint.MinValue;
-                long d = long.MinValue;
-                float e = float.MinValue;
-                double f = double.MinValue;
-                IntPtr h = default;
-
-                var x1 = *&a_1; // ldind.i1 
-                var x2 = *&a_2; // ldind.u1 
-                var x3 = *&b_1; // ldind.i2 
-                var x4 = *&b_2; // ldind.u2 
-                var x5 = *&c_1; // ldind.i4 
-                var x6 = *&c_2; // ldind.u4 
-                var x7 = *&d; // ldind.i8 (ldind.u8 is alias for ldind.i8)
-                var x8 = *&e; // ldind.r4 
-                var x9 = *&f; // ldind.r8
-                var x10 = *&h; // ldind.i
-                var x11 = g; // ldind.ref
-
-                return a_1 + c_2.ToString() + x4 + x11 + g.ToString().Length;
-            }
-        }
-
-        public double StoreIndirect(
-            out sbyte outByte,
-            out short outShort,
-            out int outInt,
-            out long outLong,
-            out float outFloat,
-            out double outDouble,
-            out IntPtr outIntPtr,
-            out SimpleClass outClass
-        )
-        {
-            IntPtr h = default;
-
-            outByte = 1; // stind.i1 
-            outShort = 2; // stind.i2 
-            outInt = 3; // stind.i4 
-            outLong = 4; // stind.i8 (stind.u8 is alias for stind.i8)
-            outFloat = 5; // stind.r4 
-            outDouble = 6; // stind.r8
-            outIntPtr = h; // stind.i
-            outClass = new SimpleClass(1, ""); // stind.ref
-
-            return outByte + outDouble + outClass.readOnlyIntField;
         }
 
         public bool Compare(int b, int x)
@@ -886,17 +802,6 @@ namespace MethodBody
             var k = (new double[] {9})[0]; // ldelem.r8
             var l = new EmptyStruct[] {new EmptyStruct()}[0]; // ldelem typeTok
 
-            // TODO ldelem.i ???
-            // 
-            // FIXME framework read not working. Something not implemented? Maybe avoid fixed keyword?
-            //            unsafe
-            //            {
-            //                fixed (int* p = &q[0]) // ldelema $type
-            //                {
-            //                }
-            //            }
-
-
             var m = (new int[] {1, 2, 3}).Length; // ldlen
 
             return m + k.ToString(CultureInfo.InvariantCulture).Length + c + a.Message.Length + q.Length;
@@ -908,15 +813,6 @@ namespace MethodBody
             var b = new SimpleClass(1, "b").readOnlyIntField; // ldfld int $field
             var c = new ClassWithMoreComplexFieldsAndParametersOrReturnTypes().b; // ldfld class $field
             var d = SimpleClass.staticLongField; // ldsfld
-
-            //FIXME framework read not working. Something not implemented? Maybe avoid fixed keyword?
-            //        unsafe
-            //          {
-            //                fixed (int* d = &(new Classes.SimpleClass(1, "b")).readOnlyIntField) // ldflda int32 $field
-            //                { }
-            //            }
-            // TODO ldsflda
-
 
             return c.GetType().ToString() + b + d;
         }
@@ -938,10 +834,7 @@ namespace MethodBody
             l2 = 1; // stloc.2
             l3 = 1; // stloc.3
             l4 = 1; // stloc.s 4
-            // TODO stloc indx (not short form)
-
             arg = 1; // starg.s arg
-            // TODO starg arg (not short form)
 
             return arg + l4;
         }
@@ -966,28 +859,6 @@ namespace MethodBody
 
         public void Branch(int a, int b, Exception e)
         {
-            // TODO
-            // beq
-            // bge, bge.s
-            // bge.un, bge.un.s
-            // bgt, bgt.s
-            // bgt.un, bgt.un.s
-            // ble, ble.s
-            // ble.un, ble.un.s
-            // blt, blt.s
-            // blt.un, blt.un.s
-            // bne, bne.s
-            // bne.un, bne.un.s
-            // br (not short form)
-            // brfalse (not short form)
-            // brnull.s
-            // brnull (not short form)
-            // brzero.s
-            // brzero (not short form) 
-            // brtrue (not short form)
-            // brinst.s
-            // brinst (not short form)
-
             goto Label; // br.s 
             Label:
             int x;
@@ -1094,24 +965,6 @@ namespace MethodBody
                 Console.WriteLine(ex.Message);
             }
         }
-
-        /* FIXME finally end label is wrong in the model (one more that it should be, that label does not exist)? this example results in an
-         FIXME unmarked label. The IL though is generated correctly
-        public void ExceptionHandlingTryCatchFinally(Exception e)
-        {
-            try
-            {
-                throw e;
-            }
-            catch
-            {
-                throw; // rethrow
-            }
-            finally
-            {
-                Console.WriteLine("finally");
-            }
-        }*/
     }
 }
 
@@ -1144,7 +997,7 @@ namespace Attributes
 
         [ExcludeFromCodeCoverage, Obsolete("Method is obsolete", true)]
         [AttributeWithObjectParam("something")]
-        [AttributeWithTypeParam(typeof(Nested.ClassContainingNestedTypes.NestedClass))]
+        [AttributeWithTypeParam(typeof(ClassContainingNestedTypes.NestedClass))]
         public void Method()
         {
         }

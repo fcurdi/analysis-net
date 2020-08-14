@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
@@ -24,7 +22,7 @@ namespace MetadataGenerator
 
         // The next available slot in the corresponding table. If nothing is defined in the module then use row number 1 for the corresponding table
         public static int NextRowFor(this ECMA335.MetadataBuilder metadata, ECMA335.TableIndex tableIndex) => metadata.GetRowCount(tableIndex) + 1;
-        
+
         public static bool IsGenericInstantiation(this IBasicType type) => type.GenericType != null;
 
         public static bool IsGenericInstantiation(this IMethodReference method) => method.GenericMethod != null;
