@@ -9,8 +9,6 @@ namespace ExamplesEXE
 {
     public static class MainClass
     {
-        // TODO pedump --verify all Console/bin/Debug/ExamplesEXE\(generated\).exe 
-        // TODO pedump --verify all Console/bin/Debug/Examples\(generated\).dll
         // IMPORTANT ExamplesEXE has Examples as reference so it's important to copy de latest Examples.dll to the Console/bin/debug directory
         public static void Main(string[] args)
         {
@@ -37,7 +35,7 @@ namespace ExamplesEXE
             Console.WriteLine(methodBodyExamples.StoreValue(100));
             methodBodyExamples.ExceptionHandlingTryCatchSpecific(0);
             methodBodyExamples.ExceptionHandlingTryCatch(0);
-            methodBodyExamples.ExceptionHandlingTryCatchFilter(0);
+            methodBodyExamples.ExceptionHandlingMultipleFilter(0);
             Console.WriteLine(methodBodyExamples.LoadField());
             Console.WriteLine(methodBodyExamples.StoreField());
             methodBodyExamples.Calls(sc, e => 5);
@@ -75,10 +73,6 @@ namespace ExamplesEXE
             Console.WriteLine(structWithProperties.DoublePropertyWithAutoImplementedGetSet);
             structWithProperties.DerivedClassPropertyWithAutoImplementedGetSet = new DerivedClass();
             Console.WriteLine(structWithProperties.DerivedClassPropertyWithAutoImplementedGetSet);
-
-            /* FIXME Try when that example is fixed
-                methodBodyExamples.ExceptionHandlingTryCatchFinally(new AggregateException("Intentionally not catched exception"));
-            */
         }
     }
 

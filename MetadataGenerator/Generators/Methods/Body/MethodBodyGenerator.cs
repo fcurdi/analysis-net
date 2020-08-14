@@ -533,7 +533,8 @@ namespace MetadataGenerator.Generators.Methods.Body
                                     {
                                         instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_u4);
                                     }
-                                    else if (loadArrayElementInstruction.Array.ElementsType.IsOneOf(PlatformTypes.Int64, PlatformTypes.UInt64))
+                                    else if (loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.Int64) ||
+                                             loadArrayElementInstruction.Array.ElementsType.Equals(PlatformTypes.UInt64))
                                     {
                                         instructionEncoder.OpCode(SRM.ILOpCode.Ldelem_i8);
                                     }
