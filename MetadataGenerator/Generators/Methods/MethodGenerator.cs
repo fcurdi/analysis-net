@@ -12,7 +12,6 @@ namespace MetadataGenerator.Generators.Methods
     {
         private readonly MetadataContainer metadataContainer;
         private readonly MethodSignatureGenerator methodSignatureGenerator;
-        private readonly MethodBodyGenerator methodBodyGenerator;
         private readonly MethodLocalsSignatureGenerator methodLocalsSignatureGenerator;
         private readonly MethodParametersGenerator methodParametersGenerator;
         private readonly CustomAttributeGenerator customAttributeGenerator;
@@ -21,7 +20,6 @@ namespace MetadataGenerator.Generators.Methods
         {
             this.metadataContainer = metadataContainer;
             methodSignatureGenerator = new MethodSignatureGenerator(metadataContainer);
-            methodBodyGenerator = new MethodBodyGenerator(metadataContainer);
             methodLocalsSignatureGenerator = new MethodLocalsSignatureGenerator(metadataContainer);
             methodParametersGenerator = new MethodParametersGenerator(metadataContainer);
             customAttributeGenerator = new CustomAttributeGenerator(metadataContainer);
@@ -40,7 +38,7 @@ namespace MetadataGenerator.Generators.Methods
                 // programatically then the maxStack is gonna be missing
                 var maxStack = method.Body.MaxStack;
                 methodBodyOffset = metadataContainer.MethodBodyStream.AddMethodBody(
-                    instructionEncoder: methodBodyGenerator.Generate(method.Body),
+                    instructionEncoder: new MethodBodyGenerator(metadataContainer, method.Body).Generate(),
                     localVariablesSignature: methodLocalsSignatureGenerator.GenerateSignatureFor(method.Body.LocalVariables),
                     maxStack: maxStack);
             }
