@@ -98,6 +98,8 @@ namespace Backend.Transformations
 
 		private class InstructionTranslator : InstructionVisitor
 		{
+			public const string NextInstructionLabelPlaceHolder = "{nextInstructionLabelPlaceHolder}";
+			
 			private MethodBody body;
 			private OperandStack stack;
 			private IType returnType;
@@ -240,7 +242,8 @@ namespace Backend.Transformations
 			private void ProcessPop(Bytecode.BasicInstruction op)
 			{
 				stack.Pop();
-				body.Instructions.Add(new Tac.PopInstruction(op.Offset));
+				var instruction = new Tac.PopInstruction(op.Offset);
+				body.Instructions.Add(instruction);
 			}
 
 			private void ProcessDup(Bytecode.BasicInstruction op)
@@ -255,8 +258,12 @@ namespace Backend.Transformations
 			{
 				stack.Clear();
 
-				// jump target is always next instruction. This relies on CIL instruction size which is 1 byte 
-				var instruction = new Tac.UnconditionalBranchInstruction(op.Offset, op.Offset+1, Tac.UnconditionalBranchOperation.EndFinally);
+				// jump target is always next instruction. However the next instruction label is not known so a placeholder is set
+				// instead and then correctly replaced withe label of the next instruction
+				var instruction = new Tac.UnconditionalBranchInstruction(
+					op.Offset,
+					NextInstructionLabelPlaceHolder, 
+					Tac.UnconditionalBranchOperation.EndFinally);
 				body.Instructions.Add(instruction);
 
 				//// TODO: Maybe we don't need to add this branch instruction
@@ -282,8 +289,12 @@ namespace Backend.Transformations
 			{
 				stack.Clear();
 
-				// jump target is always next instruction. This relies on CIL instruction size which is 2 byte
-				var instruction = new Tac.UnconditionalBranchInstruction(op.Offset, op.Offset+2, Tac.UnconditionalBranchOperation.EndFilter);
+				// jump target is always next instruction. However the next instruction label is not known so a placeholder is set
+				// instead and then correctly replaced withe label of the next instruction
+				var instruction = new Tac.UnconditionalBranchInstruction(
+					op.Offset,
+					NextInstructionLabelPlaceHolder, 
+					Tac.UnconditionalBranchOperation.EndFilter);
 				body.Instructions.Add(instruction);
 			}
 
@@ -542,10 +553,11 @@ namespace Backend.Transformations
                 }
 
                 var array = stack.Pop(); 
+                
                 indices.Reverse();
 
-                var source = new ArrayElementAccess(array, indices) { Method = op.Method};
                 var dest = stack.Push();
+                var source = new ArrayElementAccess(array, indices) { Method = op.Method};
                 var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
                 body.Instructions.Add(instruction);
             }
@@ -564,9 +576,10 @@ namespace Backend.Transformations
 
 				indices.Reverse();
 
+				var dest = stack.Push();
+				
 				var access = new ArrayElementAccess(array, indices) { Method = op.Method};;
 				var source = new Reference(access);
-				var dest = stack.Push();
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
@@ -583,7 +596,9 @@ namespace Backend.Transformations
 				}
 
 				var array = stack.Pop();
+				
 				indices.Reverse();
+				
 				var dest = new ArrayElementAccess(array, indices) { Method = op.Method};
 				var instruction = new Tac.StoreInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
@@ -598,7 +613,7 @@ namespace Backend.Transformations
 
 				var arguments = new List<IVariable>();
 
-				foreach (var parameter in op.Constructor.Parameters)
+				foreach (var par in op.Constructor.Parameters)
 				{
 					var arg = stack.Pop();
 					arguments.Add(arg);
@@ -618,13 +633,13 @@ namespace Backend.Transformations
 				body.Instructions.Add(instruction);
 
 				instruction = new Tac.MethodCallInstruction(op.Offset, null, Tac.MethodCallOperation.Static, op.Constructor, arguments);
-				instruction.Label += "'"; // ensure unique label
+				instruction.Label += "º"; // ensure unique label
 				body.Instructions.Add(instruction);
 
 				var result = stack.Push();
 
 				instruction = new Tac.LoadInstruction(op.Offset, result, allocationResult);
-				instruction.Label += "''"; // ensure unique label
+				instruction.Label += "ºº"; // ensure unique label
 				body.Instructions.Add(instruction);
 
 				stack.DecrementCapacity();
@@ -636,7 +651,7 @@ namespace Backend.Transformations
 				var arguments = new List<IVariable>();
 				IVariable result = null;
 
-				foreach (var parameter in op.Function.Parameters)
+				foreach (var par in op.Function.Parameters)
 				{
 					var arg = stack.Pop();
 					arguments.Add(arg);
@@ -702,8 +717,8 @@ namespace Backend.Transformations
 
 			private void ProcessLoadStaticField(Bytecode.LoadFieldInstruction op)
 			{
-				var source = new StaticFieldAccess(op.Field);
 				var dest = stack.Push();
+				var source = new StaticFieldAccess(op.Field);
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
@@ -711,17 +726,17 @@ namespace Backend.Transformations
 			private void ProcessLoadInstanceField(Bytecode.LoadFieldInstruction op)
 			{
 				var obj = stack.Pop();
-				var source = new InstanceFieldAccess(obj, op.Field);
 				var dest = stack.Push();
+				var source = new InstanceFieldAccess(obj, op.Field);
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
 
 			private void ProcessLoadStaticFieldAddress(Bytecode.LoadFieldInstruction op)
 			{
+				var dest = stack.Push();
 				var access = new StaticFieldAccess(op.Field);
 				var source = new Reference(access);
-				var dest = stack.Push();
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
@@ -729,17 +744,17 @@ namespace Backend.Transformations
 			private void ProcessLoadInstanceFieldAddress(Bytecode.LoadFieldInstruction op)
 			{
 				var obj = stack.Pop();
+				var dest = stack.Push();
 				var access = new InstanceFieldAccess(obj, op.Field);
 				var source = new Reference(access);
-				var dest = stack.Push();
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
             public override void Visit(Bytecode.LoadIndirectInstruction op)
             {
                 var address = stack.Pop();
-                var source = new Dereference(address);
                 var dest = stack.Push();
+                var source = new Dereference(address);
                 var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
                 body.Instructions.Add(instruction);
             }
@@ -779,9 +794,9 @@ namespace Backend.Transformations
 
 			private void ProcessLoadVariableAddress(Bytecode.LoadInstruction op)
 			{				
+				var dest = stack.Push();
 				var operand = (IVariable)op.Operand;
 				var source = new Reference(operand);
-				var dest = stack.Push();
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
@@ -804,8 +819,8 @@ namespace Backend.Transformations
 
 			public void ProcessLoadStaticMethodAddress(Bytecode.LoadMethodAddressInstruction op)
 			{
-				var source = new StaticMethodReference(op.Method);
 				var dest = stack.Push();
+				var source = new StaticMethodReference(op.Method);
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
@@ -813,8 +828,8 @@ namespace Backend.Transformations
 			public void ProcessLoadVirtualMethodAddress(Bytecode.LoadMethodAddressInstruction op)
 			{
 				var obj = stack.Pop();
-				var source = new VirtualMethodReference(obj, op.Method);
 				var dest = stack.Push();
+				var source = new VirtualMethodReference(obj, op.Method);
 				var instruction = new Tac.LoadInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
 			}
@@ -832,7 +847,7 @@ namespace Backend.Transformations
 				var arguments = new List<IVariable>();
 				IVariable result = null;
 
-				foreach (var parameter in op.Method.Parameters)
+				foreach (var par in op.Method.Parameters)
 				{
 					var arg = stack.Pop();
 					arguments.Add(arg);
@@ -921,9 +936,10 @@ namespace Backend.Transformations
 				body.Instructions.Add(instruction);
 			}
 
-			public override void Visit(Bytecode.ConstrainedInstruction instruction)
+			public override void Visit(Bytecode.ConstrainedInstruction op)
 			{
-				body.Instructions.Add(new Tac.ConstrainedInstruction(instruction.Offset, instruction.ThisType));
+				var instruction = new Tac.ConstrainedInstruction(op.Offset, op.ThisType);
+				body.Instructions.Add(instruction);
 			}
 		}
 
@@ -1003,6 +1019,17 @@ namespace Backend.Transformations
 				var instructions = body.Instructions.OrderBy(op => op.Offset).ToList();
 				body.Instructions.Clear();
 				body.Instructions.AddRange(instructions);
+				
+				// replace target placeholders
+				for (var i = 0; i < instructions.Count; i++)
+				{
+					var instruction = instructions[i];
+					if (instruction is Tac.BranchInstruction branchInstruction && 
+					    branchInstruction.Target.Equals(InstructionTranslator.NextInstructionLabelPlaceHolder))
+					{
+						branchInstruction.Target = instructions[i + 1].Label;
+					}
+				}
 
 				//body.LocalVariables.AddRange(stack.Variables);
 				body.UpdateVariables();
@@ -1041,7 +1068,7 @@ namespace Backend.Transformations
 			if (exceptionHandlersStart.ContainsKey(operation.Label))
 			{
 				var handlerBlocks = exceptionHandlersStart[operation.Label];
-				var labelSuffix = "'";
+				var labelSuffix = "º"; // ensure unique label
 				foreach (var block in handlerBlocks)
 				{
 					Tac.Instruction instruction;
@@ -1053,6 +1080,8 @@ namespace Backend.Transformations
 							break;
 
 						case ExceptionHandlerBlockKind.Filter:
+					
+							// fixme revisar esta parte agregada. El clear hace falta? la diferencia de los filters asi esta bien?
 							stack.Clear();
 							var filterException = stack.Push(); // Push the exception into the stack
 							var filterBlock = (FilterExceptionHandler) block;
@@ -1063,6 +1092,8 @@ namespace Backend.Transformations
 							break;
 
 						case ExceptionHandlerBlockKind.Catch:
+							
+							// fixme este clear va?
 							stack.Clear();
 							var catchException = stack.Push(); // Push the exception into the stack
 							var catchBlock = block as CatchExceptionHandler;
@@ -1083,7 +1114,7 @@ namespace Backend.Transformations
 
 					instruction.Label = operation.Label + labelSuffix;
 					body.Instructions.Add(instruction);
-					labelSuffix += "'";
+					labelSuffix += "º";
 				}
 			}
 		}

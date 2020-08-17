@@ -213,10 +213,14 @@ namespace Model.Bytecode
 		public string Target { get; set; }
 		public bool UnsignedOperands { get; set; }
 
-		public BranchInstruction(uint label, BranchOperation operation, uint target)
+		public BranchInstruction(uint label, BranchOperation operation, uint target) 
+			: this(label, operation, $"L_{target:X4}")
+		{
+		}
+		public BranchInstruction(uint label, BranchOperation operation, string target)
 			: base(label)
 		{
-			this.Target = string.Format("L_{0:X4}", target);
+			this.Target = target;
 			this.Operation = operation;
 		}
 
@@ -237,9 +241,14 @@ namespace Model.Bytecode
 		public IList<string> Targets { get; private set; }
 
 		public SwitchInstruction(uint label, IEnumerable<uint> targets)
+			: this(label, targets.Select(target => $"L_{target:X4}").ToList())
+		{
+		}
+		
+		public SwitchInstruction(uint label, IEnumerable<string> targets)
 			: base(label)
 		{
-			this.Targets = targets.Select(target => string.Format("L_{0:X4}", target)).ToList();
+			this.Targets = targets.ToList();
 		}
 
 		public override void Accept(IInstructionVisitor visitor)

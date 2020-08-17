@@ -23,9 +23,14 @@ using Instruction = Model.ThreeAddressCode.Instructions.Instruction;
 
 namespace Backend.Transformations.Assembly
 {
-    public class Assembler
+    public class Assembler : IInstructionVisitor
     {
         private readonly MethodDefinition method;
+
+        private readonly IList<Bytecode.Instruction> translatedInstructions;
+        private readonly ExceptionInformationBuilder exceptionInformationBuilder;
+        private readonly ISet<int> ignoredInstructions;
+        private int Index { get; set; }
 
         public Assembler(MethodDefinition method)
         {
@@ -35,6 +40,9 @@ namespace Backend.Transformations.Assembly
             }
 
             this.method = method;
+            translatedInstructions = new List<Bytecode.Instruction>();
+            exceptionInformationBuilder = new ExceptionInformationBuilder();
+            ignoredInstructions = new HashSet<int>();
         }
 
         public MethodBody Execute()
@@ -43,551 +51,503 @@ namespace Backend.Transformations.Assembly
 
             body.MaxStack = 20; // FIXME calcular (ver StackSize)
             body.Parameters.AddRange(method.Body.Parameters);
+            // FIXME esto esta bien? porque las local variables se actualizan. La unica diferencia con eso era el this creo
+            // no habira que en todo poner las locals variables mas el this si es que esta?
 
-            if (method.Body.Instructions.Count > 0)
+            for (Index = 0; Index < method.Body.Instructions.Count; Index++)
             {
-                var instructionTranslator = new InstructionTranslator(method.Body);
-                instructionTranslator.Visit(method.Body);
-
-                body.ExceptionInformation.AddRange(instructionTranslator.exceptionInformationBuilder.Build());
-                body.Instructions.AddRange(instructionTranslator.translatedInstructions);
-
-                body.UpdateVariables();
+                var instruction = (Instruction) method.Body.Instructions[Index];
+                if (!ignoredInstructions.Contains(Index))
+                {
+                    instruction.Accept(this);
+                }
             }
+
+            body.ExceptionInformation.AddRange(exceptionInformationBuilder.Build());
+            body.Instructions.AddRange(translatedInstructions);
+            body.UpdateVariables();
 
             return body;
         }
 
-        private class InstructionTranslator : InstructionVisitor
+        // abstract
+        public void Visit(IInstructionContainer container)
         {
-            // FIXMe hay que ver si no es mas prolijo quiza que sean del  y que se las pase para que las rellene, mas que que este las tenga public
-            public readonly IList<Bytecode.Instruction> translatedInstructions = new List<Bytecode.Instruction>();
-            public readonly ExceptionInformationBuilder exceptionInformationBuilder = new ExceptionInformationBuilder();
+        }
 
-            public readonly StackSize stackSize;
-/*
-            FIXME
-            Tema maxStack. quiza convenga validar con edgar como hacerlo. Porque ya veo que quiza hay que usar el CFG en vez de recorrer asi para calcularlo
-            ver como lo calcula en el dissasembler (eso de stack size at entry y demas)
-            */
+        public void Visit(Instruction instruction)
+        {
+        }
 
-            private readonly MethodBody bodyToProcess;
-            private readonly IDictionary<int, bool> ignoreInstruction = new Dictionary<int, bool>();
+        public void Visit(DefinitionInstruction instruction)
+        {
+        }
 
-            public InstructionTranslator(MethodBody bodyToProcess)
+        public void Visit(BranchInstruction instruction)
+        {
+        }
+
+        public void Visit(ExceptionalBranchInstruction instruction)
+        {
+        }
+        //
+
+        public void Visit(BinaryInstruction instruction)
+        {
+            if (instruction.Operation == BinaryOperation.Neq)
             {
-                this.bodyToProcess = bodyToProcess;
-                stackSize = new StackSize();
-            }
-
-            public override bool ShouldVisit(Instruction instruction)
-            {
-                var shouldProcessInstruction = !ignoreInstruction.TryGetValue(bodyToProcess.Instructions.IndexOf(instruction), out _);
-                return shouldProcessInstruction;
-            }
-
-
-            // FIXME hace falta esta realmente?
-            public override void Visit(PopInstruction instruction)
-            {
-                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Pop) {Label = instruction.Label};
-                translatedInstructions.Add(basicInstruction);
-            }
-
-            public override void Visit(BinaryInstruction instruction)
-            {
-                if (instruction.Operation == BinaryOperation.Neq)
-                {
-                    var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Eq)
-                    {
-                        Label = instruction.Label,
-                        OverflowCheck = instruction.OverflowCheck,
-                        UnsignedOperands = instruction.UnsignedOperands
-                    };
-                    translatedInstructions.Add(basicInstruction);
-                    basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Neg)
-                    {
-                        Label = instruction.Label + "'",
-                        OverflowCheck = instruction.OverflowCheck,
-                        UnsignedOperands = instruction.UnsignedOperands
-                    };
-                    translatedInstructions.Add(basicInstruction);
-                }
-                else
-                {
-                    var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, OperationHelper.ToBasicOperation(instruction.Operation))
-                    {
-                        Label = instruction.Label,
-                        OverflowCheck = instruction.OverflowCheck,
-                        UnsignedOperands = instruction.UnsignedOperands
-                    };
-                    translatedInstructions.Add(basicInstruction);
-                }
-            }
-
-            public override void Visit(UnaryInstruction instruction)
-            {
-                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, OperationHelper.ToBasicOperation(instruction.Operation))
-                {
-                    Label = instruction.Label
-                };
-                translatedInstructions.Add(basicInstruction);
-            }
-
-            public override void Visit(LoadInstruction instruction)
-            {
-                Bytecode.Instruction bytecodeInstruction;
-                if (instruction.Result is TemporalVariable)
-                {
-                    switch (instruction.Operand)
-                    {
-                        case TemporalVariable _:
-                            bytecodeInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Dup);
-                            break;
-                        case Constant constant:
-                            bytecodeInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Value, constant);
-                            break;
-                        case LocalVariable localVariable:
-                        {
-                            bytecodeInstruction = new Bytecode.LoadInstruction(
-                                instruction.Offset,
-                                Bytecode.LoadOperation.Content,
-                                localVariable);
-                            break;
-                        }
-                        case Dereference dereference:
-                        {
-                            bytecodeInstruction = new Bytecode.LoadIndirectInstruction(instruction.Offset, dereference.Type);
-                            break;
-                        }
-                        case Reference reference:
-                            switch (reference.Value)
-                            {
-                                case ArrayElementAccess arrayElementAccess:
-                                {
-                                    bytecodeInstruction = new Bytecode.LoadArrayElementInstruction(
-                                        instruction.Offset,
-                                        Bytecode.LoadArrayElementOperation.Address,
-                                        (ArrayType) arrayElementAccess.Array.Type) {Method = arrayElementAccess.Method};
-                                    break;
-                                }
-
-                                case LocalVariable localVariable:
-                                {
-                                    bytecodeInstruction = new Bytecode.LoadInstruction(
-                                        instruction.Offset,
-                                        Bytecode.LoadOperation.Address,
-                                        localVariable);
-                                    break;
-                                }
-                                case InstanceFieldAccess instanceFieldAccess:
-                                    bytecodeInstruction = new Bytecode.LoadFieldInstruction(
-                                        instruction.Offset,
-                                        Bytecode.LoadFieldOperation.Address,
-                                        instanceFieldAccess.Field);
-                                    break;
-                                default:
-                                    throw new Exception(); // TODO
-                            }
-
-                            break;
-                        case ArrayLengthAccess _:
-                            bytecodeInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.LoadArrayLength);
-                            break;
-                        case VirtualMethodReference virtualMethodReference:
-                            bytecodeInstruction = new Bytecode.LoadMethodAddressInstruction(
-                                instruction.Offset,
-                                Bytecode.LoadMethodAddressOperation.Virtual,
-                                virtualMethodReference.Method);
-                            break;
-                        case StaticMethodReference staticMethodReference:
-                            bytecodeInstruction = new Bytecode.LoadMethodAddressInstruction(
-                                instruction.Offset,
-                                Bytecode.LoadMethodAddressOperation.Static,
-                                staticMethodReference.Method);
-                            break;
-                        case InstanceFieldAccess instanceFieldAccess:
-                            bytecodeInstruction = new Bytecode.LoadFieldInstruction(
-                                instruction.Offset,
-                                Bytecode.LoadFieldOperation.Content,
-                                instanceFieldAccess.Field);
-                            break;
-                        case StaticFieldAccess staticFieldAccess:
-                            bytecodeInstruction = new Bytecode.LoadFieldInstruction(
-                                instruction.Offset,
-                                Bytecode.LoadFieldOperation.Content,
-                                staticFieldAccess.Field);
-                            break;
-                        case ArrayElementAccess arrayElementAccess:
-                        {
-                            bytecodeInstruction = new Bytecode.LoadArrayElementInstruction(
-                                instruction.Offset,
-                                Bytecode.LoadArrayElementOperation.Content,
-                                (ArrayType) arrayElementAccess.Array.Type) {Method = arrayElementAccess.Method};
-
-                            break;
-                        }
-                        default: throw new Exception(); // TODO
-                    }
-                }
-                else
-                {
-                    bytecodeInstruction = new Bytecode.StoreInstruction(instruction.Offset, (LocalVariable) instruction.Result);
-                }
-
-                bytecodeInstruction.Label = instruction.Label;
-                translatedInstructions.Add(bytecodeInstruction);
-            }
-
-            public override void Visit(StoreInstruction instruction)
-            {
-                Bytecode.Instruction storeInstruction;
-                switch (instruction.Result)
-                {
-                    case ArrayElementAccess arrayElementAccess:
-                    {
-                        storeInstruction = new Bytecode.StoreArrayElementInstruction(instruction.Offset, (ArrayType) arrayElementAccess.Array.Type)
-                        {
-                            Method = arrayElementAccess.Method
-                        };
-                        break;
-                    }
-                    case Dereference dereference:
-                    {
-                        storeInstruction = new Bytecode.StoreIndirectInstruction(instruction.Offset, dereference.Type);
-                        break;
-                    }
-                    case InstanceFieldAccess instanceFieldAccess:
-                        storeInstruction = new Bytecode.StoreFieldInstruction(instruction.Offset, instanceFieldAccess.Field);
-                        break;
-                    case StaticFieldAccess staticFieldAccess:
-                        storeInstruction = new Bytecode.StoreFieldInstruction(instruction.Offset, staticFieldAccess.Field);
-                        break;
-                    default:
-                        throw new Exception(); // TODO msg
-                }
-
-                storeInstruction.Label = instruction.Label;
-                translatedInstructions.Add(storeInstruction);
-            }
-
-            public override void Visit(NopInstruction instruction)
-            {
-                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Nop)
-                {
-                    Label = instruction.Label
-                };
-                translatedInstructions.Add(basicInstruction);
-            }
-
-            public override void Visit(BreakpointInstruction instruction)
-            {
-                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Breakpoint)
-                {
-                    Label = instruction.Label
-                };
-                translatedInstructions.Add(basicInstruction);
-            }
-
-            public override void Visit(TryInstruction instruction)
-            {
-                // try with multiple handlers is modelled as multiple consecutive try instructions with different handlers.
-                var instructionIndex = bodyToProcess.Instructions.IndexOf(instruction);
-                var previousInstructionIsTry = instructionIndex > 0 && bodyToProcess.Instructions[instructionIndex - 1] is TryInstruction;
-                if (previousInstructionIsTry)
-                {
-                    exceptionInformationBuilder.IncrementCurrentProtectedBlockExpectedHandlers();
-                }
-                else
-                {
-                    // try starts at the instruction following the try instruction. 
-                    var label = "";
-                    for (var i = instructionIndex + 1; i < bodyToProcess.Instructions.Count; i++)
-                    {
-                        var currentInstruction = bodyToProcess.Instructions[i];
-                        if (!(currentInstruction is TryInstruction))
-                        {
-                            label = currentInstruction.Label;
-                            break;
-                        }
-                    }
-
-                    exceptionInformationBuilder.BeginProtectedBlockAt(label);
-                }
-            }
-
-            public override void Visit(FaultInstruction instruction)
-            {
-                // FIXME comment, esta duplicado en todos ademas. Hay una form amas eficiente de hacer esto?. Quiza si no uso el visitor, puedo recorrerlas
-                // en orden e ir pasando tambien el indice de la instruccion que estoy procesando. Si hago eso, lo de ignore insturctions
-                // no hace falta que este en el visitor. La realidad es que necesito indices asi que el visitor mucho no me sirve
-                var index = bodyToProcess.Instructions.IndexOf(instruction);
-                var label = bodyToProcess.Instructions[index + 1].Label;
-                exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(label, ExceptionHandlerBlockKind.Fault);
-            }
-
-            public override void Visit(FinallyInstruction instruction)
-            {
-                var index = bodyToProcess.Instructions.IndexOf(instruction);
-                var label = bodyToProcess.Instructions[index + 1].Label;
-                exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(label, ExceptionHandlerBlockKind.Finally);
-            }
-
-
-            public override void Visit(FilterInstruction instruction)
-            {
-                var index = bodyToProcess.Instructions.IndexOf(instruction);
-                var label = bodyToProcess.Instructions[index + 1].Label;
-                exceptionInformationBuilder.AddFilterHandlerToCurrentProtectedBlock(label, instruction.kind, instruction.ExceptionType);
-            }
-
-            public override void Visit(CatchInstruction instruction)
-            {
-                var index = bodyToProcess.Instructions.IndexOf(instruction);
-                var label = bodyToProcess.Instructions[index + 1].Label;
-                exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(
-                    label,
-                    ExceptionHandlerBlockKind.Catch,
-                    instruction.ExceptionType);
-            }
-
-            public override void Visit(ThrowInstruction instruction)
-            {
-                var basicInstruction = instruction.HasOperand
-                    ? new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Throw)
-                    : new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Rethrow);
-                basicInstruction.Label = instruction.Label;
-                translatedInstructions.Add(basicInstruction);
-                if (!bodyToProcess.Instructions.Last().Equals(instruction)) // FIXME medio choto esto
-                {
-                    var index = bodyToProcess.Instructions.IndexOf(instruction);
-                    var label = bodyToProcess.Instructions[index + 1].Label;
-                    exceptionInformationBuilder.EndCurrentProtectedBlockIfAppliesAt(label); // block ends after instruction
-                }
-            }
-
-            public override void Visit(UnconditionalBranchInstruction instruction)
-            {
-                var target = Convert.ToUInt32(instruction.Target.Substring(2), 16);
-                Bytecode.Instruction bytecodeInstruction;
-                switch (instruction.Operation)
-                {
-                    case UnconditionalBranchOperation.Leave:
-                    {
-                        bytecodeInstruction = new Bytecode.BranchInstruction(instruction.Offset, Bytecode.BranchOperation.Leave, target);
-                        var index = bodyToProcess.Instructions.IndexOf(instruction);
-                        var label = bodyToProcess.Instructions[index + 1].Label;
-                        exceptionInformationBuilder.EndCurrentProtectedBlockIfAppliesAt(label); // block ends after instruction
-
-                        break;
-                    }
-                    case UnconditionalBranchOperation.Branch:
-                    {
-                        bytecodeInstruction = new Bytecode.BranchInstruction(instruction.Offset, Bytecode.BranchOperation.Branch, target);
-                        break;
-                    }
-                    case UnconditionalBranchOperation.EndFinally:
-                    {
-                        bytecodeInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.EndFinally);
-                        // no more handlers after finally
-                        var index = bodyToProcess.Instructions.IndexOf(instruction);
-                        var label = bodyToProcess.Instructions[index + 1].Label;
-                        exceptionInformationBuilder.EndCurrentProtectedBlockAt(label); // block ends after instruction 
-                        break;
-                    }
-                    case UnconditionalBranchOperation.EndFilter:
-                    {
-                        // nothing is done with exceptionInformation since filter area is the gap between try end and handler start
-                        bytecodeInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.EndFilter);
-                        break;
-                    }
-                    default: throw instruction.Operation.ToUnknownValueException();
-                }
-
-                bytecodeInstruction.Label = instruction.Label;
-                translatedInstructions.Add(bytecodeInstruction);
-            }
-
-            public override void Visit(ConvertInstruction instruction)
-            {
-                var convertInstruction = new Bytecode.ConvertInstruction(
-                    instruction.Offset,
-                    OperationHelper.ToConvertOperation(instruction.Operation),
-                    instruction.ConversionType)
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Eq)
                 {
                     Label = instruction.Label,
                     OverflowCheck = instruction.OverflowCheck,
                     UnsignedOperands = instruction.UnsignedOperands
                 };
-                translatedInstructions.Add(convertInstruction);
-            }
+                translatedInstructions.Add(basicInstruction);
 
-            public override void Visit(ReturnInstruction instruction)
-            {
-                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Return)
+                basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Neg)
                 {
-                    Label = instruction.Label
+                    Label = instruction.Label + "º", // ensure unique label
+                    OverflowCheck = instruction.OverflowCheck,
+                    UnsignedOperands = instruction.UnsignedOperands
                 };
                 translatedInstructions.Add(basicInstruction);
             }
-
-            public override void Visit(ConditionalBranchInstruction instruction)
+            else
             {
-                var branchOperation = OperationHelper.ToBranchOperation(instruction.Operation);
-                if (instruction.RightOperand is Constant constant)
-                {
-                    var loadInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Value, constant)
-                    {
-                        Label = instruction.Label + "'"
-                    };
-                    translatedInstructions.Add(loadInstruction);
-                }
-
-                var target = Convert.ToUInt32(instruction.Target.Substring(2), 16);
-                var branchInstruction = new Bytecode.BranchInstruction(
-                    instruction.Offset,
-                    branchOperation,
-                    target)
-                {
-                    Label = instruction.Label
-                };
-                translatedInstructions.Add(branchInstruction);
-            }
-
-            public override void Visit(SwitchInstruction instruction)
-            {
-                var targets = instruction.Targets
-                    .Select(target => Convert.ToUInt32(target.Substring(2), 16))
-                    .ToList();
-                var switchInstruction = new Bytecode.SwitchInstruction(instruction.Offset, targets)
-                {
-                    Label = instruction.Label
-                };
-                translatedInstructions.Add(switchInstruction);
-            }
-
-            public override void Visit(SizeofInstruction instruction)
-            {
-                var sizeofInstruction = new Bytecode.SizeofInstruction(instruction.Offset, instruction.MeasuredType)
-                {
-                    Label = instruction.Label
-                };
-                translatedInstructions.Add(sizeofInstruction);
-            }
-
-            public override void Visit(LoadTokenInstruction instruction)
-            {
-                var loadTokenInstruction = new Bytecode.LoadTokenInstruction(instruction.Offset, instruction.Token)
-                {
-                    Label = instruction.Label
-                };
-                translatedInstructions.Add(loadTokenInstruction);
-            }
-
-            public override void Visit(MethodCallInstruction instruction)
-            {
-                var methodCallInstruction = new Bytecode.MethodCallInstruction(
-                    instruction.Offset,
-                    OperationHelper.ToMethodCallOperation(instruction.Operation),
-                    instruction.Method
-                )
-                {
-                    Label = instruction.Label
-                };
-                translatedInstructions.Add(methodCallInstruction);
-            }
-
-            public override void Visit(IndirectMethodCallInstruction instruction)
-            {
-                var indirectMethodCallInstruction = new Bytecode.IndirectMethodCallInstruction(instruction.Offset, instruction.Function)
-                {
-                    Label = instruction.Label
-                };
-                translatedInstructions.Add(indirectMethodCallInstruction);
-            }
-
-            public override void Visit(CreateObjectInstruction instruction)
-            {
-                var index = bodyToProcess.Instructions.IndexOf(instruction);
-                var methodCallInstruction = (MethodCallInstruction) bodyToProcess.Instructions[index + 1];
-                ignoreInstruction.Add(index + 1, true); // method call
-                ignoreInstruction.Add(index + 2, true); // load
-
-                var createObjectInstruction = new Bytecode.CreateObjectInstruction(instruction.Offset, methodCallInstruction.Method)
-                {
-                    Label = instruction.Label
-                };
-                translatedInstructions.Add(createObjectInstruction);
-            }
-
-            public override void Visit(CopyMemoryInstruction instruction)
-            {
-                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.CopyBlock)
-                {
-                    Label = instruction.Label
-                };
-                translatedInstructions.Add(basicInstruction);
-            }
-
-            public override void Visit(LocalAllocationInstruction instruction)
-            {
-                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.LocalAllocation)
-                {
-                    Label = instruction.Label
-                };
-                translatedInstructions.Add(basicInstruction);
-            }
-
-            public override void Visit(InitializeMemoryInstruction instruction)
-            {
-                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.InitBlock)
-                {
-                    Label = instruction.Label
-                };
-                translatedInstructions.Add(basicInstruction);
-            }
-
-            public override void Visit(InitializeObjectInstruction instruction)
-            {
-                var type = ((PointerType) instruction.TargetAddress.Type).TargetType;
-                var initObjInstruction = new Bytecode.InitObjInstruction(instruction.Offset, type)
-                {
-                    Label = instruction.Label
-                };
-                translatedInstructions.Add(initObjInstruction);
-            }
-
-            public override void Visit(CopyObjectInstruction instruction)
-            {
-                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.CopyObject)
-                {
-                    Label = instruction.Label
-                };
-                translatedInstructions.Add(basicInstruction);
-            }
-
-            public override void Visit(CreateArrayInstruction instruction)
-            {
-                var arrayType = new ArrayType(instruction.ElementType, instruction.Rank);
-                var createArrayInstruction = new Bytecode.CreateArrayInstruction(instruction.Offset, arrayType)
+                var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, OperationHelper.ToBasicOperation(instruction.Operation))
                 {
                     Label = instruction.Label,
-                    WithLowerBound = instruction.LowerBounds.Any(),
-                    Constructor = instruction.Constructor
+                    OverflowCheck = instruction.OverflowCheck,
+                    UnsignedOperands = instruction.UnsignedOperands
                 };
-                translatedInstructions.Add(createArrayInstruction);
+                translatedInstructions.Add(basicInstruction);
             }
+        }
 
-            public override void Visit(PhiInstruction instruction) => throw new Exception();
-
-            public override void Visit(ConstrainedInstruction instruction)
+        public void Visit(UnaryInstruction instruction)
+        {
+            var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, OperationHelper.ToBasicOperation(instruction.Operation))
             {
-                var constrainedInstruction = new Bytecode.ConstrainedInstruction(instruction.Offset, instruction.ThisType)
+                Label = instruction.Label
+            };
+            translatedInstructions.Add(basicInstruction);
+        }
+
+        public void Visit(LoadInstruction instruction)
+        {
+            Bytecode.Instruction bytecodeInstruction;
+            if (instruction.Result is TemporalVariable)
+            {
+                switch (instruction.Operand)
                 {
-                    Label = instruction.Label
-                };
-                translatedInstructions.Add(constrainedInstruction);
+                    case TemporalVariable _:
+                        bytecodeInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Dup);
+                        break;
+                    case Constant constant:
+                        bytecodeInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Value, constant);
+                        break;
+                    case LocalVariable localVariable:
+                        bytecodeInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Content, localVariable);
+                        break;
+                    case Dereference dereference:
+                        bytecodeInstruction = new Bytecode.LoadIndirectInstruction(instruction.Offset, dereference.Type);
+                        break;
+                    case Reference reference:
+                        switch (reference.Value)
+                        {
+                            case ArrayElementAccess arrayElementAccess:
+                                bytecodeInstruction = new Bytecode.LoadArrayElementInstruction(
+                                    instruction.Offset,
+                                    Bytecode.LoadArrayElementOperation.Address,
+                                    (ArrayType) arrayElementAccess.Array.Type) {Method = arrayElementAccess.Method};
+                                break;
+
+                            case LocalVariable localVariable:
+                                bytecodeInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Address, localVariable);
+                                break;
+                            case InstanceFieldAccess instanceFieldAccess:
+                                bytecodeInstruction = new Bytecode.LoadFieldInstruction(
+                                    instruction.Offset,
+                                    Bytecode.LoadFieldOperation.Address,
+                                    instanceFieldAccess.Field);
+                                break;
+                            default:
+                                throw new CaseNotHandledException();
+                        }
+
+                        break;
+                    case ArrayLengthAccess _:
+                        bytecodeInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.LoadArrayLength);
+                        break;
+                    case VirtualMethodReference virtualMethodReference:
+                        bytecodeInstruction = new Bytecode.LoadMethodAddressInstruction(
+                            instruction.Offset,
+                            Bytecode.LoadMethodAddressOperation.Virtual,
+                            virtualMethodReference.Method);
+                        break;
+                    case StaticMethodReference staticMethodReference:
+                        bytecodeInstruction = new Bytecode.LoadMethodAddressInstruction(
+                            instruction.Offset,
+                            Bytecode.LoadMethodAddressOperation.Static,
+                            staticMethodReference.Method);
+                        break;
+                    case InstanceFieldAccess instanceFieldAccess:
+                        bytecodeInstruction = new Bytecode.LoadFieldInstruction(
+                            instruction.Offset,
+                            Bytecode.LoadFieldOperation.Content,
+                            instanceFieldAccess.Field);
+                        break;
+                    case StaticFieldAccess staticFieldAccess:
+                        bytecodeInstruction = new Bytecode.LoadFieldInstruction(
+                            instruction.Offset,
+                            Bytecode.LoadFieldOperation.Content,
+                            staticFieldAccess.Field);
+                        break;
+                    case ArrayElementAccess arrayElementAccess:
+                        bytecodeInstruction = new Bytecode.LoadArrayElementInstruction(
+                            instruction.Offset,
+                            Bytecode.LoadArrayElementOperation.Content,
+                            (ArrayType) arrayElementAccess.Array.Type) {Method = arrayElementAccess.Method};
+
+                        break;
+                    default:
+                        throw new CaseNotHandledException();
+                }
             }
+            else
+            {
+                bytecodeInstruction = new Bytecode.StoreInstruction(instruction.Offset, (LocalVariable) instruction.Result);
+            }
+
+            bytecodeInstruction.Label = instruction.Label;
+            translatedInstructions.Add(bytecodeInstruction);
+        }
+
+        public void Visit(StoreInstruction instruction)
+        {
+            Bytecode.Instruction storeInstruction;
+            switch (instruction.Result)
+            {
+                case ArrayElementAccess arrayElementAccess:
+                    storeInstruction = new Bytecode.StoreArrayElementInstruction(instruction.Offset, (ArrayType) arrayElementAccess.Array.Type)
+                    {
+                        Method = arrayElementAccess.Method
+                    };
+                    break;
+                case Dereference dereference:
+                    storeInstruction = new Bytecode.StoreIndirectInstruction(instruction.Offset, dereference.Type);
+                    break;
+                case InstanceFieldAccess instanceFieldAccess:
+                    storeInstruction = new Bytecode.StoreFieldInstruction(instruction.Offset, instanceFieldAccess.Field);
+                    break;
+                case StaticFieldAccess staticFieldAccess:
+                    storeInstruction = new Bytecode.StoreFieldInstruction(instruction.Offset, staticFieldAccess.Field);
+                    break;
+                default:
+                    throw new CaseNotHandledException();
+            }
+
+            storeInstruction.Label = instruction.Label;
+            translatedInstructions.Add(storeInstruction);
+        }
+
+        public void Visit(NopInstruction instruction)
+        {
+            var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Nop)
+            {
+                Label = instruction.Label
+            };
+            translatedInstructions.Add(basicInstruction);
+        }
+
+        public void Visit(BreakpointInstruction instruction)
+        {
+            var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Breakpoint)
+            {
+                Label = instruction.Label
+            };
+            translatedInstructions.Add(basicInstruction);
+        }
+
+        public void Visit(TryInstruction instruction)
+        {
+            // try with multiple handlers is modelled as multiple consecutive try instructions with different handlers.
+            var previousInstructionIsTry = Index > 0 && method.Body.Instructions[Index - 1] is TryInstruction;
+            if (previousInstructionIsTry)
+            {
+                exceptionInformationBuilder.IncrementCurrentProtectedBlockExpectedHandlers();
+            }
+            else
+            {
+                // try starts at the instruction following the try instruction. 
+                var label = "";
+                for (var i = Index + 1; i < method.Body.Instructions.Count; i++)
+                {
+                    var currentInstruction = method.Body.Instructions[i];
+                    if (!(currentInstruction is TryInstruction))
+                    {
+                        label = currentInstruction.Label;
+                        break;
+                    }
+                }
+
+                exceptionInformationBuilder.BeginProtectedBlockAt(label);
+            }
+        }
+
+        public void Visit(FaultInstruction instruction)
+        {
+            var label = method.Body.Instructions[Index + 1].Label;
+            exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(label, ExceptionHandlerBlockKind.Fault);
+        }
+
+        public void Visit(FinallyInstruction instruction)
+        {
+            var label = method.Body.Instructions[Index + 1].Label;
+            exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(label, ExceptionHandlerBlockKind.Finally);
+        }
+
+
+        public void Visit(FilterInstruction instruction)
+        {
+            var label = method.Body.Instructions[Index + 1].Label;
+            exceptionInformationBuilder.AddFilterHandlerToCurrentProtectedBlock(label, instruction.kind, instruction.ExceptionType);
+        }
+
+        public void Visit(CatchInstruction instruction)
+        {
+            var label = method.Body.Instructions[Index + 1].Label;
+            exceptionInformationBuilder.AddHandlerToCurrentProtectedBlock(label, ExceptionHandlerBlockKind.Catch, instruction.ExceptionType);
+        }
+
+        public void Visit(ThrowInstruction instruction)
+        {
+            var basicInstruction = instruction.HasOperand
+                ? new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Throw)
+                : new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Rethrow);
+            basicInstruction.Label = instruction.Label;
+            translatedInstructions.Add(basicInstruction);
+            if (Index < method.Body.Instructions.Count - 1) //not last instruction. Throw can be the last instruction and not inside a protected block
+            {
+                var label = method.Body.Instructions[Index + 1].Label;
+                exceptionInformationBuilder.EndCurrentProtectedBlockIfAppliesAt(label); // block ends after instruction
+            }
+        }
+
+        public void Visit(UnconditionalBranchInstruction instruction)
+        {
+            Bytecode.Instruction bytecodeInstruction;
+            switch (instruction.Operation)
+            {
+                case UnconditionalBranchOperation.Leave:
+                {
+                    bytecodeInstruction = new Bytecode.BranchInstruction(instruction.Offset, Bytecode.BranchOperation.Leave, instruction.Target);
+                    var label = method.Body.Instructions[Index + 1].Label;
+                    exceptionInformationBuilder.EndCurrentProtectedBlockIfAppliesAt(label); // block ends after instruction
+
+                    break;
+                }
+                case UnconditionalBranchOperation.Branch:
+                    bytecodeInstruction = new Bytecode.BranchInstruction(instruction.Offset, Bytecode.BranchOperation.Branch, instruction.Target);
+                    break;
+                case UnconditionalBranchOperation.EndFinally:
+                {
+                    bytecodeInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.EndFinally);
+                    // no more handlers after finally
+                    var label = method.Body.Instructions[Index + 1].Label;
+                    exceptionInformationBuilder.EndCurrentProtectedBlockAt(label); // block ends after instruction 
+                    break;
+                }
+                case UnconditionalBranchOperation.EndFilter:
+                    // nothing is done with exceptionInformation since filter area is the gap between try end and handler start
+                    bytecodeInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.EndFilter);
+                    break;
+                default:
+                    throw instruction.Operation.ToUnknownValueException();
+            }
+
+            bytecodeInstruction.Label = instruction.Label;
+            translatedInstructions.Add(bytecodeInstruction);
+        }
+
+        public void Visit(ConvertInstruction instruction)
+        {
+            var convertInstruction = new Bytecode.ConvertInstruction(
+                instruction.Offset,
+                OperationHelper.ToConvertOperation(instruction.Operation),
+                instruction.ConversionType)
+            {
+                Label = instruction.Label,
+                OverflowCheck = instruction.OverflowCheck,
+                UnsignedOperands = instruction.UnsignedOperands
+            };
+            translatedInstructions.Add(convertInstruction);
+        }
+
+        public void Visit(ReturnInstruction instruction)
+        {
+            var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Return)
+            {
+                Label = instruction.Label
+            };
+            translatedInstructions.Add(basicInstruction);
+        }
+
+        public void Visit(ConditionalBranchInstruction instruction)
+        {
+            var branchOperation = OperationHelper.ToBranchOperation(instruction.Operation);
+            if (instruction.RightOperand is Constant constant)
+            {
+                var loadInstruction = new Bytecode.LoadInstruction(instruction.Offset, Bytecode.LoadOperation.Value, constant)
+                {
+                    Label = instruction.Label + "º" // ensure unique label
+                };
+                translatedInstructions.Add(loadInstruction);
+            }
+            var branchInstruction = new Bytecode.BranchInstruction(instruction.Offset, branchOperation, instruction.Target)
+            {
+                Label = instruction.Label
+            };
+            translatedInstructions.Add(branchInstruction);
+        }
+
+        public void Visit(SwitchInstruction instruction)
+        {
+            var switchInstruction = new Bytecode.SwitchInstruction(instruction.Offset, instruction.Targets)
+            {
+                Label = instruction.Label
+            };
+            translatedInstructions.Add(switchInstruction);
+        }
+
+        public void Visit(SizeofInstruction instruction)
+        {
+            var sizeofInstruction = new Bytecode.SizeofInstruction(instruction.Offset, instruction.MeasuredType)
+            {
+                Label = instruction.Label
+            };
+            translatedInstructions.Add(sizeofInstruction);
+        }
+
+        public void Visit(LoadTokenInstruction instruction)
+        {
+            var loadTokenInstruction = new Bytecode.LoadTokenInstruction(instruction.Offset, instruction.Token)
+            {
+                Label = instruction.Label
+            };
+            translatedInstructions.Add(loadTokenInstruction);
+        }
+
+        public void Visit(MethodCallInstruction instruction)
+        {
+            var methodCallInstruction = new Bytecode.MethodCallInstruction(
+                instruction.Offset,
+                OperationHelper.ToMethodCallOperation(instruction.Operation),
+                instruction.Method
+            )
+            {
+                Label = instruction.Label
+            };
+            translatedInstructions.Add(methodCallInstruction);
+        }
+
+        public void Visit(IndirectMethodCallInstruction instruction)
+        {
+            var indirectMethodCallInstruction = new Bytecode.IndirectMethodCallInstruction(instruction.Offset, instruction.Function)
+            {
+                Label = instruction.Label
+            };
+            translatedInstructions.Add(indirectMethodCallInstruction);
+        }
+
+        public void Visit(CreateObjectInstruction instruction)
+        {
+            var methodCallInstruction = (MethodCallInstruction) method.Body.Instructions[Index + 1];
+
+            // do not translate following method call and load instruction
+            ignoredInstructions.Add(Index + 1); // method call
+            ignoredInstructions.Add(Index + 2); // load
+
+            var createObjectInstruction = new Bytecode.CreateObjectInstruction(instruction.Offset, methodCallInstruction.Method)
+            {
+                Label = instruction.Label
+            };
+            translatedInstructions.Add(createObjectInstruction);
+        }
+
+        public void Visit(CopyMemoryInstruction instruction)
+        {
+            var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.CopyBlock)
+            {
+                Label = instruction.Label
+            };
+            translatedInstructions.Add(basicInstruction);
+        }
+
+        public void Visit(LocalAllocationInstruction instruction)
+        {
+            var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.LocalAllocation)
+            {
+                Label = instruction.Label
+            };
+            translatedInstructions.Add(basicInstruction);
+        }
+
+        public void Visit(InitializeMemoryInstruction instruction)
+        {
+            var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.InitBlock)
+            {
+                Label = instruction.Label
+            };
+            translatedInstructions.Add(basicInstruction);
+        }
+
+        public void Visit(InitializeObjectInstruction instruction)
+        {
+            var type = ((PointerType) instruction.TargetAddress.Type).TargetType;
+            var initObjInstruction = new Bytecode.InitObjInstruction(instruction.Offset, type)
+            {
+                Label = instruction.Label
+            };
+            translatedInstructions.Add(initObjInstruction);
+        }
+
+        public void Visit(CopyObjectInstruction instruction)
+        {
+            var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.CopyObject)
+            {
+                Label = instruction.Label
+            };
+            translatedInstructions.Add(basicInstruction);
+        }
+
+        public void Visit(CreateArrayInstruction instruction)
+        {
+            var arrayType = new ArrayType(instruction.ElementType, instruction.Rank);
+            var createArrayInstruction = new Bytecode.CreateArrayInstruction(instruction.Offset, arrayType)
+            {
+                Label = instruction.Label,
+                WithLowerBound = instruction.LowerBounds.Any(),
+                Constructor = instruction.Constructor
+            };
+            translatedInstructions.Add(createArrayInstruction);
+        }
+
+        public void Visit(PhiInstruction instruction) => throw new CaseNotHandledException();
+
+        public void Visit(ConstrainedInstruction instruction)
+        {
+            var constrainedInstruction = new Bytecode.ConstrainedInstruction(instruction.Offset, instruction.ThisType)
+            {
+                Label = instruction.Label
+            };
+            translatedInstructions.Add(constrainedInstruction);
+        }
+
+        public void Visit(PopInstruction instruction)
+        {
+            var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Pop);
+            translatedInstructions.Add(basicInstruction);
         }
 
         // FIXME se podria ir calculando. Pero ahi hay que ir contando segun la instruccion (si suma o vacia el stack). Es esta la mejor forma?
@@ -621,6 +581,10 @@ namespace Backend.Transformations.Assembly
             {
                 currentStackSize = 0;
             }
+        }
+
+        private class CaseNotHandledException : Exception
+        {
         }
     }
 }
