@@ -1003,12 +1003,12 @@ namespace Backend.Transformations
 
 						stackSize = stackSizeAtEntry[successor.Id];
 
-						if (!stackSize.HasValue)
+						if (!stackSize.HasValue || successorIsHandlerHeader)
 						{
                             //Console.WriteLine("{0} -> {1} = {2}", node.Id, successor.Id, stack.Size);
 							stackSizeAtEntry[successor.Id] = stack.Size;
 						}
-						else if (stackSize.Value != stack.Size && !successorIsHandlerHeader)
+						else if (stackSize.Value != stack.Size)
 						{
 							// Check that the already saved stack size is the same as the current stack size
 							throw new Exception("Basic block with different stack size at entry!");
@@ -1080,9 +1080,6 @@ namespace Backend.Transformations
 							break;
 
 						case ExceptionHandlerBlockKind.Filter:
-					
-							// fixme revisar esta parte agregada. El clear hace falta? la diferencia de los filters asi esta bien?
-							stack.Clear();
 							var filterException = stack.Push(); // Push the exception into the stack
 							var filterBlock = (FilterExceptionHandler) block;
 							var kind = operation.Label.Equals(filterBlock.FilterStart)
@@ -1092,9 +1089,6 @@ namespace Backend.Transformations
 							break;
 
 						case ExceptionHandlerBlockKind.Catch:
-							
-							// fixme este clear va?
-							stack.Clear();
 							var catchException = stack.Push(); // Push the exception into the stack
 							var catchBlock = block as CatchExceptionHandler;
 							instruction = new Tac.CatchInstruction(operation.Offset, catchException, catchBlock.ExceptionType);
