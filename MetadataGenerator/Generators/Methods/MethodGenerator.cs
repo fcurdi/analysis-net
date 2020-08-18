@@ -1,14 +1,7 @@
-﻿using System.Linq;
-using Backend.Analyses;
-using Backend.Transformations.Assembly;
-using MetadataGenerator.Generators.Methods.Body;
+﻿using MetadataGenerator.Generators.Methods.Body;
 using MetadataGenerator.Metadata;
-using Model.Bytecode;
-using Model.ThreeAddressCode.Instructions;
 using Model.Types;
 using static MetadataGenerator.Metadata.AttributesProvider;
-using BranchInstruction = Model.Bytecode.BranchInstruction;
-using BranchOperation = Model.Bytecode.BranchOperation;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SR = System.Reflection;
 using SRM = System.Reflection.Metadata;
@@ -41,26 +34,6 @@ namespace MetadataGenerator.Generators.Methods
             var methodBodyOffset = -1;
             if (method.HasBody)
             {
-                // FIXME PROBAR generar y correr tests (+pedump) CONVIRTIENDO Y SIN CONVERTIR 
-
-                // FIXME undo this. Just for testing assembler.
-                var tac = new Backend.Transformations.Disassembler(method).Execute();
-                method.Body = tac;
-
-                var cfanalysis = new ControlFlowAnalysis(method.Body);
-                var cfg = cfanalysis.GenerateExceptionalControlFlow();
-
-                var webAnalysis = new WebAnalysis(cfg);
-                webAnalysis.Analyze();
-                webAnalysis.Transform();
-                method.Body.UpdateVariables();
-
-                var typeInferenceAnalysis = new TypeInferenceAnalysis(cfg, method.ReturnType);
-                typeInferenceAnalysis.Analyze();
-
-                var bytecode = new Backend.Transformations.Assembly.Assembler(method).Execute();
-                method.Body = bytecode;
-
                 // FIXME maxStack should be computed from instructions. When a dll is read, the maxStack will be available (Model) but if code is generated 
                 // programatically then the maxStamck is gonna be missing
                 var maxStack = method.Body.MaxStack;

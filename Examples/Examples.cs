@@ -1052,6 +1052,7 @@ namespace Tests
         [Test]
         public void AnotherTest()
         {
+         //   Console.WriteLine("begining of method");
             Assert.AreEqual(1, 1);
         }
     }

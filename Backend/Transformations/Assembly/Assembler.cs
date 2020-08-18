@@ -48,11 +48,8 @@ namespace Backend.Transformations.Assembly
         public MethodBody Execute()
         {
             var body = new MethodBody(MethodBodyKind.Bytecode);
-
             body.MaxStack = 20; // FIXME calcular (ver StackSize)
             body.Parameters.AddRange(method.Body.Parameters);
-            // FIXME esto esta bien? porque las local variables se actualizan. La unica diferencia con eso era el this creo
-            // no habira que en todo poner las locals variables mas el this si es que esta?
 
             for (Index = 0; Index < method.Body.Instructions.Count; Index++)
             {

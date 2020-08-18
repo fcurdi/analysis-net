@@ -13,6 +13,8 @@ using Backend.Serialization;
 using Backend.Transformations;
 using Backend.Utils;
 using Backend.Model;
+using Backend.Transformations.Assembly;
+using Model.ThreeAddressCode.Values;
 using Tac = Model.ThreeAddressCode.Instructions;
 using Bytecode = Model.Bytecode;
 
@@ -365,9 +367,62 @@ namespace Console
 				ok = effectsResult.TryGetValue(method, out effectsInfo);
 			}
 		}
-		
-		private static void DisassembleAndThenAssemble(string input)
+
+		private static void HelloWorldAssembly()
 		{
+			var mscorlib = new AssemblyReference("mscorlib")
+			{
+				Version = new Version("4.0.0.0"),
+				Culture = "",
+				PublicKey = new byte[0]
+			};
+			var assembly = new Assembly("SampleAssembly", AssemblyKind.EXE)
+			{
+				Version = new Version("1.0.0.0"),
+				PublicKey = new byte[0],
+				Culture = "",
+				References = {mscorlib}
+			};
+			var namezpace = new Namespace("MainNamespace") {ContainingAssembly = assembly};
+			assembly.RootNamespace = namezpace;
+			var type = new TypeDefinition("MainType", TypeKind.ReferenceType, TypeDefinitionKind.Class)
+			{
+				ContainingAssembly = assembly,
+				ContainingNamespace = namezpace,
+				Visibility = VisibilityKind.Public,
+				IsStatic = true,
+				Base = new BasicType("Object", TypeKind.ReferenceType)
+				{
+					ContainingAssembly = mscorlib,
+					ContainingNamespace = "System",
+				}
+			};
+			namezpace.Types.Add(type);
+			var method = new MethodDefinition("Main", PlatformTypes.Void)
+			{
+				Visibility = VisibilityKind.Public,
+				ContainingType = type,
+				IsStatic = true,
+				Body = new MethodBody(MethodBodyKind.Bytecode)
+				{
+					MaxStack = 1,
+					Instructions =
+					{
+						new Bytecode.BasicInstruction(0, Bytecode.BasicOperation.Nop),
+						new Bytecode.LoadInstruction(1, Bytecode.LoadOperation.Value, new Constant("Hello World!")),
+						new Bytecode.MethodCallInstruction(2, Bytecode.MethodCallOperation.Static, ConsoleWriteLineMethodReference()),
+						new Bytecode.BasicInstruction(3, Bytecode.BasicOperation.Return)
+					}
+				}
+			};
+			type.Methods.Add(method);
+			var generator = new MetadataGenerator.Generator();
+			generator.Generate(assembly);
+		}
+
+		private static void TacInstrumentation()
+		{
+			var input = "../../../ExamplesEXE/bin/Debug/ExamplesEXE.exe";
 			var host = new Host();
 
 			PlatformTypes.Resolve(host);
@@ -375,29 +430,32 @@ namespace Console
 			System.Console.WriteLine($"Reading {input}");
 			var loader = new MetadataProvider.Loader(host);
 			loader.LoadAssembly(input);
-			
-		/*	var allDefinedMethods = from a in host.Assemblies
+
+			var main = (from a in host.Assemblies
 				from t in a.RootNamespace.GetAllTypes()
 				from m in t.Members.OfType<MethodDefinition>()
-				where m.HasBody
-				select m;
+				where m.Name.Equals("Main")
+				select m).First();
 
-			foreach (var method in allDefinedMethods)
-			{
-				var tac = new Backend.Transformations.Disassembler(method).Execute();
-				method.Body = tac;
-                
-				var cfanalysis = new ControlFlowAnalysis(method.Body);
-				var cfg = cfanalysis.GenerateExceptionalControlFlow();
+			var tac = new Backend.Transformations.Disassembler(main).Execute();
+			main.Body = tac;
 
-				var webAnalysis = new WebAnalysis(cfg);
-				webAnalysis.Analyze();
-				webAnalysis.Transform();
-				method.Body.UpdateVariables();
+			AddLogAtIndex(0, "entering main", main.Body);
+			AddLogAtIndex(tac.Instructions.Count - 1, "exiting main", main.Body);
 
-				var typeInferenceAnalysis = new TypeInferenceAnalysis(cfg, method.ReturnType);
-				typeInferenceAnalysis.Analyze();
-			}*/
+			var cfanalysis = new ControlFlowAnalysis(main.Body);
+			var cfg = cfanalysis.GenerateExceptionalControlFlow();
+
+			var webAnalysis = new WebAnalysis(cfg);
+			webAnalysis.Analyze();
+			webAnalysis.Transform();
+			main.Body.UpdateVariables();
+
+			var typeInferenceAnalysis = new TypeInferenceAnalysis(cfg, main.ReturnType);
+			typeInferenceAnalysis.Analyze();
+
+			var bytecode = new Backend.Transformations.Assembly.Assembler(main).Execute();
+			main.Body = bytecode;
 
 			var generator = new MetadataGenerator.Generator();
 
@@ -406,9 +464,53 @@ namespace Console
 				generator.Generate(assembly);
 			}
 		}
-		
-		static void Main(string[] args)
+
+		private static void AddLogAtIndex(int index, string message, MethodBody body)
 		{
+			var result = new TemporalVariable("$s", 0);
+			var loadInstruction = new Tac.LoadInstruction(0, result, new Constant(message))
+			{
+				Label = body.Instructions[index].Label + "º"
+			};
+			var methodCallInstruction = new Tac.MethodCallInstruction(
+				0,
+				null,
+				Tac.MethodCallOperation.Static,
+				ConsoleWriteLineMethodReference(),
+				new List<IVariable> {result})
+			{
+				Label = loadInstruction.Label + "º"
+			};
+
+			var instructions =
+				body.Instructions.Take(index)
+					.Concat(new List<Tac.Instruction> {loadInstruction, methodCallInstruction})
+					.Concat(body.Instructions.Skip(index))
+					.ToList();
+
+			body.Instructions.Clear();
+			body.Instructions.AddRange(instructions);
+		}
+
+		private static MethodReference ConsoleWriteLineMethodReference()
+		{
+			var writeLineMethod = new MethodReference("WriteLine", PlatformTypes.Void)
+			{
+				Parameters = {new MethodParameter(0, "value", PlatformTypes.String)},
+				IsStatic = true
+			};
+			var consoleType = new BasicType("Console", TypeKind.ReferenceType)
+			{
+				ContainingAssembly = new AssemblyReference("mscorlib") {Version = new Version("4.0.0.0")},
+				ContainingNamespace = "System"
+			};
+			writeLineMethod.ContainingType = consoleType;
+			return writeLineMethod;
+		}
+
+		private static void DisassembleAndThenAssemble()
+		{
+			// FIXME PROBAR generar y correr tests (+pedump) CONVIRTIENDO Y SIN CONVERTIR a tac
 			var inputs = new[]
 			{
 				new[] {"../../../Examples/bin/Debug/Examples.dll"},
@@ -436,13 +538,30 @@ namespace Console
 				}
 			};
 
-			foreach (var input in inputs)
+			foreach (var file in inputs.SelectMany(i => i))
 			{
-				foreach (var file in input)
+				var host = new Host();
+
+				PlatformTypes.Resolve(host);
+
+				System.Console.WriteLine($"Reading {file}");
+				var loader = new MetadataProvider.Loader(host);
+				loader.LoadAssembly(file);
+
+				var generator = new MetadataGenerator.Generator();
+
+				foreach (var assembly in host.Assemblies)
 				{
-					DisassembleAndThenAssemble(file);
+					generator.Generate(assembly);
 				}
 			}
+		}
+
+		static void Main(string[] args)
+		{
+			//DisassembleAndThenAssemble();
+			//TacInstrumentation();
+			HelloWorldAssembly();
 		
 			System.Console.WriteLine("Done!");
 		}
