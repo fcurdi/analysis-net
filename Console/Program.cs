@@ -557,11 +557,76 @@ namespace Console
 			}
 		}
 
+		private static void RemoveUnusedMethodFromSimpleExecutable()
+		{
+			var input = "../../../ExamplesEXE/bin/Debug/ExamplesEXE.exe";
+
+			var host = new Host();
+
+			PlatformTypes.Resolve(host);
+
+			System.Console.WriteLine($"Reading {input}");
+			var loader = new MetadataProvider.Loader(host);
+			loader.LoadAssembly(input);
+			
+			var allDefinedMethods = (from a in host.Assemblies
+				from t in a.RootNamespace.GetAllTypes()
+				from m in t.Members.OfType<MethodDefinition>()
+				select m).ToList();
+
+			// convert bodies to typed tac
+			foreach (var method in allDefinedMethods)
+			{
+				var tac = new Backend.Transformations.Disassembler(method).Execute();
+				method.Body = tac;
+				
+				var cfanalysis = new ControlFlowAnalysis(method.Body);
+				var cfg = cfanalysis.GenerateExceptionalControlFlow();
+
+				var webAnalysis = new WebAnalysis(cfg);
+				webAnalysis.Analyze();
+				webAnalysis.Transform();
+				method.Body.UpdateVariables();
+
+				var typeInferenceAnalysis = new TypeInferenceAnalysis(cfg, method.ReturnType);
+				typeInferenceAnalysis.Analyze();
+			}
+			
+			// run call graph analysis
+			var classHierarchy = new ClassHierarchy();
+			classHierarchy.Analyze(host);
+			var classHierarchyAnalysis = new ClassHierarchyAnalysis(classHierarchy);
+			var roots = host.GetRootMethods();
+			var callGraph = classHierarchyAnalysis.Analyze(host, roots);
+
+			// convert back to bytecode for generation
+			foreach (var method in allDefinedMethods)
+			{
+				var bytecode = new Backend.Transformations.Assembly.Assembler(method).Execute();
+				method.Body = bytecode;
+			}
+			
+			// remove unsued method
+			var unusedMethod = allDefinedMethods.Except(callGraph.Methods).First();
+			var type = (TypeDefinition) unusedMethod.ContainingType;
+			var onlyUsedMethods = type.Methods.Where(method => !method.Equals(unusedMethod)).ToList();
+			type.Methods.Clear();
+			type.Methods.AddRange(onlyUsedMethods);
+
+			// generate
+			var generator = new MetadataGenerator.Generator();
+			foreach (var assembly in host.Assemblies)
+			{
+				generator.Generate(assembly);
+			}
+		}
+
 		static void Main(string[] args)
 		{
 			//DisassembleAndThenAssemble();
 			//TacInstrumentation();
-			HelloWorldAssembly();
+			// HelloWorldAssembly();
+			RemoveUnusedMethodFromSimpleExecutable();
 		
 			System.Console.WriteLine("Done!");
 		}
