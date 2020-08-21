@@ -48,7 +48,7 @@ namespace Backend.Transformations.Assembly
         public MethodBody Execute()
         {
             var body = new MethodBody(MethodBodyKind.Bytecode);
-            body.MaxStack = 20; // FIXME calcular (ver StackSize)
+            body.MaxStack = 20; // FIXME calcular
             body.Parameters.AddRange(method.Body.Parameters);
 
             for (Index = 0; Index < method.Body.Instructions.Count; Index++)
@@ -545,39 +545,6 @@ namespace Backend.Transformations.Assembly
         {
             var basicInstruction = new Bytecode.BasicInstruction(instruction.Offset, Bytecode.BasicOperation.Pop);
             translatedInstructions.Add(basicInstruction);
-        }
-
-        // FIXME se podria ir calculando. Pero ahi hay que ir contando segun la instruccion (si suma o vacia el stack). Es esta la mejor forma?
-        private class StackSize
-        {
-            private uint currentStackSize;
-            public uint MaxStackSize { get; private set; }
-
-            public StackSize()
-            {
-                currentStackSize = 0;
-                MaxStackSize = 0;
-            }
-
-            public void Increment()
-            {
-                currentStackSize += 1;
-                if (currentStackSize > MaxStackSize)
-                {
-                    MaxStackSize = currentStackSize;
-                }
-            }
-
-            public void Decrement()
-            {
-                if (currentStackSize == 0) throw new Exception("Current stack size is 0");
-                currentStackSize -= 1;
-            }
-
-            public void Clear()
-            {
-                currentStackSize = 0;
-            }
         }
 
         private class CaseNotHandledException : Exception
