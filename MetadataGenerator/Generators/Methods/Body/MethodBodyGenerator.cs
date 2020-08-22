@@ -46,19 +46,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                 labelToEncoderOffset[instruction.Label] = instructionEncoder.Offset;
                 controlFlowGenerator.MarkCurrentLabelIfNeeded(instruction.Label);
 
-                if (body.ExceptionInformation.Any(block => // FIXME metodo aparte
-                {
-                    switch (block.Handler)
-                    {
-                        case FilterExceptionHandler filterExceptionHandler:
-                            return filterExceptionHandler.FilterStart.Equals(instruction.Label) ||
-                                   filterExceptionHandler.Start.Equals(instruction.Label);
-                        case CatchExceptionHandler catchExceptionHandler:
-                            return catchExceptionHandler.Start.Equals(instruction.Label);
-                        default:
-                            return false;
-                    }
-                }))
+                if (ExceptionHandlerStartsAt(instruction.Label))
                 {
                     stackSize.Increment();
                 }
@@ -74,7 +62,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                 switchInstructionPlaceholder.FillWithRealTargets(labelToEncoderOffset);
             }
 
-            // FIXME revienta
             maxStack = stackSize.MaxStackSize;
             return instructionEncoder;
         }
@@ -941,6 +928,19 @@ namespace MetadataGenerator.Generators.Methods.Body
                 stackSize.Decrement(3);
             }
         }
+
+        private bool ExceptionHandlerStartsAt(string label) => body.ExceptionInformation.Any(block =>
+        {
+            switch (block.Handler)
+            {
+                case FilterExceptionHandler filterExceptionHandler:
+                    return filterExceptionHandler.FilterStart.Equals(label) || filterExceptionHandler.Start.Equals(label);
+                case CatchExceptionHandler catchExceptionHandler:
+                    return catchExceptionHandler.Start.Equals(label);
+                default:
+                    return false;
+            }
+        });
 
         private class SwitchInstructionPlaceholder
         {
