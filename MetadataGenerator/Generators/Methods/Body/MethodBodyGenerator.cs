@@ -46,7 +46,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                 labelToEncoderOffset[instruction.Label] = instructionEncoder.Offset;
                 controlFlowGenerator.MarkCurrentLabelIfNeeded(instruction.Label);
 
-                if (body.ExceptionInformation.Any(block =>
+                if (body.ExceptionInformation.Any(block => // FIXME metodo aparte
                 {
                     switch (block.Handler)
                     {
