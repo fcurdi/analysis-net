@@ -46,7 +46,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                 labelToEncoderOffset[instruction.Label] = instructionEncoder.Offset;
                 controlFlowGenerator.MarkCurrentLabelIfNeeded(instruction.Label);
 
-                if (ExceptionHandlerStartsAt(instruction.Label))
+                if (FilterOrCatchStartAt(instruction.Label))
                 {
                     stackSize.Increment();
                 }
@@ -803,7 +803,7 @@ namespace MetadataGenerator.Generators.Methods.Body
             {
                 instructionEncoder.Call(metadataContainer.MetadataResolver.HandleOf(instruction.Method));
                 stackSize.Decrement(instruction.Method.Parameters.Count);
-                stackSize.Increment(); // FIXME creo que esto es porque en este caso se usa un metodo Get();
+                stackSize.Increment();
             }
             else
             {
@@ -883,7 +883,6 @@ namespace MetadataGenerator.Generators.Methods.Body
             {
                 instructionEncoder.Call(metadataContainer.MetadataResolver.HandleOf(instruction.Method));
                 stackSize.Decrement(instruction.Method.Parameters.Count);
-                // FIXME y aca no iria increment porque es un Set()
             }
             else
             {
@@ -929,7 +928,7 @@ namespace MetadataGenerator.Generators.Methods.Body
             }
         }
 
-        private bool ExceptionHandlerStartsAt(string label) => body.ExceptionInformation.Any(block =>
+        private bool FilterOrCatchStartAt(string label) => body.ExceptionInformation.Any(block =>
         {
             switch (block.Handler)
             {
