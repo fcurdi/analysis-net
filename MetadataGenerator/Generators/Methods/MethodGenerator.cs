@@ -34,11 +34,9 @@ namespace MetadataGenerator.Generators.Methods
             var methodBodyOffset = -1;
             if (method.HasBody)
             {
-                // FIXME maxStack should be computed from instructions. When a dll is read, the maxStack will be available (Model) but if code is generated 
-                // programatically then the maxStack is gonna be missing
-                var maxStack = method.Body.MaxStack;
+                var instructionEncoder = new MethodBodyGenerator(metadataContainer, method.Body).Generate(out var maxStack);
                 methodBodyOffset = metadataContainer.MethodBodyStream.AddMethodBody(
-                    instructionEncoder: new MethodBodyGenerator(metadataContainer, method.Body).Generate(),
+                    instructionEncoder: instructionEncoder,
                     localVariablesSignature: methodLocalsSignatureGenerator.GenerateSignatureFor(method.Body.LocalVariables),
                     maxStack: maxStack);
             }

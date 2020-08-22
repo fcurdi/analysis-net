@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using MetadataGenerator.Metadata;
 using Model;
 using Model.Bytecode;
@@ -19,6 +20,7 @@ namespace MetadataGenerator.Generators.Methods.Body
         private readonly List<SwitchInstructionPlaceholder> switchInstructionsPlaceHolders;
         private readonly ISet<int> ignoredInstructions;
         private readonly MethodBody body;
+        private readonly StackSize stackSize;
         private int Index { get; set; }
 
         public MethodBodyGenerator(MetadataContainer metadataContainer, MethodBody body)
@@ -29,9 +31,10 @@ namespace MetadataGenerator.Generators.Methods.Body
             controlFlowGenerator = new MethodBodyControlFlowGenerator(instructionEncoder, metadataContainer);
             switchInstructionsPlaceHolders = new List<SwitchInstructionPlaceholder>();
             ignoredInstructions = new HashSet<int>();
+            stackSize = new StackSize();
         }
 
-        public ECMA335.InstructionEncoder Generate()
+        public ECMA335.InstructionEncoder Generate(out int maxStack)
         {
             controlFlowGenerator.ProcessExceptionInformation(body.ExceptionInformation);
             controlFlowGenerator.DefineNeededBranchLabels(body.Instructions);
@@ -42,6 +45,23 @@ namespace MetadataGenerator.Generators.Methods.Body
                 var instruction = (Instruction) body.Instructions[Index];
                 labelToEncoderOffset[instruction.Label] = instructionEncoder.Offset;
                 controlFlowGenerator.MarkCurrentLabelIfNeeded(instruction.Label);
+
+                if (body.ExceptionInformation.Any(block =>
+                {
+                    switch (block.Handler)
+                    {
+                        case FilterExceptionHandler filterExceptionHandler:
+                            return filterExceptionHandler.FilterStart.Equals(instruction.Label) ||
+                                   filterExceptionHandler.Start.Equals(instruction.Label);
+                        case CatchExceptionHandler catchExceptionHandler:
+                            return catchExceptionHandler.Start.Equals(instruction.Label);
+                        default:
+                            return false;
+                    }
+                }))
+                {
+                    stackSize.Increment();
+                }
 
                 if (!ignoredInstructions.Contains(Index))
                 {
@@ -54,6 +74,8 @@ namespace MetadataGenerator.Generators.Methods.Body
                 switchInstructionPlaceholder.FillWithRealTargets(labelToEncoderOffset);
             }
 
+            // FIXME revienta
+            maxStack = stackSize.MaxStackSize;
             return instructionEncoder;
         }
 
@@ -69,6 +91,7 @@ namespace MetadataGenerator.Generators.Methods.Body
         {
             instructionEncoder.OpCode(SRM.ILOpCode.Initobj);
             instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Type));
+            stackSize.Decrement();
         }
 
         public void Visit(BasicInstruction instruction)
@@ -88,6 +111,8 @@ namespace MetadataGenerator.Generators.Methods.Body
                         instructionEncoder.OpCode(SRM.ILOpCode.Add);
                     }
 
+                    stackSize.Decrement();
+
                     break;
                 case BasicOperation.Sub:
                     if (instruction.OverflowCheck)
@@ -99,6 +124,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                         instructionEncoder.OpCode(SRM.ILOpCode.Sub);
                     }
 
+                    stackSize.Decrement();
                     break;
                 case BasicOperation.Mul:
                     if (instruction.OverflowCheck)
@@ -110,42 +136,55 @@ namespace MetadataGenerator.Generators.Methods.Body
                         instructionEncoder.OpCode(SRM.ILOpCode.Mul);
                     }
 
+                    stackSize.Decrement();
                     break;
                 case BasicOperation.Div:
                     instructionEncoder.OpCode(instruction.UnsignedOperands ? SRM.ILOpCode.Div_un : SRM.ILOpCode.Div);
+                    stackSize.Decrement();
                     break;
                 case BasicOperation.Rem:
                     instructionEncoder.OpCode(instruction.UnsignedOperands ? SRM.ILOpCode.Rem_un : SRM.ILOpCode.Rem);
+                    stackSize.Decrement();
                     break;
                 case BasicOperation.And:
                     instructionEncoder.OpCode(SRM.ILOpCode.And);
+                    stackSize.Decrement();
                     break;
                 case BasicOperation.Or:
                     instructionEncoder.OpCode(SRM.ILOpCode.Or);
+                    stackSize.Decrement();
                     break;
                 case BasicOperation.Xor:
                     instructionEncoder.OpCode(SRM.ILOpCode.Xor);
+                    stackSize.Decrement();
                     break;
                 case BasicOperation.Shl:
                     instructionEncoder.OpCode(SRM.ILOpCode.Shl);
+                    stackSize.Decrement();
                     break;
                 case BasicOperation.Shr:
                     instructionEncoder.OpCode(instruction.UnsignedOperands ? SRM.ILOpCode.Shr_un : SRM.ILOpCode.Shr);
+                    stackSize.Decrement();
                     break;
                 case BasicOperation.Eq:
                     instructionEncoder.OpCode(SRM.ILOpCode.Ceq);
+                    stackSize.Decrement();
                     break;
                 case BasicOperation.Lt:
                     instructionEncoder.OpCode(instruction.UnsignedOperands ? SRM.ILOpCode.Clt_un : SRM.ILOpCode.Clt);
+                    stackSize.Decrement();
                     break;
                 case BasicOperation.Gt:
                     instructionEncoder.OpCode(instruction.UnsignedOperands ? SRM.ILOpCode.Cgt_un : SRM.ILOpCode.Cgt);
+                    stackSize.Decrement();
                     break;
                 case BasicOperation.Throw:
                     instructionEncoder.OpCode(SRM.ILOpCode.Throw);
+                    stackSize.Clear();
                     break;
                 case BasicOperation.Rethrow:
                     instructionEncoder.OpCode(SRM.ILOpCode.Rethrow);
+                    stackSize.Clear();
                     break;
                 case BasicOperation.Not:
                     instructionEncoder.OpCode(SRM.ILOpCode.Not);
@@ -155,24 +194,30 @@ namespace MetadataGenerator.Generators.Methods.Body
                     break;
                 case BasicOperation.Pop:
                     instructionEncoder.OpCode(SRM.ILOpCode.Pop);
+                    stackSize.Decrement();
                     break;
                 case BasicOperation.Dup:
                     instructionEncoder.OpCode(SRM.ILOpCode.Dup);
+                    stackSize.Increment();
                     break;
                 case BasicOperation.EndFinally:
                     instructionEncoder.OpCode(SRM.ILOpCode.Endfinally);
+                    stackSize.Clear();
                     break;
                 case BasicOperation.EndFilter:
                     instructionEncoder.OpCode(SRM.ILOpCode.Endfilter);
+                    stackSize.Clear();
                     break;
                 case BasicOperation.LocalAllocation:
                     instructionEncoder.OpCode(SRM.ILOpCode.Localloc);
                     break;
                 case BasicOperation.InitBlock:
                     instructionEncoder.OpCode(SRM.ILOpCode.Initblk);
+                    stackSize.Decrement(3);
                     break;
                 case BasicOperation.CopyBlock:
                     instructionEncoder.OpCode(SRM.ILOpCode.Cpblk);
+                    stackSize.Decrement(3);
                     break;
                 case BasicOperation.LoadArrayLength:
                     instructionEncoder.OpCode(SRM.ILOpCode.Ldlen);
@@ -212,6 +257,8 @@ namespace MetadataGenerator.Generators.Methods.Body
                         instructionEncoder.LoadLocalAddress(index);
                     }
 
+                    stackSize.Increment();
+
                     break;
                 }
                 case LoadOperation.Content:
@@ -228,6 +275,8 @@ namespace MetadataGenerator.Generators.Methods.Body
                         instructionEncoder.LoadLocal(index);
                     }
 
+                    stackSize.Increment();
+
                     break;
                 }
                 case LoadOperation.Value:
@@ -236,6 +285,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                     {
                         case null:
                             instructionEncoder.OpCode(SRM.ILOpCode.Ldnull);
+                            stackSize.Increment();
 
                             if (
                                 body.Instructions.Count > Index + 2 &&
@@ -246,6 +296,7 @@ namespace MetadataGenerator.Generators.Methods.Body
                                 // cgt_un is used as a compare-not-equal with null.
                                 // load null - compare eq - negate => ldnull - cgt_un
                                 instructionEncoder.OpCode(SRM.ILOpCode.Cgt_un);
+                                stackSize.Decrement();
 
                                 // skip processing next 2 instructions
                                 ignoredInstructions.Add(Index + 1);
@@ -255,21 +306,27 @@ namespace MetadataGenerator.Generators.Methods.Body
                             break;
                         case string value:
                             instructionEncoder.LoadString(metadataContainer.MetadataBuilder.GetOrAddUserString(value));
+                            stackSize.Increment();
                             break;
                         case int value:
                             instructionEncoder.LoadConstantI4(value);
+                            stackSize.Increment();
                             break;
                         case long value:
                             instructionEncoder.LoadConstantI8(value);
+                            stackSize.Increment();
                             break;
                         case float value:
                             instructionEncoder.LoadConstantR4(value);
+                            stackSize.Increment();
                             break;
                         case double value:
                             instructionEncoder.LoadConstantR8(value);
+                            stackSize.Increment();
                             break;
                         case bool value:
                             instructionEncoder.LoadConstantI4(value ? 1 : 0);
+                            stackSize.Increment();
                             break;
                         default:
                             throw new UnhandledCase();
@@ -337,25 +394,35 @@ namespace MetadataGenerator.Generators.Methods.Body
 
         public void Visit(LoadFieldInstruction instruction)
         {
+            var isStatic = instruction.Field.IsStatic;
             switch (instruction.Operation)
             {
                 case LoadFieldOperation.Content:
-                    instructionEncoder.OpCode(instruction.Field.IsStatic ? SRM.ILOpCode.Ldsfld : SRM.ILOpCode.Ldfld);
+                    instructionEncoder.OpCode(isStatic ? SRM.ILOpCode.Ldsfld : SRM.ILOpCode.Ldfld);
                     break;
                 case LoadFieldOperation.Address:
-                    instructionEncoder.OpCode(instruction.Field.IsStatic ? SRM.ILOpCode.Ldsflda : SRM.ILOpCode.Ldflda);
+                    instructionEncoder.OpCode(isStatic ? SRM.ILOpCode.Ldsflda : SRM.ILOpCode.Ldflda);
                     break;
                 default:
                     throw new UnhandledCase();
             }
 
             instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Field));
+            if (isStatic)
+            {
+                stackSize.Increment();
+            }
         }
 
         public void Visit(LoadMethodAddressInstruction instruction)
         {
-            instructionEncoder.OpCode(instruction.Method.IsVirtual ? SRM.ILOpCode.Ldvirtftn : SRM.ILOpCode.Ldftn);
+            var isVirtual = instruction.Method.IsVirtual;
+            instructionEncoder.OpCode(isVirtual ? SRM.ILOpCode.Ldvirtftn : SRM.ILOpCode.Ldftn);
             instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Method));
+            if (!isVirtual)
+            {
+                stackSize.Increment();
+            }
         }
 
         public void Visit(StoreIndirectInstruction instruction)
@@ -397,6 +464,8 @@ namespace MetadataGenerator.Generators.Methods.Body
                 instructionEncoder.OpCode(SRM.ILOpCode.Stobj);
                 instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Type));
             }
+
+            stackSize.Decrement(2);
         }
 
         public void Visit(StoreInstruction instruction)
@@ -412,12 +481,16 @@ namespace MetadataGenerator.Generators.Methods.Body
                 var index = body.LocalVariables.IndexOf(target);
                 instructionEncoder.StoreLocal(index);
             }
+
+            stackSize.Decrement();
         }
 
         public void Visit(StoreFieldInstruction instruction)
         {
-            instructionEncoder.OpCode(instruction.Field.IsStatic ? SRM.ILOpCode.Stsfld : SRM.ILOpCode.Stfld);
+            var isStatic = instruction.Field.IsStatic;
+            instructionEncoder.OpCode(isStatic ? SRM.ILOpCode.Stsfld : SRM.ILOpCode.Stfld);
             instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Field));
+            stackSize.Decrement(isStatic ? 1 : 2);
         }
 
         public void Visit(ConvertInstruction instruction)
@@ -609,27 +682,34 @@ namespace MetadataGenerator.Generators.Methods.Body
                     break;
                 case BranchOperation.Eq:
                     opCode = SRM.ILOpCode.Beq;
+                    stackSize.Decrement(2);
                     break;
                 case BranchOperation.Neq:
                     opCode = SRM.ILOpCode.Bne_un;
+                    stackSize.Decrement(2);
                     break;
                 case BranchOperation.Lt:
                     opCode = instruction.UnsignedOperands ? SRM.ILOpCode.Blt_un : SRM.ILOpCode.Blt;
+                    stackSize.Decrement(2);
                     break;
                 case BranchOperation.Le:
                     opCode = instruction.UnsignedOperands ? SRM.ILOpCode.Ble_un : SRM.ILOpCode.Ble;
+                    stackSize.Decrement(2);
                     break;
                 case BranchOperation.Gt:
                     opCode = instruction.UnsignedOperands ? SRM.ILOpCode.Bgt_un : SRM.ILOpCode.Bgt;
+                    stackSize.Decrement(2);
                     break;
                 case BranchOperation.Ge:
                     opCode = instruction.UnsignedOperands ? SRM.ILOpCode.Bge_un : SRM.ILOpCode.Bge;
+                    stackSize.Decrement(2);
                     break;
                 case BranchOperation.Branch:
                     opCode = SRM.ILOpCode.Br;
                     break;
                 case BranchOperation.Leave:
                     opCode = SRM.ILOpCode.Leave;
+                    stackSize.Clear();
                     break;
                 default:
                     throw new UnhandledCase();
@@ -653,18 +733,21 @@ namespace MetadataGenerator.Generators.Methods.Body
                 targetsReserveBytes,
                 instruction.Targets);
             switchInstructionsPlaceHolders.Add(switchInstructionPlaceholder);
+            stackSize.Decrement();
         }
 
         public void Visit(SizeofInstruction instruction)
         {
             instructionEncoder.OpCode(SRM.ILOpCode.Sizeof);
             instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.MeasuredType));
+            stackSize.Increment();
         }
 
         public void Visit(LoadTokenInstruction instruction)
         {
             instructionEncoder.OpCode(SRM.ILOpCode.Ldtoken);
             instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Token));
+            stackSize.Increment();
         }
 
         public void Visit(MethodCallInstruction instruction)
@@ -673,13 +756,20 @@ namespace MetadataGenerator.Generators.Methods.Body
             {
                 case MethodCallOperation.Virtual:
                     instructionEncoder.CallVirtual(metadataContainer.MetadataResolver.HandleOf(instruction.Method));
+                    stackSize.Decrement(instruction.Method.Parameters.Count + 1);
                     break;
                 case MethodCallOperation.Static:
                 case MethodCallOperation.Jump:
                     instructionEncoder.Call(metadataContainer.MetadataResolver.HandleOf(instruction.Method));
+                    stackSize.Decrement(instruction.Method.Parameters.Count);
                     break;
                 default:
                     throw new UnhandledCase();
+            }
+
+            if (!instruction.Method.ReturnType.Equals(PlatformTypes.Void))
+            {
+                stackSize.Increment();
             }
         }
 
@@ -687,6 +777,11 @@ namespace MetadataGenerator.Generators.Methods.Body
         {
             var methodSignature = metadataContainer.MetadataResolver.HandleOf(instruction.Function);
             instructionEncoder.CallIndirect((SRM.StandaloneSignatureHandle) methodSignature);
+            stackSize.Decrement(instruction.Function.Parameters.Count + 1);
+            if (!instruction.Function.ReturnType.Equals(PlatformTypes.Void))
+            {
+                stackSize.Increment();
+            }
         }
 
         public void Visit(CreateObjectInstruction instruction)
@@ -694,6 +789,8 @@ namespace MetadataGenerator.Generators.Methods.Body
             var method = metadataContainer.MetadataResolver.HandleOf(instruction.Constructor);
             instructionEncoder.OpCode(SRM.ILOpCode.Newobj);
             instructionEncoder.Token(method);
+            stackSize.Decrement(instruction.Constructor.Parameters.Count);
+            stackSize.Increment();
         }
 
         public void Visit(CreateArrayInstruction instruction)
@@ -708,6 +805,8 @@ namespace MetadataGenerator.Generators.Methods.Body
                 var method = metadataContainer.MetadataResolver.HandleOf(instruction.Constructor);
                 instructionEncoder.OpCode(SRM.ILOpCode.Newobj);
                 instructionEncoder.Token(method);
+                stackSize.Decrement(instruction.Constructor.Parameters.Count);
+                stackSize.Increment();
             }
         }
 
@@ -716,6 +815,8 @@ namespace MetadataGenerator.Generators.Methods.Body
             if (instruction.Method != null)
             {
                 instructionEncoder.Call(metadataContainer.MetadataResolver.HandleOf(instruction.Method));
+                stackSize.Decrement(instruction.Method.Parameters.Count);
+                stackSize.Increment(); // FIXME creo que esto es porque en este caso se usa un metodo Get();
             }
             else
             {
@@ -784,6 +885,8 @@ namespace MetadataGenerator.Generators.Methods.Body
                     default:
                         throw new UnhandledCase();
                 }
+
+                stackSize.Decrement();
             }
         }
 
@@ -792,43 +895,50 @@ namespace MetadataGenerator.Generators.Methods.Body
             if (instruction.Method != null)
             {
                 instructionEncoder.Call(metadataContainer.MetadataResolver.HandleOf(instruction.Method));
-            }
-            else if (instruction.Array.ElementsType.Equals(PlatformTypes.Int8))
-            {
-                instructionEncoder.OpCode(SRM.ILOpCode.Stelem_i1);
-            }
-            else if (instruction.Array.ElementsType.Equals(PlatformTypes.Int16))
-            {
-                instructionEncoder.OpCode(SRM.ILOpCode.Stelem_i2);
-            }
-            else if (instruction.Array.ElementsType.Equals(PlatformTypes.Int32))
-            {
-                instructionEncoder.OpCode(SRM.ILOpCode.Stelem_i4);
-            }
-            else if (instruction.Array.ElementsType.Equals(PlatformTypes.Int64))
-            {
-                instructionEncoder.OpCode(SRM.ILOpCode.Stelem_i8);
-            }
-            else if (instruction.Array.ElementsType.Equals(PlatformTypes.Float32))
-            {
-                instructionEncoder.OpCode(SRM.ILOpCode.Stelem_r4);
-            }
-            else if (instruction.Array.ElementsType.Equals(PlatformTypes.Float64))
-            {
-                instructionEncoder.OpCode(SRM.ILOpCode.Stelem_r8);
-            }
-            else if (instruction.Array.ElementsType.Equals(PlatformTypes.IntPtr))
-            {
-                instructionEncoder.OpCode(SRM.ILOpCode.Stelem_i);
-            }
-            else if (instruction.Array.ElementsType.Equals(PlatformTypes.Object))
-            {
-                instructionEncoder.OpCode(SRM.ILOpCode.Stelem_ref);
+                stackSize.Decrement(instruction.Method.Parameters.Count);
+                // FIXME y aca no iria increment porque es un Set()
             }
             else
             {
-                instructionEncoder.OpCode(SRM.ILOpCode.Stelem);
-                instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Array.ElementsType));
+                if (instruction.Array.ElementsType.Equals(PlatformTypes.Int8))
+                {
+                    instructionEncoder.OpCode(SRM.ILOpCode.Stelem_i1);
+                }
+                else if (instruction.Array.ElementsType.Equals(PlatformTypes.Int16))
+                {
+                    instructionEncoder.OpCode(SRM.ILOpCode.Stelem_i2);
+                }
+                else if (instruction.Array.ElementsType.Equals(PlatformTypes.Int32))
+                {
+                    instructionEncoder.OpCode(SRM.ILOpCode.Stelem_i4);
+                }
+                else if (instruction.Array.ElementsType.Equals(PlatformTypes.Int64))
+                {
+                    instructionEncoder.OpCode(SRM.ILOpCode.Stelem_i8);
+                }
+                else if (instruction.Array.ElementsType.Equals(PlatformTypes.Float32))
+                {
+                    instructionEncoder.OpCode(SRM.ILOpCode.Stelem_r4);
+                }
+                else if (instruction.Array.ElementsType.Equals(PlatformTypes.Float64))
+                {
+                    instructionEncoder.OpCode(SRM.ILOpCode.Stelem_r8);
+                }
+                else if (instruction.Array.ElementsType.Equals(PlatformTypes.IntPtr))
+                {
+                    instructionEncoder.OpCode(SRM.ILOpCode.Stelem_i);
+                }
+                else if (instruction.Array.ElementsType.Equals(PlatformTypes.Object))
+                {
+                    instructionEncoder.OpCode(SRM.ILOpCode.Stelem_ref);
+                }
+                else
+                {
+                    instructionEncoder.OpCode(SRM.ILOpCode.Stelem);
+                    instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Array.ElementsType));
+                }
+
+                stackSize.Decrement(3);
             }
         }
 
@@ -855,6 +965,38 @@ namespace MetadataGenerator.Generators.Methods.Body
                     var offset = labelToEncoderOffset[target] - nextInstructionEncoderOffset;
                     writer.WriteInt32(offset);
                 }
+            }
+        }
+
+        private class StackSize
+        {
+            private int currentStackSize;
+            public int MaxStackSize { get; private set; }
+
+            public StackSize()
+            {
+                currentStackSize = 0;
+                MaxStackSize = 0;
+            }
+
+            public void Increment()
+            {
+                currentStackSize += 1;
+                if (currentStackSize > MaxStackSize)
+                {
+                    MaxStackSize = currentStackSize;
+                }
+            }
+
+            public void Decrement(int times = 1)
+            {
+                if (currentStackSize < times) throw new Exception("Stack size cannot be less than 0");
+                currentStackSize -= times;
+            }
+
+            public void Clear()
+            {
+                currentStackSize = 0;
             }
         }
     }
