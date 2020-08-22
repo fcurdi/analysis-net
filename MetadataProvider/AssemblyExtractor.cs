@@ -1375,7 +1375,10 @@ namespace MetadataProvider
 			CreateGenericParameterReferences(GenericParameterKind.Method, genericArguments.Length);
 
 			var method = GetMethodReference(methodspec.Method);
-			method = method.Instantiate(genericArguments);
+			// method might have not been extracted yet so some fields might be missing (ex: returnType, isStatic, etc).
+			// a proxy is used instead so when the method is actually extracted, this instantiated one is updated as well.
+			// Otherwise the instantiated one would have some null fields.
+			method = new MethodInstantiationProxy(method, genericArguments);
 
 			BindGenericParameterReferences(GenericParameterKind.Method, method);
 			return method;
