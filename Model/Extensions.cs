@@ -570,22 +570,5 @@ namespace Model
 				default: throw kind.ToUnknownValueException();
 			}
 		}
-
-		public static bool IsIntType(this IType type) =>
-			new[]
-			{
-				PlatformTypes.Int8,
-				PlatformTypes.UInt8,
-				PlatformTypes.Int16,
-				PlatformTypes.UInt16,
-				PlatformTypes.Int32,
-				PlatformTypes.UInt32,
-				PlatformTypes.Int64,
-				PlatformTypes.UInt64
-			}.Contains(type);
-
-		public static bool IsFloatType(this IType type) => new[] {PlatformTypes.Float32, PlatformTypes.Float64}.Contains(type);
-		
-		public static bool IsOneOf(this IType type, params IType[] types) => types.Contains(type);
 	}
 }

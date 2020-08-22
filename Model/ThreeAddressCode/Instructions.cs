@@ -72,7 +72,6 @@ namespace Model.ThreeAddressCode.Instructions
 		Jump
 	}
 
-	// FIXME names
 	public enum FilterInstructionKind
 	{
 		FilterSection,

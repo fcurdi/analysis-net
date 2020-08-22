@@ -75,7 +75,6 @@ namespace Model.Types
 
 		public static readonly BasicType PureAttribute = New("mscorlib", "System.Diagnostics.Contracts", "PureAttribute", TypeKind.ReferenceType);
 		public static readonly BasicType ICollection = New("mscorlib", "System.Collections", "ICollection", TypeKind.ReferenceType);
-		public static readonly BasicType List = New("mscorlib", "System.Collections.Generic", "List", TypeKind.ReferenceType);
         public static readonly BasicType IEnumerable = New("mscorlib", "System.Collections", "IEnumerable", TypeKind.ReferenceType);
         public static readonly BasicType IEnumerator = New("mscorlib", "System.Collections", "IEnumerator", TypeKind.ReferenceType);
 		public static readonly BasicType GenericICollection = New("mscorlib", "System.Collections.Generic", "ICollection", TypeKind.ReferenceType, 1);
