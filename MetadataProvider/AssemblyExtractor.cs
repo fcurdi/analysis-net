@@ -683,12 +683,6 @@ namespace MetadataProvider
 					// within a generic method body, "this" is not the generic type itself but its instantiation
 					type = currentMethod.ContainingType.Instantiate(currentMethod.ContainingType.GenericParameters);
 				}
-
-				if (currentMethod.ContainingType.GenericParameters.Count > 0)
-				{
-					// within a generic method body, "this" is not the generic type itself but its instantiation
-					type = currentMethod.ContainingType.Instantiate(currentMethod.ContainingType.GenericParameters);
-				}
 				
 				if (type.TypeKind == TypeKind.ValueType)
 				{
