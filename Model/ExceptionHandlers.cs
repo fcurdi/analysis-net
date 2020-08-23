@@ -35,11 +35,15 @@ namespace Model
 		public string End { get; set; }
 		public IExceptionHandler Handler { get; set; }
 
-		public ProtectedBlock(uint start, uint end)
+		public ProtectedBlock(uint start, uint end) : this($"L_{start:X4}", $"L_{end:X4}")
+		{
+		}
+
+		public ProtectedBlock(string start, string end)
 		{
 			this.Kind = ExceptionHandlerBlockKind.Try;
-			this.Start = string.Format("L_{0:X4}", start);
-			this.End = string.Format("L_{0:X4}", end);
+			this.Start = start;
+			this.End = end;
 		}
 
 		public override string ToString()
@@ -57,11 +61,16 @@ namespace Model
 		public IType ExceptionType { get; set; }
 
 		public FilterExceptionHandler(uint filterStart, uint start, uint end, IType exceptionType)
+			: this($"L_{filterStart:X4}", $"L_{start:X4}", $"L_{end:X4}", exceptionType)
+		{
+		}
+
+		public FilterExceptionHandler(string filterStart, string start, string end, IType exceptionType)
 		{
 			this.Kind = ExceptionHandlerBlockKind.Filter;
-			this.FilterStart = string.Format("L_{0:X4}", filterStart);
-			this.Start = string.Format("L_{0:X4}", start);
-			this.End = string.Format("L_{0:X4}", end);
+			this.FilterStart = filterStart;
+			this.Start = start;
+			this.End = end;
 			this.ExceptionType = exceptionType;
 		}
 
@@ -78,11 +87,15 @@ namespace Model
 		public string End { get; set; }
 		public IType ExceptionType { get; set; }
 
-		public CatchExceptionHandler(uint start, uint end, IType exceptionType)
+		public CatchExceptionHandler(uint start, uint end, IType exceptionType) : this($"L_{start:X4}", $"L_{end:X4}", exceptionType)
+		{
+		}
+
+		public CatchExceptionHandler(string start, string end, IType exceptionType)
 		{
 			this.Kind = ExceptionHandlerBlockKind.Catch;
-			this.Start = string.Format("L_{0:X4}", start);
-			this.End = string.Format("L_{0:X4}", end);
+			this.Start = start;
+			this.End = end;
 			this.ExceptionType = exceptionType;
 		}
 
@@ -98,11 +111,15 @@ namespace Model
 		public string Start { get; set; }
 		public string End { get; set; }
 
-		public FaultExceptionHandler(uint start, uint end)
+		public FaultExceptionHandler(uint start, uint end) : this($"L_{start:X4}", $"L_{end:X4}")
+		{
+		}
+
+		public FaultExceptionHandler(string start, string end)
 		{
 			this.Kind = ExceptionHandlerBlockKind.Fault;
-			this.Start = string.Format("L_{0:X4}", start);
-			this.End = string.Format("L_{0:X4}", end);
+			this.Start = start;
+			this.End = end;
 		}
 
 		public override string ToString()
@@ -117,11 +134,15 @@ namespace Model
 		public string Start { get; set; }
 		public string End { get; set; }
 
-		public FinallyExceptionHandler(uint start, uint end)
+		public FinallyExceptionHandler(uint start, uint end) : this($"L_{start:X4}", $"L_{end:X4}")
+		{
+		}
+
+		public FinallyExceptionHandler(string start, string end)
 		{
 			this.Kind = ExceptionHandlerBlockKind.Finally;
-			this.Start = string.Format("L_{0:X4}", start);
-			this.End = string.Format("L_{0:X4}", end);
+			this.Start = start;
+			this.End = end;
 		}
 
 		public override string ToString()
