@@ -217,7 +217,7 @@ namespace Model.Bytecode
 			: this(label, operation, $"L_{target:X4}")
 		{
 		}
-		
+
 		public BranchInstruction(uint label, BranchOperation operation, string target)
 			: base(label)
 		{

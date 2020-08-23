@@ -114,7 +114,7 @@ namespace Model
 		public FaultExceptionHandler(uint start, uint end) : this($"L_{start:X4}", $"L_{end:X4}")
 		{
 		}
-		
+
 		public FaultExceptionHandler(string start, string end)
 		{
 			this.Kind = ExceptionHandlerBlockKind.Fault;
