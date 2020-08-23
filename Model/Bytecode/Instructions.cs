@@ -213,10 +213,11 @@ namespace Model.Bytecode
 		public string Target { get; set; }
 		public bool UnsignedOperands { get; set; }
 
-		public BranchInstruction(uint label, BranchOperation operation, uint target) 
+		public BranchInstruction(uint label, BranchOperation operation, uint target)
 			: this(label, operation, $"L_{target:X4}")
 		{
 		}
+		
 		public BranchInstruction(uint label, BranchOperation operation, string target)
 			: base(label)
 		{
@@ -244,7 +245,7 @@ namespace Model.Bytecode
 			: this(label, targets.Select(target => $"L_{target:X4}").ToList())
 		{
 		}
-		
+
 		public SwitchInstruction(uint label, IEnumerable<string> targets)
 			: base(label)
 		{
