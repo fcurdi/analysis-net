@@ -34,11 +34,5 @@
     <Compile Include="ExamplesEXE.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Examples\Examples.csproj">
-      <Project>{73254DAD-0794-4BFA-A894-A24B79A006D0}</Project>
-      <Name>Examples</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
