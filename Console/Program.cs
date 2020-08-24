@@ -508,9 +508,8 @@ namespace Console
 			return writeLineMethod;
 		}
 
-		private static void DisassembleAndThenAssemble()
+		private static void ReadAndGenerateDll(bool transformToTacAndBackToBytecode) 
 		{
-			// FIXME PROBAR generar y correr tests (+pedump) CONVIRTIENDO Y SIN CONVERTIR a tac
 			var inputs = new[]
 			{
 				new[] {"../../../Examples/bin/Debug/Examples.dll"},
@@ -547,6 +546,35 @@ namespace Console
 				System.Console.WriteLine($"Reading {file}");
 				var loader = new MetadataProvider.Loader(host);
 				loader.LoadAssembly(file);
+
+				if (transformToTacAndBackToBytecode)
+				{
+					var allDefinedMethods = (from a in host.Assemblies
+						from t in a.RootNamespace.GetAllTypes()
+						from m in t.Members.OfType<MethodDefinition>()
+						where m.HasBody
+						select m).ToList();
+
+					foreach (var method in allDefinedMethods)
+					{
+						var tac = new Backend.Transformations.Disassembler(method).Execute();
+						method.Body = tac;
+
+						var cfanalysis = new ControlFlowAnalysis(method.Body);
+						var cfg = cfanalysis.GenerateExceptionalControlFlow();
+
+						var webAnalysis = new WebAnalysis(cfg);
+						webAnalysis.Analyze();
+						webAnalysis.Transform();
+						method.Body.UpdateVariables();
+
+						var typeInferenceAnalysis = new TypeInferenceAnalysis(cfg, method.ReturnType);
+						typeInferenceAnalysis.Analyze();
+						
+						var bytecode = new Backend.Transformations.Assembly.Assembler(method).Execute();
+						method.Body = bytecode;
+					}
+				}
 
 				var generator = new MetadataGenerator.Generator();
 
@@ -623,9 +651,10 @@ namespace Console
 
 		static void Main(string[] args)
 		{
-			//DisassembleAndThenAssemble();
-			//TacInstrumentation();
-			// HelloWorldAssembly();
+//			ReadAndGenerateDll(false);
+//			ReadAndGenerateDll(true);
+//			TacInstrumentation();
+//			HelloWorldAssembly();
 			RemoveUnusedMethodFromSimpleExecutable();
 		
 			System.Console.WriteLine("Done!");
