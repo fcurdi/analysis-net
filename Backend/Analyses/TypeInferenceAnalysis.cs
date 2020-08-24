@@ -56,26 +56,28 @@ namespace Backend.Analyses
 			{
 				if (instruction.HasResult)
 				{
-
-					if (instruction.Method.ReturnType is GenericParameterReference genericParameterReference)
+					instruction.Result.Type = instruction.Method.ReturnType;
+					
+					// if returnType is a genericParameter that is instantiated, then use its instantiated type
+					if (instruction.Method.ReturnType is IGenericParameterReference genericParameterReference)
 					{
+						IList<IType> genericArguments;
 						switch (genericParameterReference.Kind)
 						{
 							case GenericParameterKind.Type:
-								instruction.Result.Type = (genericParameterReference.GenericContainer as IBasicType).GenericArguments[genericParameterReference.Index];
+								genericArguments = ((IBasicType) genericParameterReference.GenericContainer).GenericArguments;
 								break;
 							case GenericParameterKind.Method:
-								instruction.Result.Type = (genericParameterReference.GenericContainer as IMethodReference).GenericArguments[genericParameterReference.Index];
+								genericArguments = ((IMethodReference) genericParameterReference.GenericContainer).GenericArguments;
 								break;
 							default:
-								throw new ArgumentOutOfRangeException();
+								throw genericParameterReference.Kind.ToUnknownValueException();
+						}
+						if (genericArguments.Count > 0)
+						{
+							instruction.Result.Type = genericArguments[genericParameterReference.Index];
 						}
 					}
-					else
-					{
-						instruction.Result.Type = instruction.Method.ReturnType;
-					}
-
 				}
 
 				// Skip implicit "this" parameter.

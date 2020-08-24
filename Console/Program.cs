@@ -651,11 +651,11 @@ namespace Console
 
 		static void Main(string[] args)
 		{
-//			ReadAndGenerateDll(false);
-//			ReadAndGenerateDll(true);
-//			TacInstrumentation();
-//			HelloWorldAssembly();
-			RemoveUnusedMethodFromSimpleExecutable();
+		//	ReadAndGenerateDll(false);
+			ReadAndGenerateDll(true);
+		//	TacInstrumentation();
+		//	HelloWorldAssembly();
+		//	RemoveUnusedMethodFromSimpleExecutable();
 		
 			System.Console.WriteLine("Done!");
 		}
