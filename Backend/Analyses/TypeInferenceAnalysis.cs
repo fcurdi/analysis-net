@@ -10,6 +10,7 @@ using Model.ThreeAddressCode.Visitor;
 using Backend.Model;
 using Model.ThreeAddressCode.Values;
 using Backend.Utils;
+using Model;
 
 namespace Backend.Analyses
 {
@@ -56,6 +57,27 @@ namespace Backend.Analyses
 				if (instruction.HasResult)
 				{
 					instruction.Result.Type = instruction.Method.ReturnType;
+					
+					// if returnType is a genericParameter that is instantiated, then use its instantiated type
+					if (instruction.Method.ReturnType is IGenericParameterReference genericParameterReference)
+					{
+						IList<IType> genericArguments;
+						switch (genericParameterReference.Kind)
+						{
+							case GenericParameterKind.Type:
+								genericArguments = ((IBasicType) genericParameterReference.GenericContainer).GenericArguments;
+								break;
+							case GenericParameterKind.Method:
+								genericArguments = ((IMethodReference) genericParameterReference.GenericContainer).GenericArguments;
+								break;
+							default:
+								throw genericParameterReference.Kind.ToUnknownValueException();
+						}
+						if (genericArguments.Count > 0)
+						{
+							instruction.Result.Type = genericArguments[genericParameterReference.Index];
+						}
+					}
 				}
 
 				// Skip implicit "this" parameter.
