@@ -325,7 +325,7 @@ namespace Model.ThreeAddressCode.Values
 			var other = obj as LocalVariable;
 
 			return other != null &&
-			       this.Name.Equals(other.Name);
+			        this.Name.Equals(other.Name);
 		}
 
 		public override int GetHashCode()
@@ -784,7 +784,6 @@ namespace Model.ThreeAddressCode.Values
 	{
 		public IVariable Array { get; set; }
 		public IList<IVariable> Indices { get; set; }
-		
 		public IMethodReference Method { get; set; }
 		public ArrayElementAccess(IVariable array, IEnumerable<IVariable> indices)
 		{

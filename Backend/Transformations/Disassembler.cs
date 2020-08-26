@@ -553,7 +553,7 @@ namespace Backend.Transformations
                 }
 
                 var array = stack.Pop(); 
-                
+
                 indices.Reverse();
 
                 var dest = stack.Push();
@@ -596,9 +596,9 @@ namespace Backend.Transformations
 				}
 
 				var array = stack.Pop();
-				
+
 				indices.Reverse();
-				
+
 				var dest = new ArrayElementAccess(array, indices) { Method = op.Method};
 				var instruction = new Tac.StoreInstruction(op.Offset, dest, source);
 				body.Instructions.Add(instruction);
@@ -1034,7 +1034,7 @@ namespace Backend.Transformations
 				//body.LocalVariables.AddRange(stack.Variables);
 				body.UpdateVariables();
 			}
-			
+
 			return body;
 		}
 
@@ -1080,7 +1080,8 @@ namespace Backend.Transformations
 							break;
 
 						case ExceptionHandlerBlockKind.Filter:
-							var filterException = stack.Push(); // Push the exception into the stack
+							// Push the exception into the stack
+							var filterException = stack.Push();
 							var filterBlock = (FilterExceptionHandler) block;
 							var kind = operation.Label.Equals(filterBlock.FilterStart)
 								? Tac.FilterInstructionKind.FilterSection
@@ -1089,7 +1090,8 @@ namespace Backend.Transformations
 							break;
 
 						case ExceptionHandlerBlockKind.Catch:
-							var catchException = stack.Push(); // Push the exception into the stack
+							// Push the exception into the stack
+							var catchException = stack.Push();
 							var catchBlock = block as CatchExceptionHandler;
 							instruction = new Tac.CatchInstruction(operation.Offset, catchException, catchBlock.ExceptionType);
 							break;

@@ -15,7 +15,7 @@ namespace Model.ThreeAddressCode.Visitor
 			foreach (var instruction in container.Instructions)
 			{
 				var tacInstruction = instruction as Instruction;
-				tacInstruction.Accept(this);	
+				tacInstruction.Accept(this);
 			}
 		}
 
