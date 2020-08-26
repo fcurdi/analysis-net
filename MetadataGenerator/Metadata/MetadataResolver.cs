@@ -11,10 +11,6 @@ using static MetadataGenerator.Generators.TypeGenerator;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
-// TODO revisar si esas keys que pongo en los getOrAdd (al ser mas precisas) estan funcionando o hacen que siempre se agregue uno nuevo
-// TODO para esto comparar sin guardar ninguna cuanto da el conteo de las tablas y guardando despues.
-// TODO ver si conviene usar blobhandle, byteArray de la signature  u otro. Evaluarlo tabla por tabla, quiza algunas andan bien y otras no
-// TODO mas alla de la eficiencia, algunas tablas no admiten duplicados por lo que si no rompe por eso es que algunas esta usando.
 namespace MetadataGenerator.Metadata
 {
     internal class MetadataResolver

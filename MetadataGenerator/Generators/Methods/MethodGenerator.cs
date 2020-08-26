@@ -42,10 +42,8 @@ namespace MetadataGenerator.Generators.Methods
             }
 
             var methodImplementationAttributes =
-                SR.MethodImplAttributes.IL |
-                (!method.HasBody && !method.IsAbstract // FIXME Could also be PinvokeImpl or InternalCall in some special cases 
-                    ? SR.MethodImplAttributes.Runtime
-                    : SR.MethodImplAttributes.Managed);
+                SR.MethodImplAttributes.IL | 
+                (!method.HasBody && !method.IsAbstract ? SR.MethodImplAttributes.Runtime : SR.MethodImplAttributes.Managed);
 
             var methodDefinitionHandle = metadataContainer.MetadataBuilder.AddMethodDefinition(
                 attributes: GetMethodAttributesFor(method),

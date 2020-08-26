@@ -48,7 +48,6 @@ namespace Backend.Transformations.Assembly
         public MethodBody Execute()
         {
             var body = new MethodBody(MethodBodyKind.Bytecode);
-            body.MaxStack = 20; // FIXME calcular
             body.Parameters.AddRange(method.Body.Parameters);
 
             for (Index = 0; Index < method.Body.Instructions.Count; Index++)

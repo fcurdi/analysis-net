@@ -57,7 +57,6 @@ namespace MetadataGenerator.Generators.Methods
                         }
                         else
                         {
-                            // TODO isByRef param. ref in return type is not in the model
                             var encoder = returnTypeEncoder.Type();
                             metadataContainer.MetadataResolver.Encode(returnType, encoder);
                         }

@@ -24,7 +24,6 @@ namespace MetadataGenerator.Generators.Methods.Body
                 var encoder = new ECMA335.BlobEncoder(signature).LocalVariableSignature(localVariables.Count);
                 foreach (var localVariable in localVariables)
                 {
-                    // TODO pinned is achieved by the fixed keyword and this is not in the model
                     metadataContainer.MetadataResolver.Encode(localVariable.Type, encoder.AddVariable().Type(isPinned: false));
                 }
 

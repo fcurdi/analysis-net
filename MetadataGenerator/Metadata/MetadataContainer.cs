@@ -105,9 +105,6 @@ namespace MetadataGenerator.Metadata
                 .ForEach(row => MetadataBuilder.AddInterfaceImplementation(row.Type, row.ImplementedInterface));
 
         #region Rows
-
-        // FIXME hacen falta los equality members? Deberian mirar todos los campos?
-
         private class InterfaceImplementationRow
         {
             public readonly SRM.TypeDefinitionHandle Type;
