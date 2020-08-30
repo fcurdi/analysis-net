@@ -633,7 +633,7 @@ namespace Console
 				method.Body = bytecode;
 			}
 			
-			// remove unsued method
+			// remove unused method
 			var unusedMethod = allDefinedMethods.Except(callGraph.Methods).First();
 			var type = (TypeDefinition) unusedMethod.ContainingType;
 			var onlyUsedMethods = type.Methods.Where(method => !method.Equals(unusedMethod)).ToList();

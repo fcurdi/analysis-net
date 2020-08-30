@@ -228,9 +228,7 @@ namespace MetadataGenerator.Generation
 
             return memberReferenceHandle;
         }
-
-        // SignatureTypeEncoder is a struct but it is not necessary to pass it by reference since 
-        // it operates on its Builder (BlobBuilder) which is a class (that means the builder reference is always the same)
+        
         public void Encode(IType type, ECMA335.SignatureTypeEncoder encoder)
         {
             if (type.Equals(PlatformTypes.Boolean)) encoder.Boolean();
