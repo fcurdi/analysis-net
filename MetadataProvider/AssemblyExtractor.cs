@@ -116,8 +116,8 @@ namespace MetadataProvider
 
 		private AssemblyKind AssemblyKindFrom(SRPE.PEHeaders headers)
 		{
-			if (headers.IsDll) return AssemblyKind.DLL;
-			if (headers.IsExe || headers.IsConsoleApplication) return AssemblyKind.EXE;
+			if (headers.IsDll) return AssemblyKind.Dll;
+			if (headers.IsExe || headers.IsConsoleApplication) return AssemblyKind.Exe;
 			else throw new Exception("Assembly kind not supported");
 		}
 
