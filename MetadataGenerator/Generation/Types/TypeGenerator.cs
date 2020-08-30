@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using MetadataGenerator.Generation.CustomAttributes;
 using MetadataGenerator.Generation.Fields;
 using MetadataGenerator.Generation.Methods;
-using MetadataGenerator.Generation.Methods.Body;
+using MetadataGenerator.Generation.Properties;
 using Model.Types;
-using static MetadataGenerator.AttributesProvider;
+using static MetadataGenerator.Generation.AttributesProvider;
 using static MetadataGenerator.Generation.GenericParameterGenerator;
 using static MetadataGenerator.Generation.Types.InterfaceImplementationGenerator;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
@@ -97,7 +99,6 @@ namespace MetadataGenerator.Generation.Types
                 }
             }
 
-            // FIXME se puede llevar a otro lado esto?
             foreach (var methodOverride in methodOverrides)
             {
                 metadataBuilder.AddMethodImplementation(
@@ -124,14 +125,12 @@ namespace MetadataGenerator.Generation.Types
             return typeDefinitionHandle;
         }
 
-        /**
-         * CLS-compliant generic type names are encoded using the format “name[`arity]”, where […] indicates that the grave accent character “`” and
-         * arity together are optional. The encoded name shall follow these rules:
-         *     - name shall be an ID that does not contain the “`” character.
-         *     - arity is specified as an unsigned decimal number without leading zeros or spaces.
-         *     - For a normal generic type, arity is the number of type parameters declared on the type.
-         *     - For a nested generic type, arity is the number of newly introduced type parameters.
-         */
+        // CLS-compliant generic type names are encoded using the format “name[`arity]”, where […] indicates that the grave accent character “`” and
+        // arity together are optional. The encoded name shall follow these rules:
+        //     - name shall be an ID that does not contain the “`” character.
+        //     - arity is specified as an unsigned decimal number without leading zeros or spaces.
+        //     - For a normal generic type, arity is the number of type parameters declared on the type.
+        //     - For a nested generic type, arity is the number of newly introduced type parameters.
         public static string TypeNameOf(IBasicType type)
         {
             var typeName = type.Name;
@@ -146,7 +145,7 @@ namespace MetadataGenerator.Generation.Types
                         {
                             case BasicType bt: return bt.GenericArguments.Select(elem => ((IBasicType) elem).Name).ToList();
                             case TypeDefinition td: return td.GenericParameters.Select(elem => elem.Name).ToList();
-                            default: throw new UnhandledCase();
+                            default: throw new Exception("Not supported");
                         }
                     }
 

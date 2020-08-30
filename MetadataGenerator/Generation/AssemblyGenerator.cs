@@ -25,11 +25,9 @@ namespace MetadataGenerator.Generation
             moduleGenerator.GenerateModuleFor(assembly);
             namespaceGenerator.Generate(assembly.RootNamespace);
 
-            /*
-             * Some tables must be sorted by one or more of their columns. Since the dll's methods and types don't follow a
-             * particular order, the info needed to load this tables is stored during type/method generation but not added to the MetadataBuilder
-             * until now where they can be previously sorted
-            */
+            // Some tables must be sorted by one or more of their columns. Since the dll's methods and types don't follow a
+            // particular order, the info needed to load this tables is stored during type/method generation but not added to the MetadataBuilder
+            // until now where they can be previously sorted
             InterfaceImplementationGenerator.GenerateInterfaceImplementations(metadataContainer);
             GenericParameterGenerator.GenerateGenericParameters(metadataContainer);
             NestedTypeGenerator.GenerateNestedTypes(metadataContainer);

@@ -2,7 +2,7 @@
 using Model;
 using Model.Types;
 
-namespace MetadataGenerator
+namespace MetadataGenerator.Generation
 {
     internal static class AttributesProvider
     {

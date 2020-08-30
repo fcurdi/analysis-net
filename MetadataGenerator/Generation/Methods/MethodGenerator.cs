@@ -1,7 +1,8 @@
 ﻿using System.Linq;
+using MetadataGenerator.Generation.CustomAttributes;
 using MetadataGenerator.Generation.Methods.Body;
 using Model.Types;
-using static MetadataGenerator.AttributesProvider;
+using static MetadataGenerator.Generation.AttributesProvider;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SR = System.Reflection;
 using SRM = System.Reflection.Metadata;
@@ -42,7 +43,7 @@ namespace MetadataGenerator.Generation.Methods
                     localVariablesSignature = metadataContainer.MetadataResolver.GetOrAddStandaloneSignature(signature);
                 }
 
-                var instructionEncoder = new MethodBodyEncoder(metadataContainer, method.Body).Encode(out var maxStack);
+                var instructionEncoder = new MethodBodyEncoder(metadataContainer.MetadataResolver, method.Body).Encode(out var maxStack);
                 methodBodyOffset = metadataContainer.MethodBodyStream.AddMethodBody(
                     instructionEncoder: instructionEncoder,
                     localVariablesSignature: localVariablesSignature,

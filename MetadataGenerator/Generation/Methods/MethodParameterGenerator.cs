@@ -1,6 +1,6 @@
 using Model.Types;
 using SRM = System.Reflection.Metadata;
-using static MetadataGenerator.AttributesProvider;
+using static MetadataGenerator.Generation.AttributesProvider;
 
 namespace MetadataGenerator.Generation.Methods
 {

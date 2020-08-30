@@ -1,6 +1,7 @@
 ﻿using System.Reflection.PortableExecutable;
+using MetadataGenerator.Generation.CustomAttributes;
 using Model.Types;
-using static MetadataGenerator.AttributesProvider;
+using static MetadataGenerator.Generation.AttributesProvider;
 using SRM = System.Reflection.Metadata;
 
 namespace MetadataGenerator.Generation.Fields
@@ -32,15 +33,12 @@ namespace MetadataGenerator.Generation.Fields
             // add initial value
             if (field.SpecifiesRelativeVirtualAddress)
             {
-                /*
-                 * Static fields can define their initial value as a constant stored in the PE File. The value is declared using the .data directive,
-                 * represented as a bytearray and labeled so it can be referenced later.
-                 *
-                 * Initialization of a static array field is an example of this. The field itself does not hold the initial value.
-                 * A special type is created (<PrivateImplementationDetails>) that has a field that references the value declared with .data.
-                 * It is then used in the constructor of the class that has the static array field to initialize it.
-                 * 
-                */
+                // Static fields can define their initial value as a constant stored in the PE File. The value is declared using the .data directive,
+                // represented as a bytearray and labeled so it can be referenced later.
+                //
+                // Initialization of a static array field is an example of this. The field itself does not hold the initial value.
+                // A special type is created (<PrivateImplementationDetails>) that has a field that references the value declared with .data.
+                // It is then used in the constructor of the class that has the static array field to initialize it.
                 var offset = metadataContainer.MappedFieldData.Count;
                 metadataContainer.MappedFieldData.WriteBytes((byte[]) field.Value.Value);
                 metadataContainer.MappedFieldData.Align(ManagedPEBuilder.MappedFieldDataAlignment);

@@ -7,7 +7,7 @@ using static MetadataGenerator.Generation.Types.NestedTypeGenerator;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
-namespace MetadataGenerator
+namespace MetadataGenerator.Generation
 {
     internal class MetadataContainer
     {

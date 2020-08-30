@@ -3,7 +3,7 @@ using System.Linq;
 using System.Reflection;
 using Model;
 using Model.Types;
-using static MetadataGenerator.AttributesProvider;
+using static MetadataGenerator.Generation.AttributesProvider;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 

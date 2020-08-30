@@ -1,22 +1,27 @@
 ﻿using System.Collections.Generic;
 using Model;
-using Model.Bytecode;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 
 namespace MetadataGenerator.Generation.Methods.Body
 {
-    internal class MethodBodyControlFlowGenerator
+    // Control flow is tracked by using SRM.LabelHandle. This allows us to reference instructions in the method body that are targets of
+    // branch instructions or part of exception regions. This LabelHandles point a specific part of the InstructionEncoder which translates
+    // to the encoded instruction. Since we can target an instruction that is further away in the body, not encoded yet, LabelHandles are defined 
+    // with a placeholder target, and then marked when we actually process the target instruction.
+    internal class MethodBodyControlFlow
     {
-        private readonly IDictionary<string, ECMA335.LabelHandle> labelHandles = new Dictionary<string, ECMA335.LabelHandle>();
         private readonly ECMA335.InstructionEncoder instructionEncoder;
-        private readonly MetadataContainer metadataContainer;
+        private readonly MetadataResolver metadataResolver;
+        private readonly IDictionary<string, ECMA335.LabelHandle> labelHandles;
 
-        public MethodBodyControlFlowGenerator(ECMA335.InstructionEncoder instructionEncoder, MetadataContainer metadataContainer)
+        public MethodBodyControlFlow(ECMA335.InstructionEncoder instructionEncoder, MetadataResolver metadataResolver)
         {
             this.instructionEncoder = instructionEncoder;
-            this.metadataContainer = metadataContainer;
+            this.metadataResolver = metadataResolver;
+            labelHandles = new Dictionary<string, ECMA335.LabelHandle>();
         }
 
+        // get LabelHandle associated with label or define a new one.
         public ECMA335.LabelHandle LabelHandleFor(string label)
         {
             label = label.ToLower();
@@ -29,18 +34,17 @@ namespace MetadataGenerator.Generation.Methods.Body
             return labelHandle;
         }
 
-        public void DefineNeededBranchLabels(IList<IInstruction> instructions)
+        // Defines needed LabelHandles for branch instructions
+        public void ProcessBranchTargets(IList<string> targets)
         {
-            foreach (var instruction in instructions)
+            foreach (var target in targets)
             {
-                if (instruction is BranchInstruction branchInstruction)
-                {
-                    LabelHandleFor(branchInstruction.Target);
-                }
+                LabelHandleFor(target);
             }
         }
 
-        public void MarkCurrentLabelIfNeeded(string label)
+        // if there is an associated LabelHandle then mark it with its real position in the InstructionEncoder
+        public void MarkLabelIfNeeded(string label)
         {
             if (labelHandles.TryGetValue(label.ToLower(), out var labelHandle))
             {
@@ -61,20 +65,30 @@ namespace MetadataGenerator.Generation.Methods.Body
                 switch (protectedBlock.Handler.Kind)
                 {
                     case ExceptionHandlerBlockKind.Filter:
-                        var filterStart = LabelHandleFor(((FilterExceptionHandler) protectedBlock.Handler).FilterStart);
+                    {
+                        var handler = (FilterExceptionHandler) protectedBlock.Handler;
+                        var filterStart = LabelHandleFor(handler.FilterStart);
                         controlFlowBuilder.AddFilterRegion(tryStart, tryEnd, handlerStart, handlerEnd, filterStart);
                         break;
+                    }
                     case ExceptionHandlerBlockKind.Catch:
-                        var catchType = ((CatchExceptionHandler) protectedBlock.Handler).ExceptionType;
-                        controlFlowBuilder.AddCatchRegion(tryStart, tryEnd, handlerStart, handlerEnd,
-                            metadataContainer.MetadataResolver.HandleOf(catchType));
+                    {
+                        var handler = (CatchExceptionHandler) protectedBlock.Handler;
+                        controlFlowBuilder.AddCatchRegion(
+                            tryStart,
+                            tryEnd,
+                            handlerStart,
+                            handlerEnd,
+                            metadataResolver.HandleOf(handler.ExceptionType));
                         break;
+                    }
                     case ExceptionHandlerBlockKind.Fault:
                         controlFlowBuilder.AddFaultRegion(tryStart, tryEnd, handlerStart, handlerEnd);
                         break;
                     case ExceptionHandlerBlockKind.Finally:
                         controlFlowBuilder.AddFinallyRegion(tryStart, tryEnd, handlerStart, handlerEnd);
                         break;
+                    default: throw protectedBlock.Handler.Kind.ToUnknownValueException();
                 }
             }
         }

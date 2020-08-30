@@ -6,7 +6,6 @@ using Model.Bytecode;
 using Model.Bytecode.Visitor;
 using Model.ThreeAddressCode.Values;
 using Model.Types;
-using Constant = Model.ThreeAddressCode.Values.Constant;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
@@ -14,44 +13,47 @@ namespace MetadataGenerator.Generation.Methods.Body
 {
     internal class MethodBodyEncoder : IInstructionVisitor
     {
-        private readonly MetadataContainer metadataContainer;
+        private readonly MetadataResolver metadataResolver;
         private readonly ECMA335.InstructionEncoder instructionEncoder;
-        private readonly MethodBodyControlFlowGenerator controlFlowGenerator;
+        private readonly MethodBodyControlFlow methodBodyControlFlow;
         private readonly List<SwitchInstructionPlaceholder> switchInstructionsPlaceHolders;
-        private readonly ISet<int> ignoredInstructions;
+        private readonly ISet<int> skippedIndices;
         private readonly MethodBody body;
         private readonly StackSize stackSize;
         private int Index { get; set; }
 
-        public MethodBodyEncoder(MetadataContainer metadataContainer, MethodBody body)
+        public MethodBodyEncoder(MetadataResolver metadataResolver, MethodBody body)
         {
-            this.metadataContainer = metadataContainer;
+            this.metadataResolver = metadataResolver;
             this.body = body;
             instructionEncoder = new ECMA335.InstructionEncoder(new SRM.BlobBuilder(), new ECMA335.ControlFlowBuilder());
-            controlFlowGenerator = new MethodBodyControlFlowGenerator(instructionEncoder, metadataContainer);
+            methodBodyControlFlow = new MethodBodyControlFlow(instructionEncoder, metadataResolver);
             switchInstructionsPlaceHolders = new List<SwitchInstructionPlaceholder>();
-            ignoredInstructions = new HashSet<int>();
+            skippedIndices = new HashSet<int>();
             stackSize = new StackSize();
         }
 
+        // Encodes instructions using SRM InstructionEncoder. Also calculates needed MaxStack since this value might not be present (programatically
+        // generated dll) or incorrect (if changes were made to the method body or if it was converted to TAC and back again).
         public ECMA335.InstructionEncoder Encode(out int maxStack)
         {
-            controlFlowGenerator.ProcessExceptionInformation(body.ExceptionInformation);
-            controlFlowGenerator.DefineNeededBranchLabels(body.Instructions);
-            var labelToEncoderOffset = new Dictionary<string, int>();
+            var branchTargets = body.Instructions.OfType<BranchInstruction>().Select(i => i.Target).ToList();
+            methodBodyControlFlow.ProcessExceptionInformation(body.ExceptionInformation);
+            methodBodyControlFlow.ProcessBranchTargets(branchTargets);
+            var labelToInstructionEncoderOffset = new Dictionary<string, int>();
 
             for (Index = 0; Index < body.Instructions.Count; Index++)
             {
                 var instruction = (Instruction) body.Instructions[Index];
-                labelToEncoderOffset[instruction.Label] = instructionEncoder.Offset;
-                controlFlowGenerator.MarkCurrentLabelIfNeeded(instruction.Label);
+                labelToInstructionEncoderOffset[instruction.Label] = instructionEncoder.Offset;
+                methodBodyControlFlow.MarkLabelIfNeeded(instruction.Label);
 
                 if (FilterOrCatchStartAt(instruction.Label))
                 {
                     stackSize.Increment();
                 }
 
-                if (!ignoredInstructions.Contains(Index))
+                if (!skippedIndices.Contains(Index))
                 {
                     instruction.Accept(this);
                 }
@@ -59,7 +61,7 @@ namespace MetadataGenerator.Generation.Methods.Body
 
             foreach (var switchInstructionPlaceholder in switchInstructionsPlaceHolders)
             {
-                switchInstructionPlaceholder.FillWithRealTargets(labelToEncoderOffset);
+                switchInstructionPlaceholder.FillWithRealTargets(labelToInstructionEncoderOffset);
             }
 
             maxStack = stackSize.MaxStackSize;
@@ -77,7 +79,7 @@ namespace MetadataGenerator.Generation.Methods.Body
         public void Visit(InitObjInstruction instruction)
         {
             instructionEncoder.OpCode(SRM.ILOpCode.Initobj);
-            instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Type));
+            instructionEncoder.Token(metadataResolver.HandleOf(instruction.Type));
             stackSize.Decrement();
         }
 
@@ -216,14 +218,14 @@ namespace MetadataGenerator.Generation.Methods.Body
                     instructionEncoder.OpCode(SRM.ILOpCode.Ret);
                     break;
                 default:
-                    throw new UnhandledCase();
+                    throw instruction.Operation.ToUnknownValueException();
             }
         }
 
         public void Visit(ConstrainedInstruction instruction)
         {
             instructionEncoder.OpCode(SRM.ILOpCode.Constrained);
-            instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.ThisType));
+            instructionEncoder.Token(metadataResolver.HandleOf(instruction.ThisType));
         }
 
         public void Visit(LoadInstruction instruction)
@@ -286,13 +288,13 @@ namespace MetadataGenerator.Generation.Methods.Body
                                 stackSize.Decrement();
 
                                 // skip processing next 2 instructions
-                                ignoredInstructions.Add(Index + 1);
-                                ignoredInstructions.Add(Index + 2);
+                                skippedIndices.Add(Index + 1);
+                                skippedIndices.Add(Index + 2);
                             }
 
                             break;
                         case string value:
-                            instructionEncoder.LoadString(metadataContainer.MetadataBuilder.GetOrAddUserString(value));
+                            instructionEncoder.LoadString(metadataResolver.UserStringHandleOf(value));
                             stackSize.Increment();
                             break;
                         case int value:
@@ -316,13 +318,13 @@ namespace MetadataGenerator.Generation.Methods.Body
                             stackSize.Increment();
                             break;
                         default:
-                            throw new UnhandledCase();
+                            throw new Exception();
                     }
 
                     break;
                 }
                 default:
-                    throw new UnhandledCase();
+                    throw instruction.Operation.ToUnknownValueException();
             }
         }
 
@@ -375,7 +377,7 @@ namespace MetadataGenerator.Generation.Methods.Body
             else
             {
                 instructionEncoder.OpCode(SRM.ILOpCode.Ldobj);
-                instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Type));
+                instructionEncoder.Token(metadataResolver.HandleOf(instruction.Type));
             }
         }
 
@@ -391,10 +393,10 @@ namespace MetadataGenerator.Generation.Methods.Body
                     instructionEncoder.OpCode(isStatic ? SRM.ILOpCode.Ldsflda : SRM.ILOpCode.Ldflda);
                     break;
                 default:
-                    throw new UnhandledCase();
+                    throw instruction.Operation.ToUnknownValueException();
             }
 
-            instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Field));
+            instructionEncoder.Token(metadataResolver.HandleOf(instruction.Field));
             if (isStatic)
             {
                 stackSize.Increment();
@@ -405,7 +407,7 @@ namespace MetadataGenerator.Generation.Methods.Body
         {
             var isVirtual = instruction.Method.IsVirtual;
             instructionEncoder.OpCode(isVirtual ? SRM.ILOpCode.Ldvirtftn : SRM.ILOpCode.Ldftn);
-            instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Method));
+            instructionEncoder.Token(metadataResolver.HandleOf(instruction.Method));
             if (!isVirtual)
             {
                 stackSize.Increment();
@@ -449,7 +451,7 @@ namespace MetadataGenerator.Generation.Methods.Body
             else
             {
                 instructionEncoder.OpCode(SRM.ILOpCode.Stobj);
-                instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Type));
+                instructionEncoder.Token(metadataResolver.HandleOf(instruction.Type));
             }
 
             stackSize.Decrement(2);
@@ -476,7 +478,7 @@ namespace MetadataGenerator.Generation.Methods.Body
         {
             var isStatic = instruction.Field.IsStatic;
             instructionEncoder.OpCode(isStatic ? SRM.ILOpCode.Stsfld : SRM.ILOpCode.Stfld);
-            instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Field));
+            instructionEncoder.Token(metadataResolver.HandleOf(instruction.Field));
             stackSize.Decrement(isStatic ? 1 : 2);
         }
 
@@ -623,31 +625,31 @@ namespace MetadataGenerator.Generation.Methods.Body
                             instructionEncoder.OpCode(SRM.ILOpCode.Conv_u);
                         }
                     }
-                    else throw new UnhandledCase();
+                    else throw new Exception();
 
                     break;
                 case ConvertOperation.Cast:
                     instructionEncoder.OpCode(SRM.ILOpCode.Castclass);
-                    instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.ConversionType));
+                    instructionEncoder.Token(metadataResolver.HandleOf(instruction.ConversionType));
                     break;
                 case ConvertOperation.IsInst:
                     instructionEncoder.OpCode(SRM.ILOpCode.Isinst);
-                    instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.ConversionType));
+                    instructionEncoder.Token(metadataResolver.HandleOf(instruction.ConversionType));
                     break;
                 case ConvertOperation.Box:
                     instructionEncoder.OpCode(SRM.ILOpCode.Box);
-                    instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.ConversionType));
+                    instructionEncoder.Token(metadataResolver.HandleOf(instruction.ConversionType));
                     break;
                 case ConvertOperation.Unbox:
                     instructionEncoder.OpCode(SRM.ILOpCode.Unbox_any);
-                    instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.ConversionType));
+                    instructionEncoder.Token(metadataResolver.HandleOf(instruction.ConversionType));
                     break;
                 case ConvertOperation.UnboxPtr:
                     instructionEncoder.OpCode(SRM.ILOpCode.Unbox);
-                    instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.ConversionType));
+                    instructionEncoder.Token(metadataResolver.HandleOf(instruction.ConversionType));
                     break;
                 default:
-                    throw new UnhandledCase();
+                    throw instruction.Operation.ToUnknownValueException();
             }
         }
 
@@ -699,18 +701,19 @@ namespace MetadataGenerator.Generation.Methods.Body
                     stackSize.Clear();
                     break;
                 default:
-                    throw new UnhandledCase();
+                    throw instruction.Operation.ToUnknownValueException();
             }
 
-            instructionEncoder.Branch(opCode, controlFlowGenerator.LabelHandleFor(instruction.Target));
+            instructionEncoder.Branch(opCode, methodBodyControlFlow.LabelHandleFor(instruction.Target));
         }
 
         public void Visit(SwitchInstruction instruction)
         {
             // switch is encoded as OpCode NumberOfTargets target1, target2, ....
-            // the targets in SwitchInstruction are labels that refer to the Instructions in the method body
-            // but when encoded they must be be offsets relative to the instructionEncoder offsets (real Cil offsets)
-            // this offsets can't be determined until the whole body is generated so a space is reserved for the targets and filled up later
+            // the targets in SwitchInstruction are labels that refer to the Instructions in the method body but when encoded they must be be offsets
+            // relative to the instructionEncoder offsets (real Cil offsets). This offsets can't be determined until the whole body is generated so a
+            // space is reserved for the targets and filled up later. Although this is almost the same as branch targets, SRM does not allow
+            // LabelHandles to be used for this and does not provide an alternative.
             var targetsCount = instruction.Targets.Count;
             instructionEncoder.OpCode(SRM.ILOpCode.Switch);
             instructionEncoder.Token(targetsCount);
@@ -726,14 +729,14 @@ namespace MetadataGenerator.Generation.Methods.Body
         public void Visit(SizeofInstruction instruction)
         {
             instructionEncoder.OpCode(SRM.ILOpCode.Sizeof);
-            instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.MeasuredType));
+            instructionEncoder.Token(metadataResolver.HandleOf(instruction.MeasuredType));
             stackSize.Increment();
         }
 
         public void Visit(LoadTokenInstruction instruction)
         {
             instructionEncoder.OpCode(SRM.ILOpCode.Ldtoken);
-            instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Token));
+            instructionEncoder.Token(metadataResolver.HandleOf(instruction.Token));
             stackSize.Increment();
         }
 
@@ -743,16 +746,16 @@ namespace MetadataGenerator.Generation.Methods.Body
             {
                 case MethodCallOperation.Virtual:
                     instructionEncoder.OpCode(SRM.ILOpCode.Callvirt);
-                    instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Method));
+                    instructionEncoder.Token(metadataResolver.HandleOf(instruction.Method));
                     stackSize.Decrement(instruction.Method.Parameters.Count + 1);
                     break;
                 case MethodCallOperation.Static:
                 case MethodCallOperation.Jump:
-                    instructionEncoder.Call(metadataContainer.MetadataResolver.HandleOf(instruction.Method));
+                    instructionEncoder.Call(metadataResolver.HandleOf(instruction.Method));
                     stackSize.Decrement(instruction.Method.Parameters.Count);
                     break;
                 default:
-                    throw new UnhandledCase();
+                    throw instruction.Operation.ToUnknownValueException();
             }
 
             if (!instruction.Method.ReturnType.Equals(PlatformTypes.Void))
@@ -763,7 +766,7 @@ namespace MetadataGenerator.Generation.Methods.Body
 
         public void Visit(IndirectMethodCallInstruction instruction)
         {
-            var methodSignature = metadataContainer.MetadataResolver.HandleOf(instruction.Function);
+            var methodSignature = metadataResolver.HandleOf(instruction.Function);
             instructionEncoder.CallIndirect((SRM.StandaloneSignatureHandle) methodSignature);
             stackSize.Decrement(instruction.Function.Parameters.Count + 1);
             if (!instruction.Function.ReturnType.Equals(PlatformTypes.Void))
@@ -774,7 +777,7 @@ namespace MetadataGenerator.Generation.Methods.Body
 
         public void Visit(CreateObjectInstruction instruction)
         {
-            var method = metadataContainer.MetadataResolver.HandleOf(instruction.Constructor);
+            var method = metadataResolver.HandleOf(instruction.Constructor);
             instructionEncoder.OpCode(SRM.ILOpCode.Newobj);
             instructionEncoder.Token(method);
             stackSize.Decrement(instruction.Constructor.Parameters.Count);
@@ -786,11 +789,11 @@ namespace MetadataGenerator.Generation.Methods.Body
             if (instruction.Type.IsVector)
             {
                 instructionEncoder.OpCode(SRM.ILOpCode.Newarr);
-                instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Type.ElementsType));
+                instructionEncoder.Token(metadataResolver.HandleOf(instruction.Type.ElementsType));
             }
             else
             {
-                var method = metadataContainer.MetadataResolver.HandleOf(instruction.Constructor);
+                var method = metadataResolver.HandleOf(instruction.Constructor);
                 instructionEncoder.OpCode(SRM.ILOpCode.Newobj);
                 instructionEncoder.Token(method);
                 stackSize.Decrement(instruction.Constructor.Parameters.Count);
@@ -802,7 +805,7 @@ namespace MetadataGenerator.Generation.Methods.Body
         {
             if (instruction.Method != null)
             {
-                instructionEncoder.Call(metadataContainer.MetadataResolver.HandleOf(instruction.Method));
+                instructionEncoder.Call(metadataResolver.HandleOf(instruction.Method));
                 stackSize.Decrement(instruction.Method.Parameters.Count);
                 stackSize.Increment();
             }
@@ -860,18 +863,18 @@ namespace MetadataGenerator.Generation.Methods.Body
                         {
                             instructionEncoder.OpCode(SRM.ILOpCode.Ldelem);
                             instructionEncoder.Token(
-                                metadataContainer.MetadataResolver.HandleOf(instruction.Array.ElementsType));
+                                metadataResolver.HandleOf(instruction.Array.ElementsType));
                         }
 
                         break;
                     case LoadArrayElementOperation.Address:
                         instructionEncoder.OpCode(SRM.ILOpCode.Ldelema);
                         instructionEncoder.Token(
-                            metadataContainer.MetadataResolver.HandleOf(instruction.Array.ElementsType));
+                            metadataResolver.HandleOf(instruction.Array.ElementsType));
                         break;
 
                     default:
-                        throw new UnhandledCase();
+                        throw instruction.Operation.ToUnknownValueException();
                 }
 
                 stackSize.Decrement();
@@ -882,7 +885,7 @@ namespace MetadataGenerator.Generation.Methods.Body
         {
             if (instruction.Method != null)
             {
-                instructionEncoder.Call(metadataContainer.MetadataResolver.HandleOf(instruction.Method));
+                instructionEncoder.Call(metadataResolver.HandleOf(instruction.Method));
                 stackSize.Decrement(instruction.Method.Parameters.Count);
             }
             else
@@ -922,7 +925,7 @@ namespace MetadataGenerator.Generation.Methods.Body
                 else
                 {
                     instructionEncoder.OpCode(SRM.ILOpCode.Stelem);
-                    instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Array.ElementsType));
+                    instructionEncoder.Token(metadataResolver.HandleOf(instruction.Array.ElementsType));
                 }
 
                 stackSize.Decrement(3);
@@ -955,14 +958,14 @@ namespace MetadataGenerator.Generation.Methods.Body
                 this.targets = targets;
             }
 
-            // labelToEncoderOffset is the translation of method body labels to the real cil offsets after generation
-            public void FillWithRealTargets(IDictionary<string, int> labelToEncoderOffset)
+            // labelToInstructionEncoderOffset is the translation of method body labels to the real cil offsets after generation
+            public void FillWithRealTargets(IDictionary<string, int> labelToInstructionEncoderOffset)
             {
                 var writer = new SRM.BlobWriter(blob);
                 foreach (var target in targets)
                 {
                     // switch targets are offsets relative to the beginning of the next instruction.
-                    var offset = labelToEncoderOffset[target] - nextInstructionEncoderOffset;
+                    var offset = labelToInstructionEncoderOffset[target] - nextInstructionEncoderOffset;
                     writer.WriteInt32(offset);
                 }
             }
@@ -999,9 +1002,5 @@ namespace MetadataGenerator.Generation.Methods.Body
                 currentStackSize = 0;
             }
         }
-    }
-
-    internal class UnhandledCase : Exception
-    {
     }
 }

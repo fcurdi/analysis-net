@@ -1,27 +1,19 @@
 using System;
 using System.Collections.Immutable;
 using Model;
+using Model.ThreeAddressCode.Values;
 using Model.Types;
-using Constant = Model.ThreeAddressCode.Values.Constant;
-using CustomAttribute = Model.Types.CustomAttribute;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
-namespace MetadataGenerator.Generation
+namespace MetadataGenerator.Generation.CustomAttributes
 {
-    internal class CustomAttributeGenerator
+    public static class CustomAttributesSignatureEncoder
     {
-        private readonly MetadataContainer metadataContainer;
-
-        public CustomAttributeGenerator(MetadataContainer metadataContainer)
+        public static SRM.BlobBuilder EncodeSignatureOf(CustomAttribute customAttribute)
         {
-            this.metadataContainer = metadataContainer;
-        }
-
-        public void Generate(SRM.EntityHandle owner, CustomAttribute customAttribute)
-        {
-            var customAttributeEncodedValue = new SRM.BlobBuilder();
-            new ECMA335.BlobEncoder(customAttributeEncodedValue)
+            var signature = new SRM.BlobBuilder();
+            new ECMA335.BlobEncoder(signature)
                 .CustomAttributeSignature(
                     fixedArgumentsEncoder =>
                     {
@@ -47,16 +39,11 @@ namespace MetadataGenerator.Generation
                         namedArgumentsEncoder.Count(0);
                     });
 
-            metadataContainer.MetadataBuilder.AddCustomAttribute(
-                owner,
-                metadataContainer.MetadataResolver.HandleOf(customAttribute.Constructor),
-                metadataContainer.MetadataBuilder.GetOrAddBlob(customAttributeEncodedValue));
+            return signature;
         }
 
-        /*
-         * Encodes vector (only SZArray are permitted as arguments of a custom attribute constructor)
-         * The constructor can have this value as an object, object[] or type[]. In the first two cases, the type needs to be encoded as well.
-         */
+        // Encodes vector (only SZArray are permitted as arguments of a custom attribute constructor)
+        // The constructor can have this value as an object, object[] or type[]. In the first two cases, the type needs to be encoded as well.
         private static void EncodeVector(CustomAttribute customAttribute, Constant argument, ECMA335.LiteralEncoder encoder)
         {
             var type = ((ArrayType) argument.Type).ElementsType;
@@ -115,10 +102,8 @@ namespace MetadataGenerator.Generation
             }
         }
 
-        /*
-         * Encode types. Types are represented by their serialized name (namespace.type or namespace.type+anotherType if nested)
-         * If this parameter has type object in the customAttribute constructor, then its real type also needs to be encoded.
-         */
+        // Encode types. Types are represented by their serialized name (namespace.type or namespace.type+anotherType if nested)
+        // If this parameter has type object in the customAttribute constructor, then its real type also needs to be encoded.
         private static void EncodeComplexValue(CustomAttribute customAttribute, Constant argument, ECMA335.LiteralEncoder encoder)
         {
             var serializedTypeName = ((IBasicType) argument.Value).Name;
@@ -134,10 +119,8 @@ namespace MetadataGenerator.Generation
             }
         }
 
-        /*
-         * Simple values: bool (as byte), char, float32, float64, int8, int16, int32, int64, unsigned int8, unsigned int16, unsigned int32,unsigned int64, enums (integer value)
-         * If this parameter has type object in the customAttribute constructor, then its real type also needs to be encoded.
-         */
+        // Simple values: bool (as byte), char, float32, float64, int8, int16, int32, int64, unsigned int8, unsigned int16, unsigned int32,unsigned int64, enums (integer value)
+        // If this parameter has type object in the customAttribute constructor, then its real type also needs to be encoded.
         private static void EncodeSimpleValue(CustomAttribute customAttribute, Constant argument, ECMA335.LiteralEncoder encoder)
         {
             var type = argument.Type;

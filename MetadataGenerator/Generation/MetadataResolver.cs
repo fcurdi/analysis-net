@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using MetadataGenerator.Generation.Fields;
 using MetadataGenerator.Generation.Methods;
-using MetadataGenerator.Generation.Methods.Body;
 using Model;
 using Model.Types;
 using static System.Linq.Enumerable;
@@ -11,7 +10,7 @@ using static MetadataGenerator.Generation.Types.TypeGenerator;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
-namespace MetadataGenerator
+namespace MetadataGenerator.Generation
 {
     internal class MetadataResolver
     {
@@ -55,6 +54,8 @@ namespace MetadataGenerator
             fieldSignatureEncoder = new FieldSignatureEncoder(this);
             methodSignatureEncoder = new MethodSignatureEncoder(this);
         }
+
+        public SRM.UserStringHandle UserStringHandleOf(string value) => metadataContainer.MetadataBuilder.GetOrAddUserString(value);
 
         public SRM.EntityHandle HandleOf(IMetadataReference metadataReference)
         {
@@ -285,10 +286,8 @@ namespace MetadataGenerator
                                 elementTypeEncoder => Encode(arrayType.ElementsType, elementTypeEncoder),
                                 arrayShapeEncoder =>
                                 {
-                                    /**
-                                     * This assumes that all dimensions have 0 as lower bound and none declare sizes.
-                                     * Lower bounds and sizes are not modelled. 
-                                     */
+                                    // This assumes that all dimensions have 0 as lower bound and none declare sizes.
+                                    // Lower bounds and sizes are not modelled. 
                                     var lowerBounds = Repeat(0, (int) arrayType.Rank).ToImmutableArray();
                                     var sizes = ImmutableArray<int>.Empty;
                                     arrayShapeEncoder.Shape((int) arrayType.Rank, sizes, lowerBounds);
@@ -328,7 +327,7 @@ namespace MetadataGenerator
                                 encoder.GenericMethodTypeParameter(genericParameter.Index);
                                 break;
                             default:
-                                throw new UnhandledCase();
+                                throw genericParameter.Kind.ToUnknownValueException();
                         }
 
                         break;
