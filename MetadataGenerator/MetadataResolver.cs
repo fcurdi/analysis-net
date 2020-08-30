@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using MetadataGenerator.Generators.Fields;
-using MetadataGenerator.Generators.Methods;
-using MetadataGenerator.Generators.Methods.Body;
+using MetadataGenerator.Generation.Fields;
+using MetadataGenerator.Generation.Methods;
+using MetadataGenerator.Generation.Methods.Body;
 using Model;
 using Model.Types;
 using static System.Linq.Enumerable;
-using static MetadataGenerator.Generators.TypeGenerator;
+using static MetadataGenerator.Generation.Types.TypeGenerator;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 

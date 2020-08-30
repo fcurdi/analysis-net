@@ -1,8 +1,8 @@
-﻿using System;
-using Model;
+﻿using MetadataGenerator.Generation.Types;
+using Assembly = Model.Assembly;
 using SR = System.Reflection;
 
-namespace MetadataGenerator.Generators
+namespace MetadataGenerator.Generation
 {
     internal static class AssemblyGenerator
     {
@@ -10,25 +10,19 @@ namespace MetadataGenerator.Generators
         {
             var metadataContainer = new MetadataContainer(assembly);
             var namespaceGenerator = new NamespaceGenerator(metadataContainer);
+            var moduleGenerator = new ModuleGenerator(metadataContainer);
             var metadataBuilder = metadataContainer.MetadataBuilder;
 
             metadataBuilder.AddAssembly(
                 name: metadataBuilder.GetOrAddString(assembly.Name),
                 version: assembly.Version,
-                culture: metadataContainer.MetadataBuilder.GetOrAddString(assembly.Culture),
-                publicKey: metadataContainer.MetadataBuilder.GetOrAddBlob(assembly.PublicKey),
+                culture: metadataBuilder.GetOrAddString(assembly.Culture),
+                publicKey: metadataBuilder.GetOrAddBlob(assembly.PublicKey),
                 flags: SR.AssemblyFlags.PublicKey,
                 hashAlgorithm: SR.AssemblyHashAlgorithm.Sha1
             );
 
-            var moduleName = $"{assembly.Name}.{(assembly.Kind == AssemblyKind.Exe ? "exe" : "dll")}";
-            metadataContainer.ModuleHandle = metadataBuilder.AddModule(
-                generation: 0,
-                moduleName: metadataBuilder.GetOrAddString(moduleName),
-                mvid: metadataBuilder.GetOrAddGuid(Guid.NewGuid()),
-                encId: default,
-                encBaseId: default);
-
+            moduleGenerator.GenerateModuleFor(assembly);
             namespaceGenerator.Generate(assembly.RootNamespace);
 
             /*
@@ -36,9 +30,9 @@ namespace MetadataGenerator.Generators
              * particular order, the info needed to load this tables is stored during type/method generation but not added to the MetadataBuilder
              * until now where they can be previously sorted
             */
-            metadataContainer.GenerateInterfaceImplementations();
-            metadataContainer.GenerateGenericParameters();
-            metadataContainer.GenerateNestedTypes();
+            InterfaceImplementationGenerator.GenerateInterfaceImplementations(metadataContainer);
+            GenericParameterGenerator.GenerateGenericParameters(metadataContainer);
+            NestedTypeGenerator.GenerateNestedTypes(metadataContainer);
 
             return metadataContainer;
         }

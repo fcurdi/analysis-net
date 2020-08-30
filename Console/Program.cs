@@ -456,7 +456,6 @@ namespace Console
 
 			var bytecode = new Backend.Transformations.Assembly.Assembler(main).Execute();
 			main.Body = bytecode;
-
 			var generator = new MetadataGenerator.Generator();
 
 			foreach (var assembly in host.Assemblies)
@@ -651,8 +650,8 @@ namespace Console
 
 		static void Main(string[] args)
 		{
-		//	ReadAndGenerateDll(false);
-			ReadAndGenerateDll(true);
+			ReadAndGenerateDll(false);
+		//	ReadAndGenerateDll(true);
 		//	TacInstrumentation();
 		//	HelloWorldAssembly();
 		//	RemoveUnusedMethodFromSimpleExecutable();

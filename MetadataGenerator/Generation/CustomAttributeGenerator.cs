@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Immutable;
 using Model;
-using Model.ThreeAddressCode.Values;
 using Model.Types;
+using Constant = Model.ThreeAddressCode.Values.Constant;
+using CustomAttribute = Model.Types.CustomAttribute;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
-using SR = System.Reflection;
 using SRM = System.Reflection.Metadata;
 
-namespace MetadataGenerator.Generators
+namespace MetadataGenerator.Generation
 {
     internal class CustomAttributeGenerator
     {

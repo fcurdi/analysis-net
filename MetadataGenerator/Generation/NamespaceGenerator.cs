@@ -1,9 +1,11 @@
 ﻿using System.Linq;
+using MetadataGenerator.Generation.Types;
 using Model;
 using Model.Types;
+using static MetadataGenerator.Generation.Types.NestedTypeGenerator;
 using SRM = System.Reflection.Metadata;
 
-namespace MetadataGenerator.Generators
+namespace MetadataGenerator.Generation
 {
     internal class NamespaceGenerator
     {
@@ -32,11 +34,10 @@ namespace MetadataGenerator.Generators
         private SRM.TypeDefinitionHandle GenerateTypes(TypeDefinition type)
         {
             var nestedTypes = type.Types.Select(GenerateTypes).ToList();
-
             var typeDefinitionHandle = typeGenerator.Generate(type);
             foreach (var nestedType in nestedTypes)
             {
-                metadataContainer.RegisterNestedType(nestedType, typeDefinitionHandle);
+                metadataContainer.NestedTypeEntries.Add(new NestedTypeEntry(nestedType, typeDefinitionHandle));
             }
 
             return typeDefinitionHandle;

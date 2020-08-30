@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using MetadataGenerator.Generators;
+using MetadataGenerator.Generation;
 using Model;
 using static Model.AssemblyKind;
 using ECMA335 = System.Reflection.Metadata.Ecma335;

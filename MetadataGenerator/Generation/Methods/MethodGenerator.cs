@@ -1,11 +1,11 @@
-﻿using MetadataGenerator.Generators.Methods.Body;
-using Model.Types;
+﻿using MetadataGenerator.Generation.Methods.Body;
 using static MetadataGenerator.AttributesProvider;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
+using MethodDefinition = Model.Types.MethodDefinition;
 using SR = System.Reflection;
 using SRM = System.Reflection.Metadata;
 
-namespace MetadataGenerator.Generators.Methods
+namespace MetadataGenerator.Generation.Methods
 {
     internal class MethodGenerator
     {

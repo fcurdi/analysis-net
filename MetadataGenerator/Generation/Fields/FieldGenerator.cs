@@ -1,9 +1,9 @@
 ﻿using System.Reflection.PortableExecutable;
-using Model.Types;
 using static MetadataGenerator.AttributesProvider;
+using FieldDefinition = Model.Types.FieldDefinition;
 using SRM = System.Reflection.Metadata;
 
-namespace MetadataGenerator.Generators.Fields
+namespace MetadataGenerator.Generation.Fields
 {
     internal class FieldGenerator
     {

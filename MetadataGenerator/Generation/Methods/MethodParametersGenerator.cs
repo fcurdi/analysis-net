@@ -1,11 +1,9 @@
 using System.Collections.Generic;
 using Model.Types;
-using ECMA335 = System.Reflection.Metadata.Ecma335;
-using SR = System.Reflection;
 using SRM = System.Reflection.Metadata;
 using static MetadataGenerator.AttributesProvider;
 
-namespace MetadataGenerator.Generators.Methods
+namespace MetadataGenerator.Generation.Methods
 {
     internal class MethodParametersGenerator
     {

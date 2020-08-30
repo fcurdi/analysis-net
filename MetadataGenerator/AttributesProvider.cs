@@ -4,7 +4,7 @@ using Model.Types;
 
 namespace MetadataGenerator
 {
-    public static class AttributesProvider
+    internal static class AttributesProvider
     {
         public static TypeAttributes AttributesFor(TypeDefinition typeDefinition)
         {

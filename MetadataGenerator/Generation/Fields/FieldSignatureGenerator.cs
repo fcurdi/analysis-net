@@ -2,7 +2,7 @@
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
-namespace MetadataGenerator.Generators.Fields
+namespace MetadataGenerator.Generation.Fields
 {
     internal class FieldSignatureGenerator
     {

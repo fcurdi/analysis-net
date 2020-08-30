@@ -3,7 +3,7 @@ using Model;
 using Model.Bytecode;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 
-namespace MetadataGenerator.Generators.Methods.Body
+namespace MetadataGenerator.Generation.Methods.Body
 {
     internal class MethodBodyControlFlowGenerator
     {

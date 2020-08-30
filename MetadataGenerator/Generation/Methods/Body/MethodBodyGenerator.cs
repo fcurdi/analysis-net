@@ -6,10 +6,11 @@ using Model.Bytecode;
 using Model.Bytecode.Visitor;
 using Model.ThreeAddressCode.Values;
 using Model.Types;
+using Constant = Model.ThreeAddressCode.Values.Constant;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
-namespace MetadataGenerator.Generators.Methods.Body
+namespace MetadataGenerator.Generation.Methods.Body
 {
     internal class MethodBodyGenerator : IInstructionVisitor
     {

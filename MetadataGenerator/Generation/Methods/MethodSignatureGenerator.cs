@@ -3,7 +3,7 @@ using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
-namespace MetadataGenerator.Generators.Methods
+namespace MetadataGenerator.Generation.Methods
 {
     internal class MethodSignatureGenerator
     {

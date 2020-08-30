@@ -28,21 +28,25 @@
   <ItemGroup>
     <Compile Include="AttributesProvider.cs" />
     <Compile Include="Extensions.cs" />
+    <Compile Include="Generation\Types\InterfaceImplementationGenerator.cs" />
+    <Compile Include="Generation\Types\NestedTypeGenerator.cs" />
+    <Compile Include="Generation\Types\TypeGenerator.cs" />
     <Compile Include="Generator.cs" />
-    <Compile Include="Generators\AssemblyGenerator.cs" />
-    <Compile Include="Generators\CustomAttributeGenerator.cs" />
-    <Compile Include="Generators\Methods\MethodGenerator.cs" />
-    <Compile Include="Generators\Methods\MethodParametersGenerator.cs" />
-    <Compile Include="Generators\Methods\MethodSignatureGenerator.cs" />
-    <Compile Include="Generators\NamespaceGenerator.cs" />
-    <Compile Include="Generators\PropertyGenerator.cs" />
-    <Compile Include="Generators\TypeGenerator.cs" />
+    <Compile Include="Generation\AssemblyGenerator.cs" />
+    <Compile Include="Generation\CustomAttributeGenerator.cs" />
+    <Compile Include="Generation\GenericParameterGenerator.cs" />
+    <Compile Include="Generation\Methods\MethodGenerator.cs" />
+    <Compile Include="Generation\Methods\MethodParametersGenerator.cs" />
+    <Compile Include="Generation\Methods\MethodSignatureGenerator.cs" />
+    <Compile Include="Generation\ModuleGenerator.cs" />
+    <Compile Include="Generation\NamespaceGenerator.cs" />
+    <Compile Include="Generation\PropertyGenerator.cs" />
     <Compile Include="MetadataContainer.cs" />
-    <Compile Include="Generators\Fields\FieldGenerator.cs" />
-    <Compile Include="Generators\Fields\FieldSignatureGenerator.cs" />
-    <Compile Include="Generators\Methods\Body\MethodBodyGenerator.cs" />
-    <Compile Include="Generators\Methods\Body\MethodLocalsSignatureGenerator.cs" />
-    <Compile Include="Generators\Methods\Body\MethodBodyControlFlowGenerator.cs" />
+    <Compile Include="Generation\Fields\FieldGenerator.cs" />
+    <Compile Include="Generation\Fields\FieldSignatureGenerator.cs" />
+    <Compile Include="Generation\Methods\Body\MethodBodyGenerator.cs" />
+    <Compile Include="Generation\Methods\Body\MethodLocalsSignatureGenerator.cs" />
+    <Compile Include="Generation\Methods\Body\MethodBodyControlFlowGenerator.cs" />
     <Compile Include="MetadataResolver.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -61,10 +65,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Generators\" />
-    <Folder Include="Generators\Methods\" />
-    <Folder Include="Generators\Fields\" />
-    <Folder Include="Generators\Methods\Body\" />
+    <Folder Include="Generation\" />
+    <Folder Include="Generation\Methods\" />
+    <Folder Include="Generation\Fields\" />
+    <Folder Include="Generation\Methods\Body\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

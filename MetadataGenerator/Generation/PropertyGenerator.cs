@@ -1,10 +1,11 @@
 using System.Collections.Generic;
-using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
+using MethodDefinition = Model.Types.MethodDefinition;
+using PropertyDefinition = Model.Types.PropertyDefinition;
 using SR = System.Reflection;
 using SRM = System.Reflection.Metadata;
 
-namespace MetadataGenerator.Generators
+namespace MetadataGenerator.Generation
 {
     internal class PropertyGenerator
     {
