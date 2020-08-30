@@ -2,14 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Model;
 using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
-using static MetadataGenerator.Metadata.AttributesProvider;
+using static MetadataGenerator.AttributesProvider;
 using Assembly = Model.Assembly;
 
-namespace MetadataGenerator.Metadata
+namespace MetadataGenerator
 {
     internal class MetadataContainer
     {
@@ -19,9 +18,9 @@ namespace MetadataGenerator.Metadata
         public readonly SRM.BlobBuilder MappedFieldData;
         private SRM.MethodDefinitionHandle? mainMethodHandle;
         private SRM.ModuleDefinitionHandle? moduleHandle;
-        private readonly ISet<GenericParamRow> genericParameterRows = new HashSet<GenericParamRow>();
-        private readonly ISet<NestedTypeRow> nestedTypeRows = new HashSet<NestedTypeRow>();
-        private readonly ISet<InterfaceImplementationRow> interfaceImplementationRows = new HashSet<InterfaceImplementationRow>();
+        private readonly ISet<GenericParamRow> genericParameterRows;
+        private readonly ISet<NestedTypeRow> nestedTypeRows;
+        private readonly ISet<InterfaceImplementationRow> interfaceImplementationRows;
 
         public SRM.MethodDefinitionHandle MainMethodHandle
         {
@@ -49,6 +48,9 @@ namespace MetadataGenerator.Metadata
             MethodBodyStream = new ECMA335.MethodBodyStreamEncoder(new SRM.BlobBuilder());
             MetadataResolver = new MetadataResolver(this, assembly);
             MappedFieldData = new SRM.BlobBuilder();
+            genericParameterRows = new HashSet<GenericParamRow>();
+            nestedTypeRows = new HashSet<NestedTypeRow>();
+            interfaceImplementationRows = new HashSet<InterfaceImplementationRow>();
         }
 
         public void RegisterGenericParameter(SRM.TypeDefinitionHandle parent, GenericParameter genericParameter) =>
@@ -60,10 +62,10 @@ namespace MetadataGenerator.Metadata
         private void DoRegisterGenericParameter(SRM.EntityHandle parent, GenericParameter genericParameter) =>
             genericParameterRows.Add(new GenericParamRow(
                 parent,
-                GetGenericParameterAttributesFor(genericParameter),
+                AttributesFor(genericParameter),
                 MetadataBuilder.GetOrAddString(genericParameter.Name),
                 genericParameter.Index,
-                genericParameter.Constraints.Select(type => MetadataResolver.HandleOf(type)).ToSet()
+                Model.Extensions.ToSet(genericParameter.Constraints.Select(type => MetadataResolver.HandleOf(type)))
             ));
 
         public void GenerateGenericParameters() =>
@@ -105,6 +107,7 @@ namespace MetadataGenerator.Metadata
                 .ForEach(row => MetadataBuilder.AddInterfaceImplementation(row.Type, row.ImplementedInterface));
 
         #region Rows
+
         private class InterfaceImplementationRow
         {
             public readonly SRM.TypeDefinitionHandle Type;

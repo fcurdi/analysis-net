@@ -1,7 +1,6 @@
 ﻿using MetadataGenerator.Generators.Methods.Body;
-using MetadataGenerator.Metadata;
 using Model.Types;
-using static MetadataGenerator.Metadata.AttributesProvider;
+using static MetadataGenerator.AttributesProvider;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SR = System.Reflection;
 using SRM = System.Reflection.Metadata;
@@ -46,7 +45,7 @@ namespace MetadataGenerator.Generators.Methods
                 (!method.HasBody && !method.IsAbstract ? SR.MethodImplAttributes.Runtime : SR.MethodImplAttributes.Managed);
 
             var methodDefinitionHandle = metadataContainer.MetadataBuilder.AddMethodDefinition(
-                attributes: GetMethodAttributesFor(method),
+                attributes: AttributesFor(method),
                 implAttributes: methodImplementationAttributes,
                 name: metadataContainer.MetadataBuilder.GetOrAddString(method.Name),
                 signature: metadataContainer.MetadataBuilder.GetOrAddBlob(methodSignature),

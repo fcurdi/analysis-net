@@ -1,5 +1,4 @@
 ﻿using System.Linq;
-using MetadataGenerator.Metadata;
 using Model;
 using Model.Types;
 using SRM = System.Reflection.Metadata;

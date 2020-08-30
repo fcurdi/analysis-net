@@ -3,9 +3,8 @@ using System.Linq;
 using MetadataGenerator.Generators.Fields;
 using MetadataGenerator.Generators.Methods;
 using MetadataGenerator.Generators.Methods.Body;
-using MetadataGenerator.Metadata;
 using Model.Types;
-using static MetadataGenerator.Metadata.AttributesProvider;
+using static MetadataGenerator.AttributesProvider;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SR = System.Reflection;
 using SRM = System.Reflection.Metadata;
@@ -59,7 +58,7 @@ namespace MetadataGenerator.Generators
             var nextFieldDefinitionHandle = ECMA335.MetadataTokens.FieldDefinitionHandle(metadataBuilder.NextRowFor(ECMA335.TableIndex.Field));
             var nextMethodDefinitionHandle = ECMA335.MetadataTokens.MethodDefinitionHandle(metadataBuilder.NextRowFor(ECMA335.TableIndex.MethodDef));
             var typeDefinitionHandle = metadataBuilder.AddTypeDefinition(
-                attributes: GetTypeAttributesFor(type),
+                attributes: AttributesFor(type),
                 @namespace: metadataBuilder.GetOrAddString(type.ContainingNamespace.FullName),
                 name: metadataBuilder.GetOrAddString(TypeNameOf(type)),
                 baseType: type.Base != null ? metadataContainer.MetadataResolver.HandleOf(type.Base) : default,
@@ -133,7 +132,8 @@ namespace MetadataGenerator.Generators
         public static string TypeNameOf(IBasicType type)
         {
             var typeName = type.Name;
-            if (type.IsGenericType())
+            var isGenericType = type.GenericType == null && type.GenericParameterCount > 0;
+            if (isGenericType)
             {
                 if (type.ContainingType != null)
                 {

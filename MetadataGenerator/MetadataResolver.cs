@@ -11,7 +11,7 @@ using static MetadataGenerator.Generators.TypeGenerator;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
-namespace MetadataGenerator.Metadata
+namespace MetadataGenerator
 {
     internal class MetadataResolver
     {

@@ -1,5 +1,4 @@
 ﻿using System;
-using MetadataGenerator.Metadata;
 using Model;
 using SR = System.Reflection;
 
@@ -22,7 +21,7 @@ namespace MetadataGenerator.Generators
                 hashAlgorithm: SR.AssemblyHashAlgorithm.Sha1
             );
 
-            var moduleName = $"{assembly.Name}.{(assembly.Kind == AssemblyKind.EXE ? "exe" : "dll")}";
+            var moduleName = $"{assembly.Name}.{(assembly.Kind == AssemblyKind.Exe ? "exe" : "dll")}";
             metadataContainer.ModuleHandle = metadataBuilder.AddModule(
                 generation: 0,
                 moduleName: metadataBuilder.GetOrAddString(moduleName),

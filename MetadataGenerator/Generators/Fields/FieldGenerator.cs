@@ -1,7 +1,6 @@
 ﻿using System.Reflection.PortableExecutable;
-using MetadataGenerator.Metadata;
 using Model.Types;
-using static MetadataGenerator.Metadata.AttributesProvider;
+using static MetadataGenerator.AttributesProvider;
 using SRM = System.Reflection.Metadata;
 
 namespace MetadataGenerator.Generators.Fields
@@ -23,7 +22,7 @@ namespace MetadataGenerator.Generators.Fields
         {
             var fieldSignature = fieldSignatureGenerator.GenerateSignatureOf(field);
             var fieldDefinitionHandle = metadataContainer.MetadataBuilder.AddFieldDefinition(
-                attributes: GetFieldAttributesFor(field),
+                attributes: AttributesFor(field),
                 name: metadataContainer.MetadataBuilder.GetOrAddString(field.Name),
                 signature: metadataContainer.MetadataBuilder.GetOrAddBlob(fieldSignature));
 

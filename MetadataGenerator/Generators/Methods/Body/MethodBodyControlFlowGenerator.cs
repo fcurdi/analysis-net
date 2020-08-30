@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using MetadataGenerator.Metadata;
 using Model;
 using Model.Bytecode;
 using ECMA335 = System.Reflection.Metadata.Ecma335;

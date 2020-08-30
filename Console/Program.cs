@@ -376,7 +376,7 @@ namespace Console
 				Culture = "",
 				PublicKey = new byte[0]
 			};
-			var assembly = new Assembly("SampleAssembly", AssemblyKind.EXE)
+			var assembly = new Assembly("SampleAssembly", AssemblyKind.Exe)
 			{
 				Version = new Version("1.0.0.0"),
 				PublicKey = new byte[0],

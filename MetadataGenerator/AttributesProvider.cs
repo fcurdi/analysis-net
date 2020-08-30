@@ -1,13 +1,12 @@
-﻿using System;
-using System.Reflection;
+﻿using System.Reflection;
 using Model;
 using Model.Types;
 
-namespace MetadataGenerator.Metadata
+namespace MetadataGenerator
 {
     public static class AttributesProvider
     {
-        public static TypeAttributes GetTypeAttributesFor(TypeDefinition typeDefinition)
+        public static TypeAttributes AttributesFor(TypeDefinition typeDefinition)
         {
             switch (typeDefinition.Kind)
             {
@@ -16,54 +15,43 @@ namespace MetadataGenerator.Metadata
                 case TypeDefinitionKind.Interface: return InterfaceTypeAttributes();
                 case TypeDefinitionKind.Struct: return StructTypeAttributes(typeDefinition);
                 case TypeDefinitionKind.Delegate: return DelegateTypeAttributes(typeDefinition);
-                default: throw new Exception($"TypeDefinition {typeDefinition.Name} not supported");
+                default: throw typeDefinition.Kind.ToUnknownValueException();
             }
         }
 
-        private static TypeAttributes DelegateTypeAttributes(TypeDefinition typeDefinition)
-        {
-            return TypeAttributes.Class |
-                   TypeAttributes.Sealed |
-                   (typeDefinition.Serializable ? TypeAttributes.Serializable : 0) |
-                   VisibilityAttributesFor(typeDefinition);
-        }
+        private static TypeAttributes DelegateTypeAttributes(TypeDefinition typeDefinition) =>
+            TypeAttributes.Class |
+            TypeAttributes.Sealed |
+            (typeDefinition.Serializable ? TypeAttributes.Serializable : 0) |
+            VisibilityAttributesFor(typeDefinition);
 
-        private static TypeAttributes StructTypeAttributes(TypeDefinition typeDefinition)
-        {
-            return TypeAttributes.Class |
-                   VisibilityAttributesFor(typeDefinition) |
-                   LayoutAttributesFor(typeDefinition.LayoutInformation) |
-                   (typeDefinition.Serializable ? TypeAttributes.Serializable : 0) |
-                   TypeAttributes.Sealed |
-                   (typeDefinition.BeforeFieldInit ? TypeAttributes.BeforeFieldInit : 0);
-        }
+        private static TypeAttributes StructTypeAttributes(TypeDefinition typeDefinition) =>
+            TypeAttributes.Class |
+            VisibilityAttributesFor(typeDefinition) |
+            LayoutAttributesFor(typeDefinition.LayoutInformation) |
+            (typeDefinition.Serializable ? TypeAttributes.Serializable : 0) |
+            TypeAttributes.Sealed |
+            (typeDefinition.BeforeFieldInit ? TypeAttributes.BeforeFieldInit : 0);
 
-        private static TypeAttributes EnumTypeAttributes(TypeDefinition typeDefinition)
-        {
-            return TypeAttributes.Class |
-                   VisibilityAttributesFor(typeDefinition) |
-                   (typeDefinition.Serializable ? TypeAttributes.Serializable : 0) |
-                   TypeAttributes.Sealed;
-        }
+        private static TypeAttributes EnumTypeAttributes(TypeDefinition typeDefinition) =>
+            TypeAttributes.Class |
+            VisibilityAttributesFor(typeDefinition) |
+            (typeDefinition.Serializable ? TypeAttributes.Serializable : 0) |
+            TypeAttributes.Sealed;
 
-        private static TypeAttributes ClassTypeAttributes(TypeDefinition typeDefinition)
-        {
-            return TypeAttributes.Class |
-                   (typeDefinition.BeforeFieldInit ? TypeAttributes.BeforeFieldInit : 0) |
-                   (typeDefinition.IsAbstract ? TypeAttributes.Abstract : 0) |
-                   (typeDefinition.IsSealed ? TypeAttributes.Sealed : 0) |
-                   (typeDefinition.IsStatic ? TypeAttributes.Abstract | TypeAttributes.Sealed : 0) |
-                   (typeDefinition.Serializable ? TypeAttributes.Serializable : 0) |
-                   LayoutAttributesFor(typeDefinition.LayoutInformation) |
-                   VisibilityAttributesFor(typeDefinition);
-        }
+        private static TypeAttributes ClassTypeAttributes(TypeDefinition typeDefinition) =>
+            TypeAttributes.Class |
+            (typeDefinition.BeforeFieldInit ? TypeAttributes.BeforeFieldInit : 0) |
+            (typeDefinition.IsAbstract ? TypeAttributes.Abstract : 0) |
+            (typeDefinition.IsSealed ? TypeAttributes.Sealed : 0) |
+            (typeDefinition.IsStatic ? TypeAttributes.Abstract | TypeAttributes.Sealed : 0) |
+            (typeDefinition.Serializable ? TypeAttributes.Serializable : 0) |
+            LayoutAttributesFor(typeDefinition.LayoutInformation) |
+            VisibilityAttributesFor(typeDefinition);
 
-        private static TypeAttributes InterfaceTypeAttributes()
-        {
-            return TypeAttributes.Interface | TypeAttributes.Public | TypeAttributes.Abstract;
-        }
+        private static TypeAttributes InterfaceTypeAttributes() => TypeAttributes.Interface | TypeAttributes.Public | TypeAttributes.Abstract;
 
-        public static FieldAttributes GetFieldAttributesFor(FieldDefinition field)
+        public static FieldAttributes AttributesFor(FieldDefinition field)
         {
             var fieldAttributes =
                 (field.IsStatic ? FieldAttributes.Static : 0) |
@@ -97,7 +85,7 @@ namespace MetadataGenerator.Metadata
             return fieldAttributes;
         }
 
-        public static MethodAttributes GetMethodAttributesFor(MethodDefinition method)
+        public static MethodAttributes AttributesFor(MethodDefinition method)
         {
             var methodAttributes =
                 MethodAttributes.HideBySig |
@@ -129,7 +117,7 @@ namespace MetadataGenerator.Metadata
             return methodAttributes;
         }
 
-        public static ParameterAttributes GetParameterAttributesFor(MethodParameter parameter)
+        public static ParameterAttributes AttributesFor(MethodParameter parameter)
         {
             var attributes = parameter.HasDefaultValue ? ParameterAttributes.HasDefault : 0;
             switch (parameter.Kind)
@@ -155,9 +143,9 @@ namespace MetadataGenerator.Metadata
             return attributes;
         }
 
-        public static GenericParameterAttributes GetGenericParameterAttributesFor(GenericParameter genericParameter)
+        public static GenericParameterAttributes AttributesFor(GenericParameter genericParameter)
         {
-            GenericParameterAttributes attributes = GenericParameterAttributes.None;
+            var attributes = GenericParameterAttributes.None;
             if (genericParameter.DefaultConstructorConstraint)
             {
                 attributes |= GenericParameterAttributes.DefaultConstructorConstraint;
@@ -190,18 +178,14 @@ namespace MetadataGenerator.Metadata
         {
             if (typeDefinition.ContainingType != null)
             {
-                return VisibilityKind.Public.Equals(typeDefinition.Visibility)
-                    ? TypeAttributes.NestedPublic
-                    : TypeAttributes.NestedPrivate;
+                return VisibilityKind.Public == typeDefinition.Visibility ? TypeAttributes.NestedPublic : TypeAttributes.NestedPrivate;
             }
             else
             {
-                return VisibilityKind.Public.Equals(typeDefinition.Visibility)
-                    ? TypeAttributes.Public
-                    : TypeAttributes.NotPublic;
+                return VisibilityKind.Public == typeDefinition.Visibility ? TypeAttributes.Public : TypeAttributes.NotPublic;
             }
         }
-        
+
         private static TypeAttributes LayoutAttributesFor(LayoutInformation layoutInformation)
         {
             switch (layoutInformation.Kind)

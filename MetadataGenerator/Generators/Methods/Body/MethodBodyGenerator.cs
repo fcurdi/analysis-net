@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using MetadataGenerator.Metadata;
 using Model;
 using Model.Bytecode;
 using Model.Bytecode.Visitor;
@@ -742,7 +741,8 @@ namespace MetadataGenerator.Generators.Methods.Body
             switch (instruction.Operation)
             {
                 case MethodCallOperation.Virtual:
-                    instructionEncoder.CallVirtual(metadataContainer.MetadataResolver.HandleOf(instruction.Method));
+                    instructionEncoder.OpCode(SRM.ILOpCode.Callvirt);
+                    instructionEncoder.Token(metadataContainer.MetadataResolver.HandleOf(instruction.Method));
                     stackSize.Decrement(instruction.Method.Parameters.Count + 1);
                     break;
                 case MethodCallOperation.Static:

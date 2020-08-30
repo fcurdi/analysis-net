@@ -26,6 +26,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AttributesProvider.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="Generator.cs" />
     <Compile Include="Generators\AssemblyGenerator.cs" />
@@ -36,14 +37,13 @@
     <Compile Include="Generators\NamespaceGenerator.cs" />
     <Compile Include="Generators\PropertyGenerator.cs" />
     <Compile Include="Generators\TypeGenerator.cs" />
-    <Compile Include="Metadata\AttributesProvider.cs" />
-    <Compile Include="Metadata\MetadataContainer.cs" />
-    <Compile Include="Metadata\MetadataResolver.cs" />
+    <Compile Include="MetadataContainer.cs" />
     <Compile Include="Generators\Fields\FieldGenerator.cs" />
     <Compile Include="Generators\Fields\FieldSignatureGenerator.cs" />
     <Compile Include="Generators\Methods\Body\MethodBodyGenerator.cs" />
     <Compile Include="Generators\Methods\Body\MethodLocalsSignatureGenerator.cs" />
     <Compile Include="Generators\Methods\Body\MethodBodyControlFlowGenerator.cs" />
+    <Compile Include="MetadataResolver.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Model\Model.csproj">
@@ -63,7 +63,6 @@
   <ItemGroup>
     <Folder Include="Generators\" />
     <Folder Include="Generators\Methods\" />
-    <Folder Include="Metadata\" />
     <Folder Include="Generators\Fields\" />
     <Folder Include="Generators\Methods\Body\" />
   </ItemGroup>

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Immutable;
-using MetadataGenerator.Metadata;
 using Model;
 using Model.ThreeAddressCode.Values;
 using Model.Types;

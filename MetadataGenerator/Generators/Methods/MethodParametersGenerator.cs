@@ -1,10 +1,9 @@
 using System.Collections.Generic;
-using MetadataGenerator.Metadata;
 using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SR = System.Reflection;
 using SRM = System.Reflection.Metadata;
-using static MetadataGenerator.Metadata.AttributesProvider;
+using static MetadataGenerator.AttributesProvider;
 
 namespace MetadataGenerator.Generators.Methods
 {
@@ -23,7 +22,7 @@ namespace MetadataGenerator.Generators.Methods
             foreach (var parameter in methodParameters)
             {
                 var parameterHandle = metadataContainer.MetadataBuilder.AddParameter(
-                    attributes: GetParameterAttributesFor(parameter),
+                    attributes: AttributesFor(parameter),
                     name: metadataContainer.MetadataBuilder.GetOrAddString(parameter.Name),
                     sequenceNumber: parameter.Index);
                 if (parameter.HasDefaultValue)
