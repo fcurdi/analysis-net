@@ -40,8 +40,8 @@ namespace CCIProvider
 			switch (cciAssembly.Kind)
 			{
 				case Cci.ModuleKind.ConsoleApplication:
-				case Cci.ModuleKind.WindowsApplication: return AssemblyKind.EXE;
-				case Cci.ModuleKind.DynamicallyLinkedLibrary: return AssemblyKind.DLL;
+				case Cci.ModuleKind.WindowsApplication: return AssemblyKind.Exe;
+				case Cci.ModuleKind.DynamicallyLinkedLibrary: return AssemblyKind.Dll;
 				default: throw new Exception($"Assembly kind {cciAssembly.Kind} not supported");
 			}
 		}

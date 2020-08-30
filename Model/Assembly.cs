@@ -46,8 +46,8 @@ namespace Model
 
 	public enum AssemblyKind
 	{
-		EXE,
-		DLL
+		Exe,
+		Dll
 	}
 
 	public class Assembly : IAssemblyReference
