@@ -5,16 +5,16 @@ using SRM = System.Reflection.Metadata;
 
 namespace MetadataGenerator.Generation.Methods
 {
-    internal class MethodSignatureGenerator
+    internal class MethodSignatureEncoder
     {
-        private readonly MetadataContainer metadataContainer;
+        private readonly MetadataResolver metadataResolver;
 
-        public MethodSignatureGenerator(MetadataContainer metadataContainer)
+        public MethodSignatureEncoder(MetadataResolver metadataResolver)
         {
-            this.metadataContainer = metadataContainer;
+            this.metadataResolver = metadataResolver;
         }
 
-        public SRM.BlobBuilder GenerateSignatureOf(IMethodReference method)
+        public SRM.BlobBuilder EncodeSignatureOf(IMethodReference method)
         {
             if (method.IsGenericInstantiation())
             {
@@ -22,29 +22,29 @@ namespace MetadataGenerator.Generation.Methods
                 var encoder = new ECMA335.BlobEncoder(signature).MethodSpecificationSignature(method.GenericArguments.Count);
                 foreach (var genericArg in method.GenericArguments)
                 {
-                    metadataContainer.MetadataResolver.Encode(genericArg, encoder.AddArgument());
+                    metadataResolver.Encode(genericArg, encoder.AddArgument());
                 }
 
                 return signature;
             }
             else
             {
-                return GenerateMethodSignature(method.IsStatic, method.GenericParameterCount, method.Parameters, method.ReturnType);
+                return EncodeSignature(method.IsStatic, method.GenericParameterCount, method.Parameters, method.ReturnType);
             }
         }
 
-        // 0 because FunctionPointerType does not have that property (there's a comment in that class)
-        public SRM.BlobBuilder GenerateSignatureOf(FunctionPointerType method) =>
-            GenerateMethodSignature(method.IsStatic, 0, method.Parameters, method.ReturnType);
+        // 0 because FunctionPointerType does not have that property
+        public SRM.BlobBuilder EncodeSignatureOf(FunctionPointerType method) =>
+            EncodeSignature(method.IsStatic, 0, method.Parameters, method.ReturnType);
 
-        private SRM.BlobBuilder GenerateMethodSignature(
+        private SRM.BlobBuilder EncodeSignature(
             bool isStatic,
             int genericParameterCount,
             IList<IMethodParameterReference> parameters,
             IType returnType)
         {
-            var methodSignature = new SRM.BlobBuilder();
-            new ECMA335.BlobEncoder(methodSignature)
+            var signature = new SRM.BlobBuilder();
+            new ECMA335.BlobEncoder(signature)
                 .MethodSignature(isInstanceMethod: !isStatic, genericParameterCount: genericParameterCount)
                 .Parameters(
                     parameters.Count,
@@ -57,7 +57,7 @@ namespace MetadataGenerator.Generation.Methods
                         else
                         {
                             var encoder = returnTypeEncoder.Type();
-                            metadataContainer.MetadataResolver.Encode(returnType, encoder);
+                            metadataResolver.Encode(returnType, encoder);
                         }
                     },
                     parametersEncoder =>
@@ -73,10 +73,11 @@ namespace MetadataGenerator.Generation.Methods
                             }
 
                             var encoder = parametersEncoder.AddParameter().Type(isByRef);
-                            metadataContainer.MetadataResolver.Encode(type, encoder);
+                            metadataResolver.Encode(type, encoder);
                         }
                     });
-            return methodSignature;
+
+            return signature;
         }
     }
 }

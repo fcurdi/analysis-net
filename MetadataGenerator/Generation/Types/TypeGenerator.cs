@@ -52,11 +52,6 @@ namespace MetadataGenerator.Generation.Types
                         new MethodOverride(methodDefinitionHandle, metadataResolver.HandleOf(method.OverridenMethod)));
                 }
 
-                if (method.Name.Equals("Main"))
-                {
-                    metadataContainer.MainMethodHandle = methodDefinitionHandle;
-                }
-
                 methodDefToHandle.Add(method, methodDefinitionHandle);
             }
 
@@ -102,6 +97,7 @@ namespace MetadataGenerator.Generation.Types
                 }
             }
 
+            // FIXME se puede llevar a otro lado esto?
             foreach (var methodOverride in methodOverrides)
             {
                 metadataBuilder.AddMethodImplementation(
@@ -113,6 +109,7 @@ namespace MetadataGenerator.Generation.Types
 
             if (type.LayoutInformation.SpecifiesSizes())
             {
+                // ClassLayout Table (0x0F) 
                 metadataBuilder.AddTypeLayout(
                     typeDefinitionHandle,
                     (ushort) type.LayoutInformation.PackingSize,

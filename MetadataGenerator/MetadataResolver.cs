@@ -32,8 +32,8 @@ namespace MetadataGenerator
         private readonly IDictionary<SRM.BlobHandle, SRM.StandaloneSignatureHandle> standaloneSignatureReferences =
             new Dictionary<SRM.BlobHandle, SRM.StandaloneSignatureHandle>();
 
-        private readonly FieldSignatureGenerator fieldSignatureGenerator;
-        private readonly MethodSignatureGenerator methodSignatureGenerator;
+        private readonly FieldSignatureEncoder fieldSignatureEncoder;
+        private readonly MethodSignatureEncoder methodSignatureEncoder;
 
         public MetadataResolver(MetadataContainer metadataContainer, Assembly assembly)
         {
@@ -52,8 +52,8 @@ namespace MetadataGenerator
                 );
             }
 
-            fieldSignatureGenerator = new FieldSignatureGenerator(metadataContainer);
-            methodSignatureGenerator = new MethodSignatureGenerator(metadataContainer);
+            fieldSignatureEncoder = new FieldSignatureEncoder(this);
+            methodSignatureEncoder = new MethodSignatureEncoder(this);
         }
 
         public SRM.EntityHandle HandleOf(IMetadataReference metadataReference)
@@ -62,17 +62,17 @@ namespace MetadataGenerator
             {
                 case IFieldReference field:
                 {
-                    var signature = fieldSignatureGenerator.GenerateSignatureOf(field);
+                    var signature = fieldSignatureEncoder.EncodeSignatureOf(field);
                     return GetOrAddFieldReference(field, signature);
                 }
                 case IMethodReference method:
                 {
-                    var signature = methodSignatureGenerator.GenerateSignatureOf(method);
+                    var signature = methodSignatureEncoder.EncodeSignatureOf(method);
                     return GetOrAddMethodReference(method, signature);
                 }
                 case FunctionPointerType functionPointer:
                 {
-                    var signature = methodSignatureGenerator.GenerateSignatureOf(functionPointer);
+                    var signature = methodSignatureEncoder.EncodeSignatureOf(functionPointer);
                     return GetOrAddStandaloneSignature(signature);
                 }
                 case IType type:
@@ -138,7 +138,7 @@ namespace MetadataGenerator
 
         private SRM.MethodSpecificationHandle GetOrAddMethodSpecificationFor(IMethodReference method, SRM.BlobBuilder signature)
         {
-            var genericMethodSignature = methodSignatureGenerator.GenerateSignatureOf(method.GenericMethod);
+            var genericMethodSignature = methodSignatureEncoder.EncodeSignatureOf(method.GenericMethod);
             var key = new Tuple<string, byte[]>(
                 $"{method.GenericMethod.ContainingType.GetFullName()}.{method.GenericName}",
                 genericMethodSignature.ToArray()

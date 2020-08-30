@@ -36,16 +36,16 @@
     <Compile Include="Generation\CustomAttributeGenerator.cs" />
     <Compile Include="Generation\GenericParameterGenerator.cs" />
     <Compile Include="Generation\Methods\MethodGenerator.cs" />
-    <Compile Include="Generation\Methods\MethodParametersGenerator.cs" />
-    <Compile Include="Generation\Methods\MethodSignatureGenerator.cs" />
+    <Compile Include="Generation\Methods\MethodParameterGenerator.cs" />
+    <Compile Include="Generation\Methods\MethodSignatureEncoder.cs" />
     <Compile Include="Generation\ModuleGenerator.cs" />
     <Compile Include="Generation\NamespaceGenerator.cs" />
     <Compile Include="Generation\PropertyGenerator.cs" />
     <Compile Include="MetadataContainer.cs" />
     <Compile Include="Generation\Fields\FieldGenerator.cs" />
-    <Compile Include="Generation\Fields\FieldSignatureGenerator.cs" />
-    <Compile Include="Generation\Methods\Body\MethodBodyGenerator.cs" />
-    <Compile Include="Generation\Methods\Body\MethodLocalsSignatureGenerator.cs" />
+    <Compile Include="Generation\Fields\FieldSignatureEncoder.cs" />
+    <Compile Include="Generation\Methods\Body\MethodBodyEncoder.cs" />
+    <Compile Include="Generation\Methods\Body\MethodLocalsSignatureEncoder.cs" />
     <Compile Include="Generation\Methods\Body\MethodBodyControlFlowGenerator.cs" />
     <Compile Include="MetadataResolver.cs" />
   </ItemGroup>

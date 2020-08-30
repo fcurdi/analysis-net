@@ -12,7 +12,7 @@ using SRM = System.Reflection.Metadata;
 
 namespace MetadataGenerator.Generation.Methods.Body
 {
-    internal class MethodBodyGenerator : IInstructionVisitor
+    internal class MethodBodyEncoder : IInstructionVisitor
     {
         private readonly MetadataContainer metadataContainer;
         private readonly ECMA335.InstructionEncoder instructionEncoder;
@@ -23,7 +23,7 @@ namespace MetadataGenerator.Generation.Methods.Body
         private readonly StackSize stackSize;
         private int Index { get; set; }
 
-        public MethodBodyGenerator(MetadataContainer metadataContainer, MethodBody body)
+        public MethodBodyEncoder(MetadataContainer metadataContainer, MethodBody body)
         {
             this.metadataContainer = metadataContainer;
             this.body = body;
@@ -34,7 +34,7 @@ namespace MetadataGenerator.Generation.Methods.Body
             stackSize = new StackSize();
         }
 
-        public ECMA335.InstructionEncoder Generate(out int maxStack)
+        public ECMA335.InstructionEncoder Encode(out int maxStack)
         {
             controlFlowGenerator.ProcessExceptionInformation(body.ExceptionInformation);
             controlFlowGenerator.DefineNeededBranchLabels(body.Instructions);
