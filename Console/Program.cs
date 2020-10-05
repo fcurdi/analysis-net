@@ -368,7 +368,7 @@ namespace Console
 			}
 		}
 
-		private static void HelloWorldAssembly()
+		private static void ProgramaticallyGeneratedAssembly()
 		{
 			var mscorlib = new AssemblyReference("mscorlib")
 			{
@@ -376,53 +376,170 @@ namespace Console
 				Culture = "",
 				PublicKey = new byte[0]
 			};
-			var assembly = new Assembly("SampleAssembly", AssemblyKind.Exe)
+			var assembly = new Assembly("ProgramaticallyGeneratedAssembly", AssemblyKind.Exe)
 			{
 				Version = new Version("1.0.0.0"),
 				PublicKey = new byte[0],
 				Culture = "",
 				References = {mscorlib}
 			};
-			var namezpace = new Namespace("MainNamespace") {ContainingAssembly = assembly};
-			assembly.RootNamespace = namezpace;
-			var type = new TypeDefinition("MainType", TypeKind.ReferenceType, TypeDefinitionKind.Class)
+			var rootNamespace = new Namespace("") {ContainingAssembly = assembly};
+			rootNamespace.Types.Add(new TypeDefinition("<Module>", TypeKind.ReferenceType, TypeDefinitionKind.Class)
 			{
 				ContainingAssembly = assembly,
-				ContainingNamespace = namezpace,
-				Visibility = VisibilityKind.Public,
-				IsStatic = true,
-				Base = new BasicType("Object", TypeKind.ReferenceType)
-				{
-					ContainingAssembly = mscorlib,
-					ContainingNamespace = "System",
-				}
+				ContainingNamespace = rootNamespace,
+				Visibility = VisibilityKind.Private
+			});
+			assembly.RootNamespace = rootNamespace;
+
+			var objectType = new BasicType("Object", TypeKind.ReferenceType)
+			{
+				ContainingAssembly = mscorlib,
+				ContainingNamespace = "System",
 			};
-			namezpace.Types.Add(type);
-			var method = new MethodDefinition("Main", PlatformTypes.Void)
+			var objectConstructorMethod = new MethodReference(".ctor", PlatformTypes.Void)
+			{
+				ContainingType = objectType
+			};
+
+			var languagesNamespace = new Namespace("Languages") {ContainingAssembly = assembly, ContainingNamespace = rootNamespace};
+			rootNamespace.Namespaces.Add(languagesNamespace);
+			var englishType = new TypeDefinition("English", TypeKind.ReferenceType, TypeDefinitionKind.Class)
+			{
+				ContainingAssembly = assembly,
+				ContainingNamespace = languagesNamespace,
+				Visibility = VisibilityKind.Public,
+				IsStatic = false,
+				Base = objectType
+			};
+			var englishGreetMethod = new MethodDefinition("Greet", PlatformTypes.String)
 			{
 				Visibility = VisibilityKind.Public,
-				ContainingType = type,
-				IsStatic = true,
+				ContainingType = englishType,
+				IsStatic = false,
 				Body = new MethodBody(MethodBodyKind.Bytecode)
 				{
-					MaxStack = 1,
 					Instructions =
 					{
-						new Bytecode.BasicInstruction(0, Bytecode.BasicOperation.Nop),
-						new Bytecode.LoadInstruction(1, Bytecode.LoadOperation.Value, new Constant("Hello World!")),
-						new Bytecode.MethodCallInstruction(2, Bytecode.MethodCallOperation.Static, ConsoleWriteLineMethodReference()),
+						new Bytecode.LoadInstruction(0, Bytecode.LoadOperation.Value, new Constant("¡Hello!")),
+						new Bytecode.BasicInstruction(1, Bytecode.BasicOperation.Return)
+					}
+				}
+			};
+
+			var thisVariable = new LocalVariable("this", true);
+			var englishTypeConstructor = new MethodDefinition(".ctor", PlatformTypes.Void)
+			{
+				SpecialName = true,
+				RuntimeSpecialName = true,
+				Visibility = VisibilityKind.Public,
+				ContainingType = englishType,
+				IsStatic = false,
+				Body = new MethodBody(MethodBodyKind.Bytecode)
+				{
+					Parameters = {thisVariable},
+					Instructions =
+					{
+						new Bytecode.LoadInstruction(0, Bytecode.LoadOperation.Content, thisVariable),
+						new Bytecode.MethodCallInstruction(1, Bytecode.MethodCallOperation.Jump, objectConstructorMethod),
+						new Bytecode.BasicInstruction(2, Bytecode.BasicOperation.Nop),
 						new Bytecode.BasicInstruction(3, Bytecode.BasicOperation.Return)
 					}
 				}
 			};
-			type.Methods.Add(method);
+			englishType.Methods.Add(englishTypeConstructor);
+			englishType.Methods.Add(englishGreetMethod);
+			languagesNamespace.Types.Add(englishType);
+
+			var spanishType = new TypeDefinition("Spanish", TypeKind.ReferenceType, TypeDefinitionKind.Class)
+			{
+				ContainingAssembly = assembly,
+				ContainingNamespace = languagesNamespace,
+				Visibility = VisibilityKind.Public,
+				IsStatic = false,
+				Base = objectType
+			};
+			var spanishGreetMethod = new MethodDefinition("Greet", PlatformTypes.String)
+			{
+				Visibility = VisibilityKind.Public,
+				ContainingType = spanishType,
+				IsStatic = false,
+				Body = new MethodBody(MethodBodyKind.Bytecode)
+				{
+					Instructions =
+					{
+						new Bytecode.LoadInstruction(0, Bytecode.LoadOperation.Value, new Constant("¡Hola!")),
+						new Bytecode.BasicInstruction(1, Bytecode.BasicOperation.Return)
+					}
+				}
+			};
+			var spanishTypeConstructor = new MethodDefinition(".ctor", PlatformTypes.Void)
+			{
+				SpecialName = true,
+				RuntimeSpecialName = true,
+				Visibility = VisibilityKind.Public,
+				ContainingType = spanishType,
+				IsStatic = false,
+				Body = new MethodBody(MethodBodyKind.Bytecode)
+				{
+					Parameters = {thisVariable},
+					Instructions =
+					{
+						new Bytecode.LoadInstruction(0, Bytecode.LoadOperation.Content, thisVariable),
+						new Bytecode.MethodCallInstruction(1, Bytecode.MethodCallOperation.Jump, objectConstructorMethod),
+						new Bytecode.BasicInstruction(2, Bytecode.BasicOperation.Nop),
+						new Bytecode.BasicInstruction(3, Bytecode.BasicOperation.Return)
+					}
+				}
+			};
+			spanishType.Methods.Add(spanishGreetMethod);
+			spanishType.Methods.Add(spanishTypeConstructor);
+			languagesNamespace.Types.Add(spanishType);
+
+			var consoleNamespace = new Namespace("Console") {ContainingAssembly = assembly, ContainingNamespace = rootNamespace};
+			rootNamespace.Namespaces.Add(consoleNamespace);
+			var programType = new TypeDefinition("Program", TypeKind.ReferenceType, TypeDefinitionKind.Class)
+			{
+				ContainingAssembly = assembly,
+				ContainingNamespace = consoleNamespace,
+				Visibility = VisibilityKind.Public,
+				IsStatic = true,
+				Base = objectType
+			};
+			consoleNamespace.Types.Add(programType);
+
+			var mainMethod = new MethodDefinition("Main", PlatformTypes.Void)
+			{
+				Visibility = VisibilityKind.Public,
+				ContainingType = programType,
+				IsStatic = true,
+				Body = new MethodBody(MethodBodyKind.Bytecode)
+				{
+					Instructions =
+					{
+						new Bytecode.BasicInstruction(0, Bytecode.BasicOperation.Nop),
+						new Bytecode.CreateObjectInstruction(1, englishTypeConstructor),
+						new Bytecode.MethodCallInstruction(2, Bytecode.MethodCallOperation.Jump, englishGreetMethod),
+						new Bytecode.MethodCallInstruction(3, Bytecode.MethodCallOperation.Static, ConsoleWriteLineMethodReference()),
+						new Bytecode.BasicInstruction(4, Bytecode.BasicOperation.Nop),
+						new Bytecode.CreateObjectInstruction(5, spanishTypeConstructor),
+						new Bytecode.MethodCallInstruction(6, Bytecode.MethodCallOperation.Jump, spanishGreetMethod),
+						new Bytecode.MethodCallInstruction(7, Bytecode.MethodCallOperation.Static, ConsoleWriteLineMethodReference()),
+						new Bytecode.BasicInstruction(8, Bytecode.BasicOperation.Nop),
+						new Bytecode.BasicInstruction(9, Bytecode.BasicOperation.Return)
+					}
+				}
+			};
+			programType.Methods.Add(mainMethod);
+
 			var generator = new MetadataGenerator.Generator();
 			generator.Generate(assembly);
 		}
 
-		private static void TacInstrumentation()
+		// Each method body is translated to TAC and modified by adding a log at the beginning of the method. Then it is translated back
+		// to Bytecode and generated
+		private static void TacInstrumentation() => DoWithLibs(input =>
 		{
-			var input = "../../../ExamplesEXE/bin/Debug/ExamplesEXE.exe";
 			var host = new Host();
 
 			PlatformTypes.Resolve(host);
@@ -431,45 +548,48 @@ namespace Console
 			var loader = new MetadataProvider.Loader(host);
 			loader.LoadAssembly(input);
 
-			var main = (from a in host.Assemblies
+			var allDefinedMethods = (from a in host.Assemblies
 				from t in a.RootNamespace.GetAllTypes()
 				from m in t.Members.OfType<MethodDefinition>()
-				where m.Name.Equals("Main")
-				select m).First();
+				where m.HasBody
+				select m).ToList();
+			
+			foreach (var method in allDefinedMethods)
+			{
+				var tac = new Backend.Transformations.Disassembler(method).Execute();
+				method.Body = tac;
 
-			var tac = new Backend.Transformations.Disassembler(main).Execute();
-			main.Body = tac;
+				AddLogAtMethodEntry($"Entering method: {method.Name}", method.Body);
 
-			AddLogAtIndex(0, "entering main", main.Body);
-			AddLogAtIndex(tac.Instructions.Count - 1, "exiting main", main.Body);
+				var cfanalysis = new ControlFlowAnalysis(method.Body);
+				var cfg = cfanalysis.GenerateExceptionalControlFlow();
 
-			var cfanalysis = new ControlFlowAnalysis(main.Body);
-			var cfg = cfanalysis.GenerateExceptionalControlFlow();
+				var webAnalysis = new WebAnalysis(cfg);
+				webAnalysis.Analyze();
+				webAnalysis.Transform();
+				method.Body.UpdateVariables();
 
-			var webAnalysis = new WebAnalysis(cfg);
-			webAnalysis.Analyze();
-			webAnalysis.Transform();
-			main.Body.UpdateVariables();
+				var typeInferenceAnalysis = new TypeInferenceAnalysis(cfg, method.ReturnType);
+				typeInferenceAnalysis.Analyze();
 
-			var typeInferenceAnalysis = new TypeInferenceAnalysis(cfg, main.ReturnType);
-			typeInferenceAnalysis.Analyze();
+				var bytecode = new Backend.Transformations.Assembly.Assembler(method).Execute();
+				method.Body = bytecode;
+			}
 
-			var bytecode = new Backend.Transformations.Assembly.Assembler(main).Execute();
-			main.Body = bytecode;
 			var generator = new MetadataGenerator.Generator();
 
 			foreach (var assembly in host.Assemblies)
 			{
 				generator.Generate(assembly);
 			}
-		}
+		});
 
-		private static void AddLogAtIndex(int index, string message, MethodBody body)
+		private static void AddLogAtMethodEntry(string message, MethodBody body)
 		{
 			var result = new TemporalVariable("$s", 0);
 			var loadInstruction = new Tac.LoadInstruction(0, result, new Constant(message))
 			{
-				Label = body.Instructions[index].Label + "º"
+				Label = body.Instructions.First().Label + "º"
 			};
 			var methodCallInstruction = new Tac.MethodCallInstruction(
 				0,
@@ -481,11 +601,9 @@ namespace Console
 				Label = loadInstruction.Label + "º"
 			};
 
-			var instructions =
-				body.Instructions.Take(index)
-					.Concat(new List<Tac.Instruction> {loadInstruction, methodCallInstruction})
-					.Concat(body.Instructions.Skip(index))
-					.ToList();
+			var instructions = new List<Tac.Instruction> {loadInstruction, methodCallInstruction}
+				.Concat(body.Instructions)
+				.ToList();
 
 			body.Instructions.Clear();
 			body.Instructions.AddRange(instructions);
@@ -507,83 +625,54 @@ namespace Console
 			return writeLineMethod;
 		}
 
-		private static void ReadAndGenerateDll(bool transformToTacAndBackToBytecode) 
+		private static void ReadAndGenerateDll(bool transformToTacAndBackToBytecode) => DoWithLibs(file =>
 		{
-			var inputs = new[]
+			var host = new Host();
+
+			PlatformTypes.Resolve(host);
+
+			System.Console.WriteLine($"Reading {file}");
+			var loader = new MetadataProvider.Loader(host);
+			loader.LoadAssembly(file);
+
+			if (transformToTacAndBackToBytecode)
 			{
-				new[] {"../../../Examples/bin/Debug/Examples.dll"},
-				new[]
+				var allDefinedMethods = (from a in host.Assemblies
+					from t in a.RootNamespace.GetAllTypes()
+					from m in t.Members.OfType<MethodDefinition>()
+					where m.HasBody
+					select m).ToList();
+
+				foreach (var method in allDefinedMethods)
 				{
-					"../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser/bin/Debug/net45/TinyCsvParser.dll",
-					"../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser.Test/bin/Debug/net45/TinyCsvParser.Test.dll"
-				},
-				new[]
-				{
-					"../../../../DSA/DSA/DSA/bin/Debug/net45/DSA.dll",
-					"../../../../DSA/DSA/DSAUnitTests/bin/Debug/net45/DSAUnitTests.dll"
-				},
-				new[]
-				{
-					"../../../../Fleck/src/Fleck.Tests/bin/Debug/net45/Fleck.dll",
-					"../../../../Fleck/src/Fleck.Tests/bin/Debug/net45/Fleck.Tests.dll"
-				},
-				new[]
-				{
-					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.dll",
-					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Async.dll",
-					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Tests.dll",
-					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Utilities.dll"
-				}
-			};
+					var tac = new Backend.Transformations.Disassembler(method).Execute();
+					method.Body = tac;
 
-			foreach (var file in inputs.SelectMany(i => i))
-			{
-				var host = new Host();
+					var cfanalysis = new ControlFlowAnalysis(method.Body);
+					var cfg = cfanalysis.GenerateExceptionalControlFlow();
 
-				PlatformTypes.Resolve(host);
+					var webAnalysis = new WebAnalysis(cfg);
+					webAnalysis.Analyze();
+					webAnalysis.Transform();
+					method.Body.UpdateVariables();
 
-				System.Console.WriteLine($"Reading {file}");
-				var loader = new MetadataProvider.Loader(host);
-				loader.LoadAssembly(file);
+					var typeInferenceAnalysis = new TypeInferenceAnalysis(cfg, method.ReturnType);
+					typeInferenceAnalysis.Analyze();
 
-				if (transformToTacAndBackToBytecode)
-				{
-					var allDefinedMethods = (from a in host.Assemblies
-						from t in a.RootNamespace.GetAllTypes()
-						from m in t.Members.OfType<MethodDefinition>()
-						where m.HasBody
-						select m).ToList();
-
-					foreach (var method in allDefinedMethods)
-					{
-						var tac = new Backend.Transformations.Disassembler(method).Execute();
-						method.Body = tac;
-
-						var cfanalysis = new ControlFlowAnalysis(method.Body);
-						var cfg = cfanalysis.GenerateExceptionalControlFlow();
-
-						var webAnalysis = new WebAnalysis(cfg);
-						webAnalysis.Analyze();
-						webAnalysis.Transform();
-						method.Body.UpdateVariables();
-
-						var typeInferenceAnalysis = new TypeInferenceAnalysis(cfg, method.ReturnType);
-						typeInferenceAnalysis.Analyze();
-						
-						var bytecode = new Backend.Transformations.Assembly.Assembler(method).Execute();
-						method.Body = bytecode;
-					}
-				}
-
-				var generator = new MetadataGenerator.Generator();
-
-				foreach (var assembly in host.Assemblies)
-				{
-					generator.Generate(assembly);
+					var bytecode = new Backend.Transformations.Assembly.Assembler(method).Execute();
+					method.Body = bytecode;
 				}
 			}
-		}
 
+			var generator = new MetadataGenerator.Generator();
+
+			foreach (var assembly in host.Assemblies)
+			{
+				generator.Generate(assembly);
+			}
+		});
+
+		// TODO hacerlo generico y ver como darle sentido para los casos de estudio (ya que al ser libs van a tener metodos que no se usan).
 		private static void RemoveUnusedMethodFromSimpleExecutable()
 		{
 			var input = "../../../ExamplesEXE/bin/Debug/ExamplesEXE.exe";
@@ -634,11 +723,16 @@ namespace Console
 			}
 			
 			// remove unused method
-			var unusedMethod = allDefinedMethods.Except(callGraph.Methods).First();
-			var type = (TypeDefinition) unusedMethod.ContainingType;
-			var onlyUsedMethods = type.Methods.Where(method => !method.Equals(unusedMethod)).ToList();
-			type.Methods.Clear();
-			type.Methods.AddRange(onlyUsedMethods);
+			var unusedPrivateMethods = allDefinedMethods
+				.Except(callGraph.Methods.Cast<MethodDefinition>())
+				.Where(method => method.Visibility == VisibilityKind.Private)
+				.ToList();
+			foreach (var unusedMethods in unusedPrivateMethods)
+			{
+				unusedMethods.ContainingType.Methods.Remove(unusedMethods);
+			}
+			
+			System.Console.WriteLine($"File: {input} - Unused methods removed: {unusedPrivateMethods.Count}");
 
 			// generate
 			var generator = new MetadataGenerator.Generator();
@@ -648,12 +742,48 @@ namespace Console
 			}
 		}
 
+		private static void DoWithLibs(Action<string> operation)
+		{
+			var inputs = new[]
+			{
+				new[] {"../../../Examples/bin/Debug/Examples.dll"},
+				new[]
+				{
+					"../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser/bin/Debug/net45/TinyCsvParser.dll",
+					"../../../../TinyCsvParser/TinyCsvParser/TinyCsvParser.Test/bin/Debug/net45/TinyCsvParser.Test.dll"
+				},
+				new[]
+				{
+					"../../../../DSA/DSA/DSA/bin/Debug/net45/DSA.dll",
+					"../../../../DSA/DSA/DSAUnitTests/bin/Debug/net45/DSAUnitTests.dll"
+				},
+				new[]
+				{
+					"../../../../Fleck/src/Fleck.Tests/bin/Debug/net45/Fleck.dll",
+					"../../../../Fleck/src/Fleck.Tests/bin/Debug/net45/Fleck.Tests.dll"
+				},
+				new[]
+				{
+					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.dll",
+					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Async.dll",
+					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Tests.dll",
+					"../../../../Optional/src/Optional.Tests/bin/Debug/net45/Optional.Utilities.dll"
+				}
+			};
+
+			foreach (var file in inputs.SelectMany(i => i))
+			{
+				operation.Invoke(file);
+			}
+			
+		}
+
 		static void Main(string[] args)
 		{
-			ReadAndGenerateDll(false);
-		//	ReadAndGenerateDll(true);
+		//	ReadAndGenerateDll(transformToTacAndBackToBytecode: false);
+		//	ReadAndGenerateDll(transformToTacAndBackToBytecode: true);
 		//	TacInstrumentation();
-		//	HelloWorldAssembly();
+		//	ProgramaticallyGeneratedAssembly();
 		//	RemoveUnusedMethodFromSimpleExecutable();
 		
 			System.Console.WriteLine("Done!");
