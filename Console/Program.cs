@@ -780,7 +780,7 @@ namespace Console
 
 		static void Main(string[] args)
 		{
-		//	ReadAndGenerateDll(transformToTacAndBackToBytecode: false);
+			ReadAndGenerateDll(transformToTacAndBackToBytecode: false);
 		//	ReadAndGenerateDll(transformToTacAndBackToBytecode: true);
 		//	TacInstrumentation();
 		//	ProgramaticallyGeneratedAssembly();

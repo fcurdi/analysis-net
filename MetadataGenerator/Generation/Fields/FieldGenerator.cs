@@ -15,7 +15,7 @@ namespace MetadataGenerator.Generation.Fields
         public FieldGenerator(MetadataContainer metadataContainer)
         {
             this.metadataContainer = metadataContainer;
-            fieldSignatureEncoder = new FieldSignatureEncoder(metadataContainer.MetadataResolver);
+            fieldSignatureEncoder = new FieldSignatureEncoder(metadataContainer.HandleResolver);
             customAttributeGenerator = new CustomAttributeGenerator(metadataContainer);
         }
 

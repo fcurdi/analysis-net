@@ -6,11 +6,11 @@ namespace MetadataGenerator.Generation.Properties
 {
     internal class PropertySignatureEncoder
     {
-        private readonly MetadataResolver metadataResolver;
+        private readonly HandleResolver _handleResolver;
 
-        public PropertySignatureEncoder(MetadataResolver metadataResolver)
+        public PropertySignatureEncoder(HandleResolver handleResolver)
         {
-            this.metadataResolver = metadataResolver;
+            this._handleResolver = handleResolver;
         }
 
         public SRM.BlobBuilder EncodeSignatureOf(PropertyDefinition property)
@@ -20,7 +20,7 @@ namespace MetadataGenerator.Generation.Properties
                 .PropertySignature(isInstanceProperty: !property.IsStatic)
                 .Parameters(
                     parameterCount: 0,
-                    returnType: returnTypeEncoder => metadataResolver.Encode(property.PropertyType, returnTypeEncoder.Type()),
+                    returnType: returnTypeEncoder => _handleResolver.Encode(property.PropertyType, returnTypeEncoder.Type()),
                     parameters: parametersEncoder => { });
             return signature;
         }

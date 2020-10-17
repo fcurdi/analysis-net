@@ -13,7 +13,7 @@ namespace MetadataGenerator.Generation.Methods.Body
 {
     internal class MethodBodyEncoder : IInstructionVisitor
     {
-        private readonly MetadataResolver metadataResolver;
+        private readonly HandleResolver _handleResolver;
         private readonly ECMA335.InstructionEncoder instructionEncoder;
         private readonly MethodBodyControlFlow methodBodyControlFlow;
         private readonly List<SwitchInstructionPlaceholder> switchInstructionsPlaceHolders;
@@ -22,12 +22,12 @@ namespace MetadataGenerator.Generation.Methods.Body
         private readonly StackSize stackSize;
         private int Index { get; set; }
 
-        public MethodBodyEncoder(MetadataResolver metadataResolver, MethodBody body)
+        public MethodBodyEncoder(HandleResolver handleResolver, MethodBody body)
         {
-            this.metadataResolver = metadataResolver;
+            this._handleResolver = handleResolver;
             this.body = body;
             instructionEncoder = new ECMA335.InstructionEncoder(new SRM.BlobBuilder(), new ECMA335.ControlFlowBuilder());
-            methodBodyControlFlow = new MethodBodyControlFlow(instructionEncoder, metadataResolver);
+            methodBodyControlFlow = new MethodBodyControlFlow(instructionEncoder, handleResolver);
             switchInstructionsPlaceHolders = new List<SwitchInstructionPlaceholder>();
             skippedIndices = new HashSet<int>();
             stackSize = new StackSize();
@@ -79,7 +79,7 @@ namespace MetadataGenerator.Generation.Methods.Body
         public void Visit(InitObjInstruction instruction)
         {
             instructionEncoder.OpCode(SRM.ILOpCode.Initobj);
-            instructionEncoder.Token(metadataResolver.HandleOf(instruction.Type));
+            instructionEncoder.Token(_handleResolver.HandleOf(instruction.Type));
             stackSize.Decrement();
         }
 
@@ -225,7 +225,7 @@ namespace MetadataGenerator.Generation.Methods.Body
         public void Visit(ConstrainedInstruction instruction)
         {
             instructionEncoder.OpCode(SRM.ILOpCode.Constrained);
-            instructionEncoder.Token(metadataResolver.HandleOf(instruction.ThisType));
+            instructionEncoder.Token(_handleResolver.HandleOf(instruction.ThisType));
         }
 
         public void Visit(LoadInstruction instruction)
@@ -294,7 +294,7 @@ namespace MetadataGenerator.Generation.Methods.Body
 
                             break;
                         case string value:
-                            instructionEncoder.LoadString(metadataResolver.UserStringHandleOf(value));
+                            instructionEncoder.LoadString(_handleResolver.UserStringHandleOf(value));
                             stackSize.Increment();
                             break;
                         case int value:
@@ -377,7 +377,7 @@ namespace MetadataGenerator.Generation.Methods.Body
             else
             {
                 instructionEncoder.OpCode(SRM.ILOpCode.Ldobj);
-                instructionEncoder.Token(metadataResolver.HandleOf(instruction.Type));
+                instructionEncoder.Token(_handleResolver.HandleOf(instruction.Type));
             }
         }
 
@@ -396,7 +396,7 @@ namespace MetadataGenerator.Generation.Methods.Body
                     throw instruction.Operation.ToUnknownValueException();
             }
 
-            instructionEncoder.Token(metadataResolver.HandleOf(instruction.Field));
+            instructionEncoder.Token(_handleResolver.HandleOf(instruction.Field));
             if (isStatic)
             {
                 stackSize.Increment();
@@ -407,7 +407,7 @@ namespace MetadataGenerator.Generation.Methods.Body
         {
             var isVirtual = instruction.Method.IsVirtual;
             instructionEncoder.OpCode(isVirtual ? SRM.ILOpCode.Ldvirtftn : SRM.ILOpCode.Ldftn);
-            instructionEncoder.Token(metadataResolver.HandleOf(instruction.Method));
+            instructionEncoder.Token(_handleResolver.HandleOf(instruction.Method));
             if (!isVirtual)
             {
                 stackSize.Increment();
@@ -451,7 +451,7 @@ namespace MetadataGenerator.Generation.Methods.Body
             else
             {
                 instructionEncoder.OpCode(SRM.ILOpCode.Stobj);
-                instructionEncoder.Token(metadataResolver.HandleOf(instruction.Type));
+                instructionEncoder.Token(_handleResolver.HandleOf(instruction.Type));
             }
 
             stackSize.Decrement(2);
@@ -478,7 +478,7 @@ namespace MetadataGenerator.Generation.Methods.Body
         {
             var isStatic = instruction.Field.IsStatic;
             instructionEncoder.OpCode(isStatic ? SRM.ILOpCode.Stsfld : SRM.ILOpCode.Stfld);
-            instructionEncoder.Token(metadataResolver.HandleOf(instruction.Field));
+            instructionEncoder.Token(_handleResolver.HandleOf(instruction.Field));
             stackSize.Decrement(isStatic ? 1 : 2);
         }
 
@@ -630,23 +630,23 @@ namespace MetadataGenerator.Generation.Methods.Body
                     break;
                 case ConvertOperation.Cast:
                     instructionEncoder.OpCode(SRM.ILOpCode.Castclass);
-                    instructionEncoder.Token(metadataResolver.HandleOf(instruction.ConversionType));
+                    instructionEncoder.Token(_handleResolver.HandleOf(instruction.ConversionType));
                     break;
                 case ConvertOperation.IsInst:
                     instructionEncoder.OpCode(SRM.ILOpCode.Isinst);
-                    instructionEncoder.Token(metadataResolver.HandleOf(instruction.ConversionType));
+                    instructionEncoder.Token(_handleResolver.HandleOf(instruction.ConversionType));
                     break;
                 case ConvertOperation.Box:
                     instructionEncoder.OpCode(SRM.ILOpCode.Box);
-                    instructionEncoder.Token(metadataResolver.HandleOf(instruction.ConversionType));
+                    instructionEncoder.Token(_handleResolver.HandleOf(instruction.ConversionType));
                     break;
                 case ConvertOperation.Unbox:
                     instructionEncoder.OpCode(SRM.ILOpCode.Unbox_any);
-                    instructionEncoder.Token(metadataResolver.HandleOf(instruction.ConversionType));
+                    instructionEncoder.Token(_handleResolver.HandleOf(instruction.ConversionType));
                     break;
                 case ConvertOperation.UnboxPtr:
                     instructionEncoder.OpCode(SRM.ILOpCode.Unbox);
-                    instructionEncoder.Token(metadataResolver.HandleOf(instruction.ConversionType));
+                    instructionEncoder.Token(_handleResolver.HandleOf(instruction.ConversionType));
                     break;
                 default:
                     throw instruction.Operation.ToUnknownValueException();
@@ -729,14 +729,14 @@ namespace MetadataGenerator.Generation.Methods.Body
         public void Visit(SizeofInstruction instruction)
         {
             instructionEncoder.OpCode(SRM.ILOpCode.Sizeof);
-            instructionEncoder.Token(metadataResolver.HandleOf(instruction.MeasuredType));
+            instructionEncoder.Token(_handleResolver.HandleOf(instruction.MeasuredType));
             stackSize.Increment();
         }
 
         public void Visit(LoadTokenInstruction instruction)
         {
             instructionEncoder.OpCode(SRM.ILOpCode.Ldtoken);
-            instructionEncoder.Token(metadataResolver.HandleOf(instruction.Token));
+            instructionEncoder.Token(_handleResolver.HandleOf(instruction.Token));
             stackSize.Increment();
         }
 
@@ -746,12 +746,12 @@ namespace MetadataGenerator.Generation.Methods.Body
             {
                 case MethodCallOperation.Virtual:
                     instructionEncoder.OpCode(SRM.ILOpCode.Callvirt);
-                    instructionEncoder.Token(metadataResolver.HandleOf(instruction.Method));
+                    instructionEncoder.Token(_handleResolver.HandleOf(instruction.Method));
                     stackSize.Decrement(instruction.Method.Parameters.Count + 1);
                     break;
                 case MethodCallOperation.Static:
                 case MethodCallOperation.Jump:
-                    instructionEncoder.Call(metadataResolver.HandleOf(instruction.Method));
+                    instructionEncoder.Call(_handleResolver.HandleOf(instruction.Method));
                     stackSize.Decrement(instruction.Method.Parameters.Count);
                     break;
                 default:
@@ -766,7 +766,7 @@ namespace MetadataGenerator.Generation.Methods.Body
 
         public void Visit(IndirectMethodCallInstruction instruction)
         {
-            var methodSignature = metadataResolver.HandleOf(instruction.Function);
+            var methodSignature = _handleResolver.HandleOf(instruction.Function);
             instructionEncoder.CallIndirect((SRM.StandaloneSignatureHandle) methodSignature);
             stackSize.Decrement(instruction.Function.Parameters.Count + 1);
             if (!instruction.Function.ReturnType.Equals(PlatformTypes.Void))
@@ -777,7 +777,7 @@ namespace MetadataGenerator.Generation.Methods.Body
 
         public void Visit(CreateObjectInstruction instruction)
         {
-            var method = metadataResolver.HandleOf(instruction.Constructor);
+            var method = _handleResolver.HandleOf(instruction.Constructor);
             instructionEncoder.OpCode(SRM.ILOpCode.Newobj);
             instructionEncoder.Token(method);
             stackSize.Decrement(instruction.Constructor.Parameters.Count);
@@ -789,11 +789,11 @@ namespace MetadataGenerator.Generation.Methods.Body
             if (instruction.Type.IsVector)
             {
                 instructionEncoder.OpCode(SRM.ILOpCode.Newarr);
-                instructionEncoder.Token(metadataResolver.HandleOf(instruction.Type.ElementsType));
+                instructionEncoder.Token(_handleResolver.HandleOf(instruction.Type.ElementsType));
             }
             else
             {
-                var method = metadataResolver.HandleOf(instruction.Constructor);
+                var method = _handleResolver.HandleOf(instruction.Constructor);
                 instructionEncoder.OpCode(SRM.ILOpCode.Newobj);
                 instructionEncoder.Token(method);
                 stackSize.Decrement(instruction.Constructor.Parameters.Count);
@@ -805,7 +805,7 @@ namespace MetadataGenerator.Generation.Methods.Body
         {
             if (instruction.Method != null)
             {
-                instructionEncoder.Call(metadataResolver.HandleOf(instruction.Method));
+                instructionEncoder.Call(_handleResolver.HandleOf(instruction.Method));
                 stackSize.Decrement(instruction.Method.Parameters.Count);
                 stackSize.Increment();
             }
@@ -863,14 +863,14 @@ namespace MetadataGenerator.Generation.Methods.Body
                         {
                             instructionEncoder.OpCode(SRM.ILOpCode.Ldelem);
                             instructionEncoder.Token(
-                                metadataResolver.HandleOf(instruction.Array.ElementsType));
+                                _handleResolver.HandleOf(instruction.Array.ElementsType));
                         }
 
                         break;
                     case LoadArrayElementOperation.Address:
                         instructionEncoder.OpCode(SRM.ILOpCode.Ldelema);
                         instructionEncoder.Token(
-                            metadataResolver.HandleOf(instruction.Array.ElementsType));
+                            _handleResolver.HandleOf(instruction.Array.ElementsType));
                         break;
 
                     default:
@@ -885,7 +885,7 @@ namespace MetadataGenerator.Generation.Methods.Body
         {
             if (instruction.Method != null)
             {
-                instructionEncoder.Call(metadataResolver.HandleOf(instruction.Method));
+                instructionEncoder.Call(_handleResolver.HandleOf(instruction.Method));
                 stackSize.Decrement(instruction.Method.Parameters.Count);
             }
             else
@@ -925,7 +925,7 @@ namespace MetadataGenerator.Generation.Methods.Body
                 else
                 {
                     instructionEncoder.OpCode(SRM.ILOpCode.Stelem);
-                    instructionEncoder.Token(metadataResolver.HandleOf(instruction.Array.ElementsType));
+                    instructionEncoder.Token(_handleResolver.HandleOf(instruction.Array.ElementsType));
                 }
 
                 stackSize.Decrement(3);

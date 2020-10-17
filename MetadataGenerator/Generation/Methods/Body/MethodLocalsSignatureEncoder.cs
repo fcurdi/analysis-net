@@ -8,11 +8,11 @@ namespace MetadataGenerator.Generation.Methods.Body
 {
     internal class MethodLocalsSignatureEncoder
     {
-        private readonly MetadataResolver metadataResolver;
+        private readonly HandleResolver _handleResolver;
 
-        public MethodLocalsSignatureEncoder(MetadataResolver metadataResolver)
+        public MethodLocalsSignatureEncoder(HandleResolver handleResolver)
         {
-            this.metadataResolver = metadataResolver;
+            this._handleResolver = handleResolver;
         }
 
         public SRM.BlobBuilder EncodeSignatureOf(IList<IVariable> localVariables)
@@ -23,7 +23,7 @@ namespace MetadataGenerator.Generation.Methods.Body
             var encoder = new ECMA335.BlobEncoder(signature).LocalVariableSignature(localVariables.Count);
             foreach (var localVariable in localVariables)
             {
-                metadataResolver.Encode(localVariable.Type, encoder.AddVariable().Type(isPinned: false));
+                _handleResolver.Encode(localVariable.Type, encoder.AddVariable().Type(isPinned: false));
             }
 
             return signature;

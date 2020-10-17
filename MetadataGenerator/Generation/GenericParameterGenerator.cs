@@ -19,7 +19,7 @@ namespace MetadataGenerator.Generation
                 {
                     var genericParameter = entry.GenericParameter;
                     var constraints = genericParameter.Constraints
-                        .Select(type => metadataContainer.MetadataResolver.HandleOf(type))
+                        .Select(type => metadataContainer.HandleResolver.HandleOf(type))
                         .ToSet();
                     return new GenericParamRow(
                         entry.Parent,

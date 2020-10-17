@@ -13,6 +13,7 @@ namespace MetadataGenerator.Generation
             var moduleGenerator = new ModuleGenerator(metadataContainer);
             var metadataBuilder = metadataContainer.MetadataBuilder;
 
+            // Assembly Table (0x20) 
             metadataBuilder.AddAssembly(
                 name: metadataBuilder.GetOrAddString(assembly.Name),
                 version: assembly.Version,

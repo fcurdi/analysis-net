@@ -31,12 +31,13 @@
     <Compile Include="Generation\CustomAttributes\CustomAttributeGenerator.cs" />
     <Compile Include="Generation\CustomAttributes\CustomAttributesSignatureEncoder.cs" />
     <Compile Include="Generation\MetadataContainer.cs" />
-    <Compile Include="Generation\MetadataResolver.cs" />
+    <Compile Include="Generation\HandleResolver.cs" />
     <Compile Include="Generation\Properties\PropertySignatureEncoder.cs" />
     <Compile Include="Generation\Properties\PropertyGenerator.cs" />
     <Compile Include="Generation\Types\InterfaceImplementationGenerator.cs" />
     <Compile Include="Generation\Types\NestedTypeGenerator.cs" />
     <Compile Include="Generation\Types\TypeGenerator.cs" />
+    <Compile Include="Generation\Types\TypeSignatureEncoder.cs" />
     <Compile Include="Generator.cs" />
     <Compile Include="Generation\AssemblyGenerator.cs" />
     <Compile Include="Generation\GenericParameterGenerator.cs" />

@@ -20,8 +20,8 @@ namespace MetadataGenerator.Generation.Methods
         public MethodGenerator(MetadataContainer metadataContainer)
         {
             this.metadataContainer = metadataContainer;
-            methodSignatureEncoder = new MethodSignatureEncoder(metadataContainer.MetadataResolver);
-            methodLocalsSignatureEncoder = new MethodLocalsSignatureEncoder(metadataContainer.MetadataResolver);
+            methodSignatureEncoder = new MethodSignatureEncoder(metadataContainer.HandleResolver);
+            methodLocalsSignatureEncoder = new MethodLocalsSignatureEncoder(metadataContainer.HandleResolver);
             methodParameterGenerator = new MethodParameterGenerator(metadataContainer);
             customAttributeGenerator = new CustomAttributeGenerator(metadataContainer);
         }
@@ -36,17 +36,14 @@ namespace MetadataGenerator.Generation.Methods
             var methodBodyOffset = -1;
             if (method.HasBody)
             {
-                SRM.StandaloneSignatureHandle localVariablesSignature = default;
-                if (method.Body.LocalVariables.Count > 0)
-                {
-                    var signature = methodLocalsSignatureEncoder.EncodeSignatureOf(method.Body.LocalVariables);
-                    localVariablesSignature = metadataContainer.MetadataResolver.GetOrAddStandaloneSignature(signature);
-                }
+                var localVariablesSignatureHandle = method.Body.LocalVariables.Count > 0
+                    ? metadataContainer.HandleResolver.HandleOf(method.Body.LocalVariables)
+                    : default;
 
-                var instructionEncoder = new MethodBodyEncoder(metadataContainer.MetadataResolver, method.Body).Encode(out var maxStack);
+                var instructionEncoder = new MethodBodyEncoder(metadataContainer.HandleResolver, method.Body).Encode(out var maxStack);
                 methodBodyOffset = metadataContainer.MethodBodyStream.AddMethodBody(
                     instructionEncoder: instructionEncoder,
-                    localVariablesSignature: localVariablesSignature,
+                    localVariablesSignature: localVariablesSignatureHandle,
                     maxStack: maxStack);
             }
 
@@ -54,7 +51,8 @@ namespace MetadataGenerator.Generation.Methods
                 SR.MethodImplAttributes.IL |
                 (!method.HasBody && !method.IsAbstract ? SR.MethodImplAttributes.Runtime : SR.MethodImplAttributes.Managed);
 
-            var nextParameterHandle = ECMA335.MetadataTokens.ParameterHandle(metadataContainer.MetadataBuilder.NextRowFor(ECMA335.TableIndex.Param));
+            var nextParameterHandle =
+                ECMA335.MetadataTokens.ParameterHandle(metadataContainer.MetadataBuilder.NextRowFor(ECMA335.TableIndex.Param));
             // MethodDef Table (0x06) 
             var methodDefinitionHandle = metadataContainer.MetadataBuilder.AddMethodDefinition(
                 attributes: AttributesFor(method),
@@ -71,7 +69,7 @@ namespace MetadataGenerator.Generation.Methods
 
             if (method.Name.Equals("Main"))
             {
-                metadataContainer.MainMethodHandle = methodDefinitionHandle;
+                metadataContainer.HandleResolver.MainMethodHandle = methodDefinitionHandle;
             }
 
             return methodDefinitionHandle;

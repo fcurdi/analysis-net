@@ -16,7 +16,7 @@ namespace MetadataGenerator.Generation.Properties
         public PropertyGenerator(MetadataContainer metadataContainer)
         {
             this.metadataContainer = metadataContainer;
-            propertySignatureEncoder = new PropertySignatureEncoder(metadataContainer.MetadataResolver);
+            propertySignatureEncoder = new PropertySignatureEncoder(metadataContainer.HandleResolver);
             customAttributeGenerator = new CustomAttributeGenerator(metadataContainer);
         }
 

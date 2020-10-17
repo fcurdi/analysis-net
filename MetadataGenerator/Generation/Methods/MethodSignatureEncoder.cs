@@ -7,11 +7,11 @@ namespace MetadataGenerator.Generation.Methods
 {
     internal class MethodSignatureEncoder
     {
-        private readonly MetadataResolver metadataResolver;
+        private readonly HandleResolver _handleResolver;
 
-        public MethodSignatureEncoder(MetadataResolver metadataResolver)
+        public MethodSignatureEncoder(HandleResolver handleResolver)
         {
-            this.metadataResolver = metadataResolver;
+            this._handleResolver = handleResolver;
         }
 
         public SRM.BlobBuilder EncodeSignatureOf(IMethodReference method)
@@ -22,7 +22,7 @@ namespace MetadataGenerator.Generation.Methods
                 var encoder = new ECMA335.BlobEncoder(signature).MethodSpecificationSignature(method.GenericArguments.Count);
                 foreach (var genericArg in method.GenericArguments)
                 {
-                    metadataResolver.Encode(genericArg, encoder.AddArgument());
+                    _handleResolver.Encode(genericArg, encoder.AddArgument());
                 }
 
                 return signature;
@@ -57,7 +57,7 @@ namespace MetadataGenerator.Generation.Methods
                         else
                         {
                             var encoder = returnTypeEncoder.Type();
-                            metadataResolver.Encode(returnType, encoder);
+                            _handleResolver.Encode(returnType, encoder);
                         }
                     },
                     parametersEncoder =>
@@ -73,7 +73,7 @@ namespace MetadataGenerator.Generation.Methods
                             }
 
                             var encoder = parametersEncoder.AddParameter().Type(isByRef);
-                            metadataResolver.Encode(type, encoder);
+                            _handleResolver.Encode(type, encoder);
                         }
                     });
 

@@ -11,13 +11,13 @@ namespace MetadataGenerator.Generation.Methods.Body
     internal class MethodBodyControlFlow
     {
         private readonly ECMA335.InstructionEncoder instructionEncoder;
-        private readonly MetadataResolver metadataResolver;
+        private readonly HandleResolver _handleResolver;
         private readonly IDictionary<string, ECMA335.LabelHandle> labelHandles;
 
-        public MethodBodyControlFlow(ECMA335.InstructionEncoder instructionEncoder, MetadataResolver metadataResolver)
+        public MethodBodyControlFlow(ECMA335.InstructionEncoder instructionEncoder, HandleResolver handleResolver)
         {
             this.instructionEncoder = instructionEncoder;
-            this.metadataResolver = metadataResolver;
+            this._handleResolver = handleResolver;
             labelHandles = new Dictionary<string, ECMA335.LabelHandle>();
         }
 
@@ -79,7 +79,7 @@ namespace MetadataGenerator.Generation.Methods.Body
                             tryEnd,
                             handlerStart,
                             handlerEnd,
-                            metadataResolver.HandleOf(handler.ExceptionType));
+                            _handleResolver.HandleOf(handler.ExceptionType));
                         break;
                     }
                     case ExceptionHandlerBlockKind.Fault:

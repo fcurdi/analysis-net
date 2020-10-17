@@ -19,7 +19,7 @@ namespace MetadataGenerator.Generation
             var metadataBuilder = metadataContainer.MetadataBuilder;
 
             // Module Table (0x00) 
-            metadataContainer.ModuleHandle = metadataBuilder.AddModule(
+            metadataContainer.HandleResolver.ModuleHandle = metadataBuilder.AddModule(
                 generation: 0,
                 moduleName: metadataBuilder.GetOrAddString(moduleName),
                 mvid: metadataBuilder.GetOrAddGuid(Guid.NewGuid()),

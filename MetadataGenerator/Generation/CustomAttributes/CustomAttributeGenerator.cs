@@ -19,7 +19,7 @@ namespace MetadataGenerator.Generation.CustomAttributes
             // CustomAttribute Table (0x0C)
             metadataContainer.MetadataBuilder.AddCustomAttribute(
                 owner,
-                metadataContainer.MetadataResolver.HandleOf(customAttribute.Constructor),
+                metadataContainer.HandleResolver.HandleOf(customAttribute.Constructor),
                 metadataContainer.MetadataBuilder.GetOrAddBlob(signature));
         }
     }
