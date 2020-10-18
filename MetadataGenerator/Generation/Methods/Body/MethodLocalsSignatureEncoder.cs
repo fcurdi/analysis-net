@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MetadataGenerator.Generation.Types;
 using Model.ThreeAddressCode.Values;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
@@ -8,11 +9,11 @@ namespace MetadataGenerator.Generation.Methods.Body
 {
     internal class MethodLocalsSignatureEncoder
     {
-        private readonly HandleResolver _handleResolver;
+        private readonly TypeEncoder typeEncoder;
 
-        public MethodLocalsSignatureEncoder(HandleResolver handleResolver)
+        public MethodLocalsSignatureEncoder(TypeEncoder typeEncoder)
         {
-            this._handleResolver = handleResolver;
+            this.typeEncoder = typeEncoder;
         }
 
         public SRM.BlobBuilder EncodeSignatureOf(IList<IVariable> localVariables)
@@ -23,7 +24,7 @@ namespace MetadataGenerator.Generation.Methods.Body
             var encoder = new ECMA335.BlobEncoder(signature).LocalVariableSignature(localVariables.Count);
             foreach (var localVariable in localVariables)
             {
-                _handleResolver.Encode(localVariable.Type, encoder.AddVariable().Type(isPinned: false));
+                typeEncoder.Encode(localVariable.Type, encoder.AddVariable().Type(isPinned: false));
             }
 
             return signature;

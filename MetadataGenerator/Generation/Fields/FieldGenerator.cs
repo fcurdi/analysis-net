@@ -9,20 +9,18 @@ namespace MetadataGenerator.Generation.Fields
     internal class FieldGenerator
     {
         private readonly MetadataContainer metadataContainer;
-        private readonly FieldSignatureEncoder fieldSignatureEncoder;
         private readonly CustomAttributeGenerator customAttributeGenerator;
 
         public FieldGenerator(MetadataContainer metadataContainer)
         {
             this.metadataContainer = metadataContainer;
-            fieldSignatureEncoder = new FieldSignatureEncoder(metadataContainer.HandleResolver);
             customAttributeGenerator = new CustomAttributeGenerator(metadataContainer);
         }
 
         public SRM.FieldDefinitionHandle Generate(FieldDefinition field)
         {
             var metadataBuilder = metadataContainer.MetadataBuilder;
-            var fieldSignature = fieldSignatureEncoder.EncodeSignatureOf(field);
+            var fieldSignature = metadataContainer.FieldSignatureEncoder.EncodeSignatureOf(field);
 
             // Field Table (0x04)
             var fieldDefinitionHandle = metadataBuilder.AddFieldDefinition(

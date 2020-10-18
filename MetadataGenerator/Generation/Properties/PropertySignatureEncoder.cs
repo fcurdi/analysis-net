@@ -1,4 +1,5 @@
-﻿using Model.Types;
+﻿using MetadataGenerator.Generation.Types;
+using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
 
@@ -6,11 +7,11 @@ namespace MetadataGenerator.Generation.Properties
 {
     internal class PropertySignatureEncoder
     {
-        private readonly HandleResolver _handleResolver;
+        private readonly TypeEncoder typeEncoder;
 
-        public PropertySignatureEncoder(HandleResolver handleResolver)
+        public PropertySignatureEncoder(TypeEncoder typeEncoder)
         {
-            this._handleResolver = handleResolver;
+            this.typeEncoder = typeEncoder;
         }
 
         public SRM.BlobBuilder EncodeSignatureOf(PropertyDefinition property)
@@ -20,7 +21,7 @@ namespace MetadataGenerator.Generation.Properties
                 .PropertySignature(isInstanceProperty: !property.IsStatic)
                 .Parameters(
                     parameterCount: 0,
-                    returnType: returnTypeEncoder => _handleResolver.Encode(property.PropertyType, returnTypeEncoder.Type()),
+                    returnType: returnTypeEncoder => typeEncoder.Encode(property.PropertyType, returnTypeEncoder.Type()),
                     parameters: parametersEncoder => { });
             return signature;
         }

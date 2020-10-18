@@ -36,6 +36,7 @@
     <Compile Include="Generation\Properties\PropertyGenerator.cs" />
     <Compile Include="Generation\Types\InterfaceImplementationGenerator.cs" />
     <Compile Include="Generation\Types\NestedTypeGenerator.cs" />
+    <Compile Include="Generation\Types\TypeEncoder.cs" />
     <Compile Include="Generation\Types\TypeGenerator.cs" />
     <Compile Include="Generation\Types\TypeSignatureEncoder.cs" />
     <Compile Include="Generator.cs" />

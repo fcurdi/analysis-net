@@ -1,11 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Reflection;
-using MetadataGenerator.Generation.Fields;
-using MetadataGenerator.Generation.Methods;
-using MetadataGenerator.Generation.Methods.Body;
-using MetadataGenerator.Generation.Types;
 using Model;
 using Model.ThreeAddressCode.Values;
 using Model.Types;
@@ -21,10 +16,6 @@ namespace MetadataGenerator.Generation
     {
         private readonly Assembly assembly;
         private readonly MetadataContainer metadataContainer;
-        private readonly FieldSignatureEncoder fieldSignatureEncoder;
-        private readonly MethodSignatureEncoder methodSignatureEncoder;
-        private readonly MethodLocalsSignatureEncoder methodLocalsSignatureEncoder;
-        private readonly TypeSignatureEncoder typeSignatureEncoder;
 
         #region handles
 
@@ -96,7 +87,7 @@ namespace MetadataGenerator.Generation
 
         private SRM.BlobHandle SpecKeyFor(IType type)
         {
-            var signature = typeSignatureEncoder.EncodeSignatureOf(type);
+            var signature = metadataContainer.TypeSignatureEncoder.EncodeSignatureOf(type);
             var blobHandle = metadataContainer.MetadataBuilder.GetOrAddBlob(signature);
             var key = blobHandle;
             return key;
@@ -108,7 +99,7 @@ namespace MetadataGenerator.Generation
 
         private Tuple<SRM.EntityHandle, SRM.StringHandle, SRM.BlobHandle> RefKeyFor(IFieldReference field)
         {
-            var signature = fieldSignatureEncoder.EncodeSignatureOf(field);
+            var signature = metadataContainer.FieldSignatureEncoder.EncodeSignatureOf(field);
             var blobHandle = metadataContainer.MetadataBuilder.GetOrAddBlob(signature);
             var parent = HandleOf(field.ContainingType);
             var key = new Tuple<SRM.EntityHandle, SRM.StringHandle, SRM.BlobHandle>(
@@ -126,7 +117,7 @@ namespace MetadataGenerator.Generation
 
         private Tuple<SRM.EntityHandle, SRM.StringHandle, SRM.BlobHandle> RefKeyFor(IMethodReference method)
         {
-            var signature = methodSignatureEncoder.EncodeSignatureOf(method);
+            var signature = metadataContainer.MethodSignatureEncoder.EncodeSignatureOf(method);
             var blobHandle = metadataContainer.MetadataBuilder.GetOrAddBlob(signature);
             var parent =
                 method.ContainingType is ArrayTypeWrapper arrayTypeWrapper
@@ -145,7 +136,7 @@ namespace MetadataGenerator.Generation
 
         private Tuple<SRM.EntityHandle, SRM.BlobHandle> SpecKeyFor(IMethodReference method)
         {
-            var signature = methodSignatureEncoder.EncodeSignatureOf(method);
+            var signature = metadataContainer.MethodSignatureEncoder.EncodeSignatureOf(method);
             var blobHandle = metadataContainer.MetadataBuilder.GetOrAddBlob(signature);
             var genericMethodHandle = HandleOf(method.GenericMethod);
             var key = new Tuple<SRM.EntityHandle, SRM.BlobHandle>(genericMethodHandle, blobHandle);
@@ -158,7 +149,7 @@ namespace MetadataGenerator.Generation
 
         private SRM.BlobHandle StandaloneSigKeyFor(IList<IVariable> localVariables)
         {
-            var signature = methodLocalsSignatureEncoder.EncodeSignatureOf(localVariables);
+            var signature = metadataContainer.MethodLocalsSignatureEncoder.EncodeSignatureOf(localVariables);
             var blobHandle = metadataContainer.MetadataBuilder.GetOrAddBlob(signature);
             var key = blobHandle;
             return key;
@@ -194,10 +185,6 @@ namespace MetadataGenerator.Generation
             fieldRefHandles = new Dictionary<Tuple<SRM.EntityHandle, SRM.StringHandle, SRM.BlobHandle>, SRM.MemberReferenceHandle>();
             methodRefHandles = new Dictionary<Tuple<SRM.EntityHandle, SRM.StringHandle, SRM.BlobHandle>, SRM.MemberReferenceHandle>();
             typeRefHandles = new Dictionary<Tuple<SRM.EntityHandle, SRM.StringHandle, SRM.StringHandle>, SRM.TypeReferenceHandle>();
-            fieldSignatureEncoder = new FieldSignatureEncoder(this);
-            methodSignatureEncoder = new MethodSignatureEncoder(this);
-            methodLocalsSignatureEncoder = new MethodLocalsSignatureEncoder(this);
-            typeSignatureEncoder = new TypeSignatureEncoder(this);
         }
 
         public SRM.UserStringHandle UserStringHandleOf(string value) => metadataContainer.MetadataBuilder.GetOrAddUserString(value);
@@ -337,113 +324,6 @@ namespace MetadataGenerator.Generation
             }
 
             return fieldRefHandle;
-        }
-
-        public void Encode(IType type, ECMA335.SignatureTypeEncoder encoder)
-        {
-            if (type.Equals(PlatformTypes.Boolean)) encoder.Boolean();
-            else if (type.Equals(PlatformTypes.Byte)) encoder.Byte();
-            else if (type.Equals(PlatformTypes.SByte)) encoder.SByte();
-            else if (type.Equals(PlatformTypes.Char)) encoder.Char();
-            else if (type.Equals(PlatformTypes.Double)) encoder.Double();
-            else if (type.Equals(PlatformTypes.Int16)) encoder.Int16();
-            else if (type.Equals(PlatformTypes.UInt16)) encoder.UInt16();
-            else if (type.Equals(PlatformTypes.Int32)) encoder.Int32();
-            else if (type.Equals(PlatformTypes.UInt32)) encoder.UInt32();
-            else if (type.Equals(PlatformTypes.Int64)) encoder.Int64();
-            else if (type.Equals(PlatformTypes.UInt64)) encoder.UInt64();
-            else if (type.Equals(PlatformTypes.String)) encoder.String();
-            else if (type.Equals(PlatformTypes.Single)) encoder.Single();
-            else if (type.Equals(PlatformTypes.Object)) encoder.Object();
-            else if (type.Equals(PlatformTypes.IntPtr)) encoder.IntPtr();
-            else if (type.Equals(PlatformTypes.UIntPtr)) encoder.UIntPtr();
-            else
-            {
-                switch (type)
-                {
-                    case IBasicType iBasicType:
-                    {
-                        var isValueType = type.TypeKind == TypeKind.ValueType;
-                        if (iBasicType.IsGenericInstantiation())
-                        {
-                            var genericInstantiation = encoder.GenericInstantiation(
-                                GetOrAddTypeReference(iBasicType.GenericType),
-                                iBasicType.GenericArguments.Count,
-                                isValueType);
-                            foreach (var genericArg in iBasicType.GenericArguments)
-                            {
-                                Encode(genericArg, genericInstantiation.AddArgument());
-                            }
-                        }
-                        else
-                        {
-                            encoder.Type(GetOrAddTypeReference(iBasicType), isValueType);
-                        }
-
-                        break;
-                    }
-                    case ArrayType arrayType:
-                    {
-                        if (arrayType.IsVector)
-                        {
-                            Encode(arrayType.ElementsType, encoder.SZArray());
-                        }
-                        else
-                        {
-                            encoder.Array(
-                                elementTypeEncoder => Encode(arrayType.ElementsType, elementTypeEncoder),
-                                arrayShapeEncoder =>
-                                {
-                                    // This assumes that all dimensions have 0 as lower bound and none declare sizes.
-                                    // Lower bounds and sizes are not modelled. 
-                                    var lowerBounds = Repeat(0, (int) arrayType.Rank).ToImmutableArray();
-                                    var sizes = ImmutableArray<int>.Empty;
-                                    arrayShapeEncoder.Shape((int) arrayType.Rank, sizes, lowerBounds);
-                                });
-                        }
-
-
-                        break;
-                    }
-                    case PointerType pointerType:
-                    {
-                        var targetType = pointerType.TargetType;
-                        if (targetType.Equals(PlatformTypes.Void))
-                        {
-                            encoder.VoidPointer();
-                        }
-                        else
-                        {
-                            Encode(targetType, encoder.Pointer());
-                        }
-
-                        break;
-                    }
-                    case FunctionPointerType _:
-                    {
-                        encoder.FunctionPointer();
-                        break;
-                    }
-                    case IGenericParameterReference genericParameter:
-                    {
-                        switch (genericParameter.Kind)
-                        {
-                            case GenericParameterKind.Type:
-                                encoder.GenericTypeParameter(genericParameter.Index);
-                                break;
-                            case GenericParameterKind.Method:
-                                encoder.GenericMethodTypeParameter(genericParameter.Index);
-                                break;
-                            default:
-                                throw genericParameter.Kind.ToUnknownValueException();
-                        }
-
-                        break;
-                    }
-                    default:
-                        throw new Exception($"Type {type} not supported");
-                }
-            }
         }
     }
 }

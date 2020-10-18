@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using MetadataGenerator.Generation.Types;
 using Model.Types;
 using ECMA335 = System.Reflection.Metadata.Ecma335;
 using SRM = System.Reflection.Metadata;
@@ -7,11 +8,11 @@ namespace MetadataGenerator.Generation.Methods
 {
     internal class MethodSignatureEncoder
     {
-        private readonly HandleResolver _handleResolver;
+        private readonly TypeEncoder typeEncoder;
 
-        public MethodSignatureEncoder(HandleResolver handleResolver)
+        public MethodSignatureEncoder(TypeEncoder typeEncoder)
         {
-            this._handleResolver = handleResolver;
+            this.typeEncoder = typeEncoder;
         }
 
         public SRM.BlobBuilder EncodeSignatureOf(IMethodReference method)
@@ -22,7 +23,7 @@ namespace MetadataGenerator.Generation.Methods
                 var encoder = new ECMA335.BlobEncoder(signature).MethodSpecificationSignature(method.GenericArguments.Count);
                 foreach (var genericArg in method.GenericArguments)
                 {
-                    _handleResolver.Encode(genericArg, encoder.AddArgument());
+                    typeEncoder.Encode(genericArg, encoder.AddArgument());
                 }
 
                 return signature;
@@ -57,7 +58,7 @@ namespace MetadataGenerator.Generation.Methods
                         else
                         {
                             var encoder = returnTypeEncoder.Type();
-                            _handleResolver.Encode(returnType, encoder);
+                            typeEncoder.Encode(returnType, encoder);
                         }
                     },
                     parametersEncoder =>
@@ -73,7 +74,7 @@ namespace MetadataGenerator.Generation.Methods
                             }
 
                             var encoder = parametersEncoder.AddParameter().Type(isByRef);
-                            _handleResolver.Encode(type, encoder);
+                            typeEncoder.Encode(type, encoder);
                         }
                     });
 

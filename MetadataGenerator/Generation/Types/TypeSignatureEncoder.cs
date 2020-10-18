@@ -6,17 +6,17 @@ namespace MetadataGenerator.Generation.Types
 {
     internal class TypeSignatureEncoder
     {
-        private readonly HandleResolver _handleResolver;
+        private readonly TypeEncoder typeEncoder;
 
-        public TypeSignatureEncoder(HandleResolver handleResolver)
+        public TypeSignatureEncoder(TypeEncoder typeEncoder)
         {
-            this._handleResolver = handleResolver;
+            this.typeEncoder = typeEncoder;
         }
 
         public SRM.BlobBuilder EncodeSignatureOf(IType type)
         {
             var signature = new SRM.BlobBuilder();
-            _handleResolver.Encode(type, new ECMA335.BlobEncoder(signature).TypeSpecificationSignature());
+            typeEncoder.Encode(type, new ECMA335.BlobEncoder(signature).TypeSpecificationSignature());
             return signature;
         }
     }

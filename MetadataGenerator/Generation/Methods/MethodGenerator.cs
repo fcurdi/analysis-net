@@ -12,16 +12,12 @@ namespace MetadataGenerator.Generation.Methods
     internal class MethodGenerator
     {
         private readonly MetadataContainer metadataContainer;
-        private readonly MethodSignatureEncoder methodSignatureEncoder;
-        private readonly MethodLocalsSignatureEncoder methodLocalsSignatureEncoder;
         private readonly MethodParameterGenerator methodParameterGenerator;
         private readonly CustomAttributeGenerator customAttributeGenerator;
 
         public MethodGenerator(MetadataContainer metadataContainer)
         {
             this.metadataContainer = metadataContainer;
-            methodSignatureEncoder = new MethodSignatureEncoder(metadataContainer.HandleResolver);
-            methodLocalsSignatureEncoder = new MethodLocalsSignatureEncoder(metadataContainer.HandleResolver);
             methodParameterGenerator = new MethodParameterGenerator(metadataContainer);
             customAttributeGenerator = new CustomAttributeGenerator(metadataContainer);
         }
@@ -32,7 +28,7 @@ namespace MetadataGenerator.Generation.Methods
                 .Parameters
                 .Select(parameter => methodParameterGenerator.Generate(parameter))
                 .ToList();
-            var methodSignature = methodSignatureEncoder.EncodeSignatureOf(method);
+            var methodSignature = metadataContainer.MethodSignatureEncoder.EncodeSignatureOf(method);
             var methodBodyOffset = -1;
             if (method.HasBody)
             {
