@@ -20,8 +20,10 @@ namespace MetadataGenerator.Generation.Methods
                 attributes: AttributesFor(methodParameter),
                 name: metadataContainer.MetadataBuilder.GetOrAddString(methodParameter.Name),
                 sequenceNumber: methodParameter.Index);
+
             if (methodParameter.HasDefaultValue)
             {
+                // Constant Table (0x0B) 
                 metadataContainer.MetadataBuilder.AddConstant(parameterHandle, methodParameter.DefaultValue.Value);
             }
 

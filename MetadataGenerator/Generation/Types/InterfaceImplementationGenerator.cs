@@ -4,11 +4,19 @@ using SRM = System.Reflection.Metadata;
 
 namespace MetadataGenerator.Generation.Types
 {
-    internal static class InterfaceImplementationGenerator
+    internal class InterfaceImplementationGenerator
     {
+        private readonly MetadataContainer metadataContainer;
+
+        public InterfaceImplementationGenerator(MetadataContainer metadataContainer)
+        {
+            this.metadataContainer = metadataContainer;
+        }
+
         // InterfaceImpl Table (0x09) 
-        public static void GenerateInterfaceImplementations(MetadataContainer metadataContainer) =>
+        public void Generate() =>
             metadataContainer
+                .DelayedEntries
                 .InterfaceImplementationEntries
                 .OrderBy(entry => ECMA335.CodedIndex.TypeDefOrRef(entry.Type))
                 .ThenBy(entry => ECMA335.CodedIndex.TypeDefOrRefOrSpec(entry.ImplementedInterface))

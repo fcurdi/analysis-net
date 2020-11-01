@@ -11,16 +11,19 @@ namespace MetadataGenerator.Generation.Fields
         private readonly MetadataContainer metadataContainer;
         private readonly CustomAttributeGenerator customAttributeGenerator;
 
-        public FieldGenerator(MetadataContainer metadataContainer)
+        public FieldGenerator(MetadataContainer metadataContainer, CustomAttributeGenerator customAttributeGenerator)
         {
             this.metadataContainer = metadataContainer;
-            customAttributeGenerator = new CustomAttributeGenerator(metadataContainer);
+            this.customAttributeGenerator = customAttributeGenerator;
         }
 
         public SRM.FieldDefinitionHandle Generate(FieldDefinition field)
         {
             var metadataBuilder = metadataContainer.MetadataBuilder;
-            var fieldSignature = metadataContainer.FieldSignatureEncoder.EncodeSignatureOf(field);
+            var fieldSignature = metadataContainer
+                .Encoders
+                .FieldSignatureEncoder
+                .EncodeSignatureOf(field);
 
             // Field Table (0x04)
             var fieldDefinitionHandle = metadataBuilder.AddFieldDefinition(
@@ -44,6 +47,7 @@ namespace MetadataGenerator.Generation.Fields
             }
             else if (field.Value != null)
             {
+                // Constant Table (0x0B)
                 metadataBuilder.AddConstant(fieldDefinitionHandle, field.Value.Value);
             }
 

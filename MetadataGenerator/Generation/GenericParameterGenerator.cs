@@ -9,11 +9,19 @@ using SRM = System.Reflection.Metadata;
 
 namespace MetadataGenerator.Generation
 {
-    internal static class GenericParameterGenerator
+    internal class GenericParameterGenerator
     {
+        private readonly MetadataContainer metadataContainer;
+
+        public GenericParameterGenerator(MetadataContainer metadataContainer)
+        {
+            this.metadataContainer = metadataContainer;
+        }
+
         // GenericParam Table (0x2A)
-        public static void GenerateGenericParameters(MetadataContainer metadataContainer) =>
+        public void Generate() =>
             metadataContainer
+                .DelayedEntries
                 .GenericParameterEntries
                 .Select(entry =>
                 {

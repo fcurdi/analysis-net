@@ -12,7 +12,7 @@ namespace MetadataGenerator.Generation
             this.metadataContainer = metadataContainer;
         }
 
-        public void GenerateModuleFor(Assembly assembly)
+        public void Generate(Assembly assembly)
         {
             var extension = assembly.Kind == AssemblyKind.Exe ? "exe" : "dll";
             var moduleName = $"{assembly.Name}.{extension}";

@@ -4,11 +4,19 @@ using SRM = System.Reflection.Metadata;
 
 namespace MetadataGenerator.Generation.Types
 {
-    internal static class NestedTypeGenerator
+    internal class NestedTypeGenerator
     {
+        private readonly MetadataContainer metadataContainer;
+
+        public NestedTypeGenerator(MetadataContainer metadataContainer)
+        {
+            this.metadataContainer = metadataContainer;
+        }
+
         // NestedClass Table (0x29) 
-        public static void GenerateNestedTypes(MetadataContainer metadataContainer) =>
+        public void Generate() =>
             metadataContainer
+                .DelayedEntries
                 .NestedTypeEntries
                 .OrderBy(entry => ECMA335.CodedIndex.TypeDefOrRef(entry.Type))
                 .ToList()

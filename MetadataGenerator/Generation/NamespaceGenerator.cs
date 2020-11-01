@@ -37,7 +37,10 @@ namespace MetadataGenerator.Generation
             var typeDefinitionHandle = typeGenerator.Generate(type);
             foreach (var nestedType in nestedTypes)
             {
-                metadataContainer.NestedTypeEntries.Add(new NestedTypeEntry(nestedType, typeDefinitionHandle));
+                metadataContainer
+                    .DelayedEntries
+                    .NestedTypeEntries
+                    .Add(new NestedTypeEntry(nestedType, typeDefinitionHandle));
             }
 
             return typeDefinitionHandle;

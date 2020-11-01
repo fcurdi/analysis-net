@@ -33,11 +33,15 @@ namespace MetadataGenerator.Generation.Methods.Body
             stackSize = new StackSize();
         }
 
-        // Encodes instructions using SRM InstructionEncoder. Also calculates needed MaxStack since this value might not be present (programatically
-        // generated dll) or incorrect (if changes were made to the method body or if it was converted to TAC and back again).
+        // Encodes instructions using SRM InstructionEncoder. Also calculates needed MaxStack since this value might not be present
+        // (programatically generated dll) or incorrect (if changes were made to the method body or if it was converted to TAC and back again).
         public ECMA335.InstructionEncoder Encode(out int maxStack)
         {
-            var branchTargets = body.Instructions.OfType<BranchInstruction>().Select(i => i.Target).ToList();
+            var branchTargets = body
+                .Instructions
+                .OfType<BranchInstruction>()
+                .Select(i => i.Target)
+                .ToList();
             methodBodyControlFlow.ProcessExceptionInformation(body.ExceptionInformation);
             methodBodyControlFlow.ProcessBranchTargets(branchTargets);
             var labelToInstructionEncoderOffset = new Dictionary<string, int>();

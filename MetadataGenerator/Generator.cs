@@ -20,7 +20,9 @@ namespace MetadataGenerator
             {
                 var metadataContainer = AssemblyGenerator.Generate(assembly);
                 var peHeaderBuilder = new SRPE.PEHeaderBuilder(
-                    imageCharacteristics: assembly.Kind == Exe ? SRPE.Characteristics.ExecutableImage : SRPE.Characteristics.Dll
+                    imageCharacteristics: assembly.Kind == Exe
+                        ? SRPE.Characteristics.ExecutableImage
+                        : SRPE.Characteristics.Dll
                 );
                 var peBlob = new SRM.BlobBuilder();
                 new SRPE.ManagedPEBuilder(

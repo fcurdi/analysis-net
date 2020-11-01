@@ -5,7 +5,7 @@ using ECMA335 = System.Reflection.Metadata.Ecma335;
 namespace MetadataGenerator.Generation.Methods.Body
 {
     // Control flow is tracked by using SRM.LabelHandle. This allows us to reference instructions in the method body that are targets of
-    // branch instructions or part of exception regions. This LabelHandles point a specific part of the InstructionEncoder which translates
+    // branch instructions or part of exception regions. This LabelHandles point to a specific part of the InstructionEncoder which translates
     // to the encoded instruction. Since we can target an instruction that is further away in the body, not encoded yet, LabelHandles are defined 
     // with a placeholder target, and then marked when we actually process the target instruction.
     internal class MethodBodyControlFlow

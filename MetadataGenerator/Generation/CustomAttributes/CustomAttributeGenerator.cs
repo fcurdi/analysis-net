@@ -15,7 +15,11 @@ namespace MetadataGenerator.Generation.CustomAttributes
 
         public void Generate(SRM.EntityHandle owner, CustomAttribute customAttribute)
         {
-            var signature = CustomAttributesSignatureEncoder.EncodeSignatureOf(customAttribute);
+            var signature = metadataContainer
+                .Encoders
+                .CustomAttributesSignatureEncoder
+                .EncodeSignatureOf(customAttribute);
+
             // CustomAttribute Table (0x0C)
             metadataContainer.MetadataBuilder.AddCustomAttribute(
                 owner,

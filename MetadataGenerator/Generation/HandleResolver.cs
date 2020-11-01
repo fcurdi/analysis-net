@@ -12,6 +12,19 @@ using SRM = System.Reflection.Metadata;
 
 namespace MetadataGenerator.Generation
 {
+    // Responsible providing handles of items (types, methods, fields, etc) needed when adding metadata definitions or when 
+    // encoding method body instructions. Since generation is done in a single pass, definitions might no have been added yet. So this
+    // module provides on demand handles in the form of references or specifications, which are added to the Metadata tables.
+    //
+    // This handles are stored for several reasons:
+    //  - So they can be reused
+    //  - To reduce generated metadata size
+    //  - Because some tables do not allow duplicates
+    // They are stored with some key that relates to the key in the corresponding table (see ECMA). This is useful for when 
+    // a new one needs to be added and also to guarantee the uniqueness of the key.
+    //
+    // Also stores some handles like the one of the module definition and main method that are needed in the last step of the
+    // generation.
     internal class HandleResolver
     {
         private readonly Assembly assembly;
@@ -87,7 +100,11 @@ namespace MetadataGenerator.Generation
 
         private SRM.BlobHandle SpecKeyFor(IType type)
         {
-            var signature = metadataContainer.TypeSignatureEncoder.EncodeSignatureOf(type);
+            var signature = metadataContainer
+                .Encoders
+                .TypeSignatureEncoder
+                .EncodeSignatureOf(type);
+
             var blobHandle = metadataContainer.MetadataBuilder.GetOrAddBlob(signature);
             var key = blobHandle;
             return key;
@@ -99,7 +116,11 @@ namespace MetadataGenerator.Generation
 
         private Tuple<SRM.EntityHandle, SRM.StringHandle, SRM.BlobHandle> RefKeyFor(IFieldReference field)
         {
-            var signature = metadataContainer.FieldSignatureEncoder.EncodeSignatureOf(field);
+            var signature = metadataContainer
+                .Encoders
+                .FieldSignatureEncoder
+                .EncodeSignatureOf(field);
+
             var blobHandle = metadataContainer.MetadataBuilder.GetOrAddBlob(signature);
             var parent = HandleOf(field.ContainingType);
             var key = new Tuple<SRM.EntityHandle, SRM.StringHandle, SRM.BlobHandle>(
@@ -117,7 +138,11 @@ namespace MetadataGenerator.Generation
 
         private Tuple<SRM.EntityHandle, SRM.StringHandle, SRM.BlobHandle> RefKeyFor(IMethodReference method)
         {
-            var signature = metadataContainer.MethodSignatureEncoder.EncodeSignatureOf(method);
+            var signature = metadataContainer
+                .Encoders
+                .MethodSignatureEncoder
+                .EncodeSignatureOf(method);
+
             var blobHandle = metadataContainer.MetadataBuilder.GetOrAddBlob(signature);
             var parent =
                 method.ContainingType is ArrayTypeWrapper arrayTypeWrapper
@@ -133,25 +158,16 @@ namespace MetadataGenerator.Generation
 
         private readonly IDictionary<Tuple<SRM.EntityHandle, SRM.BlobHandle>, SRM.MethodSpecificationHandle> methodSpecHandles;
 
-
         private Tuple<SRM.EntityHandle, SRM.BlobHandle> SpecKeyFor(IMethodReference method)
         {
-            var signature = metadataContainer.MethodSignatureEncoder.EncodeSignatureOf(method);
+            var signature = metadataContainer
+                .Encoders
+                .MethodSignatureEncoder
+                .EncodeSignatureOf(method);
+
             var blobHandle = metadataContainer.MetadataBuilder.GetOrAddBlob(signature);
             var genericMethodHandle = HandleOf(method.GenericMethod);
             var key = new Tuple<SRM.EntityHandle, SRM.BlobHandle>(genericMethodHandle, blobHandle);
-            return key;
-        }
-        //
-
-        // other
-        private readonly IDictionary<SRM.BlobHandle, SRM.StandaloneSignatureHandle> variablesSignatureHandles;
-
-        private SRM.BlobHandle StandaloneSigKeyFor(IList<IVariable> localVariables)
-        {
-            var signature = metadataContainer.MethodLocalsSignatureEncoder.EncodeSignatureOf(localVariables);
-            var blobHandle = metadataContainer.MetadataBuilder.GetOrAddBlob(signature);
-            var key = blobHandle;
             return key;
         }
 
@@ -166,6 +182,23 @@ namespace MetadataGenerator.Generation
                 mainMethodHandle = value;
             }
         }
+        //
+
+        // other
+        private readonly IDictionary<SRM.BlobHandle, SRM.StandaloneSignatureHandle> variablesSignatureHandles;
+
+        private SRM.BlobHandle StandaloneSigKeyFor(IList<IVariable> localVariables)
+        {
+            var signature = metadataContainer
+                .Encoders
+                .MethodLocalsSignatureEncoder
+                .EncodeSignatureOf(localVariables);
+
+            var blobHandle = metadataContainer.MetadataBuilder.GetOrAddBlob(signature);
+            var key = blobHandle;
+            return key;
+        }
+
         //
 
         #endregion

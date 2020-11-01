@@ -49,7 +49,8 @@ namespace MetadataGenerator.Generation
             LayoutAttributesFor(typeDefinition.LayoutInformation) |
             VisibilityAttributesFor(typeDefinition);
 
-        private static TypeAttributes InterfaceTypeAttributes() => TypeAttributes.Interface | TypeAttributes.Public | TypeAttributes.Abstract;
+        private static TypeAttributes InterfaceTypeAttributes() =>
+            TypeAttributes.Interface | TypeAttributes.Public | TypeAttributes.Abstract;
 
         public static FieldAttributes AttributesFor(FieldDefinition field)
         {

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using MetadataGenerator.Generation.CustomAttributes;
 using MetadataGenerator.Generation.Fields;
 using MetadataGenerator.Generation.Methods;
 using MetadataGenerator.Generation.Methods.Body;
@@ -17,16 +18,10 @@ namespace MetadataGenerator.Generation
     {
         public readonly ECMA335.MetadataBuilder MetadataBuilder;
         public readonly HandleResolver HandleResolver;
-        public readonly FieldSignatureEncoder FieldSignatureEncoder;
-        public readonly MethodSignatureEncoder MethodSignatureEncoder;
-        public readonly MethodLocalsSignatureEncoder MethodLocalsSignatureEncoder;
-        public readonly TypeSignatureEncoder TypeSignatureEncoder;
-        public readonly PropertySignatureEncoder PropertySignatureEncoder;
         public readonly ECMA335.MethodBodyStreamEncoder MethodBodyStream;
         public readonly SRM.BlobBuilder MappedFieldData;
-        public readonly ISet<GenericParameterEntry> GenericParameterEntries;
-        public readonly ISet<InterfaceImplementationEntry> InterfaceImplementationEntries;
-        public readonly ISet<NestedTypeEntry> NestedTypeEntries;
+        public readonly Encoders Encoders;
+        public readonly DelayedEntries DelayedEntries;
 
         public MetadataContainer(Assembly assembly)
         {
@@ -34,15 +29,63 @@ namespace MetadataGenerator.Generation
             MethodBodyStream = new ECMA335.MethodBodyStreamEncoder(new SRM.BlobBuilder());
             HandleResolver = new HandleResolver(this, assembly);
             var typeEncoder = new TypeEncoder(HandleResolver);
-            FieldSignatureEncoder = new FieldSignatureEncoder(typeEncoder);
-            MethodSignatureEncoder = new MethodSignatureEncoder(typeEncoder);
-            MethodLocalsSignatureEncoder = new MethodLocalsSignatureEncoder(typeEncoder);
-            TypeSignatureEncoder = new TypeSignatureEncoder(typeEncoder);
-            PropertySignatureEncoder = new PropertySignatureEncoder(typeEncoder);
+            Encoders = new Encoders(
+                new FieldSignatureEncoder(typeEncoder),
+                new MethodSignatureEncoder(typeEncoder),
+                new MethodLocalsSignatureEncoder(typeEncoder),
+                new TypeSignatureEncoder(typeEncoder),
+                new PropertySignatureEncoder(typeEncoder),
+                new CustomAttributesSignatureEncoder()
+            );
             MappedFieldData = new SRM.BlobBuilder();
-            GenericParameterEntries = new HashSet<GenericParameterEntry>();
-            InterfaceImplementationEntries = new HashSet<InterfaceImplementationEntry>();
-            NestedTypeEntries = new HashSet<NestedTypeEntry>();
+            DelayedEntries = new DelayedEntries(
+                new HashSet<GenericParameterEntry>(),
+                new HashSet<InterfaceImplementationEntry>(),
+                new HashSet<NestedTypeEntry>()
+            );
+        }
+    }
+
+    internal class DelayedEntries
+    {
+        public readonly ISet<GenericParameterEntry> GenericParameterEntries;
+        public readonly ISet<InterfaceImplementationEntry> InterfaceImplementationEntries;
+        public readonly ISet<NestedTypeEntry> NestedTypeEntries;
+
+        public DelayedEntries(
+            ISet<GenericParameterEntry> genericParameterEntries,
+            ISet<InterfaceImplementationEntry> interfaceImplementationEntries,
+            ISet<NestedTypeEntry> nestedTypeEntries)
+        {
+            GenericParameterEntries = genericParameterEntries;
+            InterfaceImplementationEntries = interfaceImplementationEntries;
+            NestedTypeEntries = nestedTypeEntries;
+        }
+    }
+
+    internal class Encoders
+    {
+        public readonly FieldSignatureEncoder FieldSignatureEncoder;
+        public readonly MethodSignatureEncoder MethodSignatureEncoder;
+        public readonly MethodLocalsSignatureEncoder MethodLocalsSignatureEncoder;
+        public readonly TypeSignatureEncoder TypeSignatureEncoder;
+        public readonly PropertySignatureEncoder PropertySignatureEncoder;
+        public readonly CustomAttributesSignatureEncoder CustomAttributesSignatureEncoder;
+
+        public Encoders(
+            FieldSignatureEncoder fieldSignatureEncoder,
+            MethodSignatureEncoder methodSignatureEncoder,
+            MethodLocalsSignatureEncoder methodLocalsSignatureEncoder,
+            TypeSignatureEncoder typeSignatureEncoder,
+            PropertySignatureEncoder propertySignatureEncoder,
+            CustomAttributesSignatureEncoder customAttributesSignatureEncoder)
+        {
+            FieldSignatureEncoder = fieldSignatureEncoder;
+            MethodSignatureEncoder = methodSignatureEncoder;
+            MethodLocalsSignatureEncoder = methodLocalsSignatureEncoder;
+            TypeSignatureEncoder = typeSignatureEncoder;
+            PropertySignatureEncoder = propertySignatureEncoder;
+            CustomAttributesSignatureEncoder = customAttributesSignatureEncoder;
         }
     }
 }

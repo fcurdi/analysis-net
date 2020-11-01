@@ -8,9 +8,9 @@ using SRM = System.Reflection.Metadata;
 
 namespace MetadataGenerator.Generation.CustomAttributes
 {
-    public static class CustomAttributesSignatureEncoder
+    public class CustomAttributesSignatureEncoder
     {
-        public static SRM.BlobBuilder EncodeSignatureOf(CustomAttribute customAttribute)
+        public SRM.BlobBuilder EncodeSignatureOf(CustomAttribute customAttribute)
         {
             var signature = new SRM.BlobBuilder();
             new ECMA335.BlobEncoder(signature)
@@ -119,8 +119,9 @@ namespace MetadataGenerator.Generation.CustomAttributes
             }
         }
 
-        // Simple values: bool (as byte), char, float32, float64, int8, int16, int32, int64, unsigned int8, unsigned int16, unsigned int32,unsigned int64, enums (integer value)
-        // If this parameter has type object in the customAttribute constructor, then its real type also needs to be encoded.
+        // Simple values: bool (as byte), char, float32, float64, int8, int16, int32, int64, unsigned int8, unsigned int16, unsigned int32,
+        // unsigned int64, enums (integer value). If this parameter has type object in the customAttribute constructor, then its real type
+        // also needs to be encoded.
         private static void EncodeSimpleValue(CustomAttribute customAttribute, Constant argument, ECMA335.LiteralEncoder encoder)
         {
             var type = argument.Type;

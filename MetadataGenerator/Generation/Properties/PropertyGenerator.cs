@@ -12,10 +12,10 @@ namespace MetadataGenerator.Generation.Properties
         private readonly MetadataContainer metadataContainer;
         private readonly CustomAttributeGenerator customAttributeGenerator;
 
-        public PropertyGenerator(MetadataContainer metadataContainer)
+        public PropertyGenerator(MetadataContainer metadataContainer, CustomAttributeGenerator customAttributeGenerator)
         {
             this.metadataContainer = metadataContainer;
-            customAttributeGenerator = new CustomAttributeGenerator(metadataContainer);
+            this.customAttributeGenerator = customAttributeGenerator;
         }
 
         // Properties can have getters or setters which are methods defined within the class.
@@ -24,7 +24,11 @@ namespace MetadataGenerator.Generation.Properties
             PropertyDefinition property,
             IDictionary<MethodDefinition, SRM.MethodDefinitionHandle> methodToHandle)
         {
-            var signature = metadataContainer.PropertySignatureEncoder.EncodeSignatureOf(property);
+            var signature = metadataContainer
+                .Encoders
+                .PropertySignatureEncoder
+                .EncodeSignatureOf(property);
+
             // Property Table (0x17)
             var propertyDefinitionHandle = metadataContainer.MetadataBuilder.AddProperty(
                 attributes: SR.PropertyAttributes.None,

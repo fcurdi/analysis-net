@@ -12,14 +12,14 @@ namespace MetadataGenerator.Generation.Methods
     internal class MethodGenerator
     {
         private readonly MetadataContainer metadataContainer;
-        private readonly MethodParameterGenerator methodParameterGenerator;
         private readonly CustomAttributeGenerator customAttributeGenerator;
+        private readonly MethodParameterGenerator methodParameterGenerator;
 
-        public MethodGenerator(MetadataContainer metadataContainer)
+        public MethodGenerator(MetadataContainer metadataContainer, CustomAttributeGenerator customAttributeGenerator)
         {
             this.metadataContainer = metadataContainer;
+            this.customAttributeGenerator = customAttributeGenerator;
             methodParameterGenerator = new MethodParameterGenerator(metadataContainer);
-            customAttributeGenerator = new CustomAttributeGenerator(metadataContainer);
         }
 
         public SRM.MethodDefinitionHandle Generate(MethodDefinition method)
@@ -28,8 +28,13 @@ namespace MetadataGenerator.Generation.Methods
                 .Parameters
                 .Select(parameter => methodParameterGenerator.Generate(parameter))
                 .ToList();
-            var methodSignature = metadataContainer.MethodSignatureEncoder.EncodeSignatureOf(method);
-            var methodBodyOffset = -1;
+
+            var methodSignature = metadataContainer
+                .Encoders
+                .MethodSignatureEncoder
+                .EncodeSignatureOf(method);
+
+            var methodBodyOffset = -1; // no body
             if (method.HasBody)
             {
                 var localVariablesSignatureHandle = method.Body.LocalVariables.Count > 0
@@ -49,6 +54,7 @@ namespace MetadataGenerator.Generation.Methods
 
             var nextParameterHandle =
                 ECMA335.MetadataTokens.ParameterHandle(metadataContainer.MetadataBuilder.NextRowFor(ECMA335.TableIndex.Param));
+
             // MethodDef Table (0x06) 
             var methodDefinitionHandle = metadataContainer.MetadataBuilder.AddMethodDefinition(
                 attributes: AttributesFor(method),

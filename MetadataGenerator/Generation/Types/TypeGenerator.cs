@@ -17,18 +17,18 @@ namespace MetadataGenerator.Generation.Types
     internal class TypeGenerator
     {
         private readonly MetadataContainer metadataContainer;
+        private readonly CustomAttributeGenerator customAttributeGenerator;
         private readonly MethodGenerator methodGenerator;
         private readonly FieldGenerator fieldGenerator;
         private readonly PropertyGenerator propertyGenerator;
-        private readonly CustomAttributeGenerator customAttributeGenerator;
 
         public TypeGenerator(MetadataContainer metadataContainer)
         {
             this.metadataContainer = metadataContainer;
-            methodGenerator = new MethodGenerator(metadataContainer);
-            fieldGenerator = new FieldGenerator(metadataContainer);
-            propertyGenerator = new PropertyGenerator(metadataContainer);
             customAttributeGenerator = new CustomAttributeGenerator(metadataContainer);
+            methodGenerator = new MethodGenerator(metadataContainer, customAttributeGenerator);
+            fieldGenerator = new FieldGenerator(metadataContainer, customAttributeGenerator);
+            propertyGenerator = new PropertyGenerator(metadataContainer, customAttributeGenerator);
         }
 
         public SRM.TypeDefinitionHandle Generate(TypeDefinition type)
@@ -59,7 +59,8 @@ namespace MetadataGenerator.Generation.Types
                 fieldList: fieldDefinitionHandles.FirstOr(nextFieldDefinitionHandle),
                 methodList: methodToHandle.Values.FirstOr(nextMethodDefinitionHandle));
 
-            var propertyDefinitionHandles = type.PropertyDefinitions
+            var propertyDefinitionHandles = type
+                .PropertyDefinitions
                 .Select(property => propertyGenerator.Generate(property, methodToHandle))
                 .ToList();
 
@@ -71,14 +72,18 @@ namespace MetadataGenerator.Generation.Types
 
             foreach (var interfaze in type.Interfaces)
             {
-                metadataContainer.InterfaceImplementationEntries.Add(new InterfaceImplementationEntry(
-                    typeDefinitionHandle,
-                    metadataResolver.HandleOf(interfaze)));
+                metadataContainer
+                    .DelayedEntries
+                    .InterfaceImplementationEntries
+                    .Add(new InterfaceImplementationEntry(typeDefinitionHandle, metadataResolver.HandleOf(interfaze)));
             }
 
             foreach (var genericParameter in type.GenericParameters)
             {
-                metadataContainer.GenericParameterEntries.Add(new GenericParameterEntry(typeDefinitionHandle, genericParameter));
+                metadataContainer
+                    .DelayedEntries
+                    .GenericParameterEntries
+                    .Add(new GenericParameterEntry(typeDefinitionHandle, genericParameter));
             }
 
             foreach (var entry in methodToHandle)
@@ -88,7 +93,10 @@ namespace MetadataGenerator.Generation.Types
 
                 foreach (var genericParameter in method.GenericParameters)
                 {
-                    metadataContainer.GenericParameterEntries.Add(new GenericParameterEntry(handle, genericParameter));
+                    metadataContainer
+                        .DelayedEntries
+                        .GenericParameterEntries
+                        .Add(new GenericParameterEntry(handle, genericParameter));
                 }
 
                 if (method.OverridenMethod != null)
@@ -118,8 +126,8 @@ namespace MetadataGenerator.Generation.Types
             return typeDefinitionHandle;
         }
 
-        // CLS-compliant generic type names are encoded using the format “name[`arity]”, where […] indicates that the grave accent character “`” and
-        // arity together are optional. The encoded name shall follow these rules:
+        // CLS-compliant generic type names are encoded using the format “name[`arity]”, where […] indicates that the grave accent character
+        // “`” and arity together are optional. The encoded name shall follow these rules:
         //     - name shall be an ID that does not contain the “`” character.
         //     - arity is specified as an unsigned decimal number without leading zeros or spaces.
         //     - For a normal generic type, arity is the number of type parameters declared on the type.
