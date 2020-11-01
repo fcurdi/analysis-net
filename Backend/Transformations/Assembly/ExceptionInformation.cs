@@ -7,6 +7,15 @@ using Model.Types;
 
 namespace Backend.Transformations.Assembly
 {
+    // helps with the translation of exception handling instructions from TAC to SIL. In SIL, exception information is stored 
+    // separately from the method body instructions while in TAC there are instructions that represent the exception handling 
+    // information (try, catch, etc). 
+    //
+    // Since TAC => SIL translation is achieved by processing its instructions in sequential order, this builder keeps track of the 
+    // the exception handling instructions and internally builds this information in the format that SIL manages.
+    //
+    // A Stack is used to keep track of the ongoing protected regions, that is the try-handler in which the code is currently inside. 
+    // Protected regions can be nested and each one exists onto the containing one so a stack is fitting. 
     internal class ExceptionInformationBuilder
     {
         private readonly Stack<ProtectedBlockBuilder> protectedBlocks = new Stack<ProtectedBlockBuilder>();
@@ -46,8 +55,9 @@ namespace Backend.Transformations.Assembly
         {
             var protectedBlockBuilder = protectedBlocks.Peek();
 
-            bool EndPreviousHandlerCondition() => protectedBlockBuilder.Handlers.Last().HandlerBlockKind != ExceptionHandlerBlockKind.Filter ||
-                                                  kind == FilterInstructionKind.FilterSection;
+            bool EndPreviousHandlerCondition() =>
+                protectedBlockBuilder.Handlers.Last().HandlerBlockKind != ExceptionHandlerBlockKind.Filter ||
+                kind == FilterInstructionKind.FilterSection;
 
             protectedBlockBuilder.EndPreviousRegionAt(label, EndPreviousHandlerCondition);
 
@@ -86,7 +96,7 @@ namespace Backend.Transformations.Assembly
                 .HandlerEnd = label;
             result.AddRange(exceptionBlockBuilder.Build());
         }
-        
+
         private class ProtectedBlockBuilder
         {
             private string tryStart;
