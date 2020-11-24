@@ -441,7 +441,7 @@ namespace Console
 					Instructions =
 					{
 						new Bytecode.LoadInstruction(0, Bytecode.LoadOperation.Content, thisVariable),
-						new Bytecode.MethodCallInstruction(1, Bytecode.MethodCallOperation.Jump, objectConstructorMethod),
+						new Bytecode.MethodCallInstruction(1, Bytecode.MethodCallOperation.Static, objectConstructorMethod),
 						new Bytecode.BasicInstruction(2, Bytecode.BasicOperation.Nop),
 						new Bytecode.BasicInstruction(3, Bytecode.BasicOperation.Return)
 					}
@@ -486,7 +486,7 @@ namespace Console
 					Instructions =
 					{
 						new Bytecode.LoadInstruction(0, Bytecode.LoadOperation.Content, thisVariable),
-						new Bytecode.MethodCallInstruction(1, Bytecode.MethodCallOperation.Jump, objectConstructorMethod),
+						new Bytecode.MethodCallInstruction(1, Bytecode.MethodCallOperation.Static, objectConstructorMethod),
 						new Bytecode.BasicInstruction(2, Bytecode.BasicOperation.Nop),
 						new Bytecode.BasicInstruction(3, Bytecode.BasicOperation.Return)
 					}
@@ -519,11 +519,11 @@ namespace Console
 					{
 						new Bytecode.BasicInstruction(0, Bytecode.BasicOperation.Nop),
 						new Bytecode.CreateObjectInstruction(1, englishTypeConstructor),
-						new Bytecode.MethodCallInstruction(2, Bytecode.MethodCallOperation.Jump, englishGreetMethod),
+						new Bytecode.MethodCallInstruction(2, Bytecode.MethodCallOperation.Static, englishGreetMethod),
 						new Bytecode.MethodCallInstruction(3, Bytecode.MethodCallOperation.Static, ConsoleWriteLineMethodReference()),
 						new Bytecode.BasicInstruction(4, Bytecode.BasicOperation.Nop),
 						new Bytecode.CreateObjectInstruction(5, spanishTypeConstructor),
-						new Bytecode.MethodCallInstruction(6, Bytecode.MethodCallOperation.Jump, spanishGreetMethod),
+						new Bytecode.MethodCallInstruction(6, Bytecode.MethodCallOperation.Static, spanishGreetMethod),
 						new Bytecode.MethodCallInstruction(7, Bytecode.MethodCallOperation.Static, ConsoleWriteLineMethodReference()),
 						new Bytecode.BasicInstruction(8, Bytecode.BasicOperation.Nop),
 						new Bytecode.BasicInstruction(9, Bytecode.BasicOperation.Return)
@@ -559,7 +559,7 @@ namespace Console
 				var tac = new Backend.Transformations.Disassembler(method).Execute();
 				method.Body = tac;
 
-				AddLogAtMethodEntry($"Entering method: {method.Name}", method.Body);
+				AddLogAtMethodEntry($"Entering method: {method.Name} of class: {method.ContainingType.Name}", method.Body);
 
 				var cfanalysis = new ControlFlowAnalysis(method.Body);
 				var cfg = cfanalysis.GenerateExceptionalControlFlow();
@@ -780,12 +780,24 @@ namespace Console
 
 		static void Main(string[] args)
 		{
-			ReadAndGenerateDll(transformToTacAndBackToBytecode: false);
-		//	ReadAndGenerateDll(transformToTacAndBackToBytecode: true);
-		//	TacInstrumentation();
-		//	ProgramaticallyGeneratedAssembly();
-		//	RemoveUnusedMethodFromSimpleExecutable();
+		// generation
+			 ReadAndGenerateDll(transformToTacAndBackToBytecode: false); 
+			// ReadAndGenerateDll(transformToTacAndBackToBytecode: true);
+		//
 		
+		// instrumentation
+		//	TacInstrumentation();
+			// TODO instrument tests by printing the name of the test running.
+		//
+		
+		// programmatic generation
+			// ProgramaticallyGeneratedAssembly();
+		//
+		
+		// optimization
+			// RemoveUnusedMethodFromSimpleExecutable();
+		//	
+
 			System.Console.WriteLine("Done!");
 		}
 	}

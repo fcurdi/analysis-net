@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Backend.Analyses;
+using Backend.Model;
 using Model;
 using Model.Bytecode;
 using Model.Bytecode.Visitor;
@@ -20,7 +22,8 @@ namespace MetadataGenerator.Generation.Methods.Body
         private readonly ISet<int> skippedIndices;
         private readonly MethodBody body;
         private readonly StackSize stackSize;
-        private int Index { get; set; }
+        private CFGNode CurrentNode { get; set; }
+        private int NodeInstructionIndex { get; set; }
 
         public MethodBodyEncoder(HandleResolver handleResolver, MethodBody body)
         {
@@ -33,8 +36,12 @@ namespace MetadataGenerator.Generation.Methods.Body
             stackSize = new StackSize();
         }
 
-        // Encodes instructions using SRM InstructionEncoder. Also calculates needed MaxStack since this value might not be present
-        // (programatically generated dll) or incorrect (if changes were made to the method body or if it was converted to TAC and back again).
+        // Encodes instructions using SRM InstructionEncoder.
+        //
+        // Also calculates needed MaxStack since this value might not be present (programatically generated dll) or incorrect
+        // (if changes were made to the method body or if it was converted to TAC and back again).
+        // While instructions are generated as they appear in the method body, the MaxStack cannot be calculated linearly. This is due
+        // to the fact that it needs to take into account flow of the execution. So we use the ControlFlowGraph for this.
         public ECMA335.InstructionEncoder Encode(out int maxStack)
         {
             var branchTargets = body
@@ -46,20 +53,41 @@ namespace MetadataGenerator.Generation.Methods.Body
             methodBodyControlFlow.ProcessBranchTargets(branchTargets);
             var labelToInstructionEncoderOffset = new Dictionary<string, int>();
 
-            for (Index = 0; Index < body.Instructions.Count; Index++)
+            // build CFG and sort nodes to match the order of the instructions in the method body (CIL instructions must be
+            // generated in that order). 
+            // stackSizeAtNodeEntry holds the number of elements in the stack when entering that node. This is necessary to
+            // correctly calculate MaxStack when branches occur (explore each branch path with the stack as it was before the branch)
+            var sortedNodes = PerformControlFlowAnalysis(out var stackSizeAtNodeEntry);
+            foreach (var node in sortedNodes)
             {
-                var instruction = (Instruction) body.Instructions[Index];
-                labelToInstructionEncoderOffset[instruction.Label] = instructionEncoder.Offset;
-                methodBodyControlFlow.MarkLabelIfNeeded(instruction.Label);
+                CurrentNode = node;
+                stackSize.CurrentStackSize = stackSizeAtNodeEntry[node.Id];
 
-                if (FilterOrCatchStartAt(instruction.Label))
+                for (NodeInstructionIndex = 0; NodeInstructionIndex < node.Instructions.Count; NodeInstructionIndex++)
                 {
-                    stackSize.Increment();
+                    var instruction = (Instruction) node.Instructions[NodeInstructionIndex];
+                    labelToInstructionEncoderOffset[instruction.Label] = instructionEncoder.Offset;
+                    methodBodyControlFlow.MarkLabelIfNeeded(instruction.Label);
+
+                    if (FilterOrCatchStartAt(instruction.Label))
+                    {
+                        stackSize.Increment();
+                    }
+
+                    if (skippedIndices.Contains(NodeInstructionIndex))
+                    {
+                        skippedIndices.Remove(NodeInstructionIndex);
+                    }
+                    else
+                    {
+                        instruction.Accept(this);
+                    }
                 }
 
-                if (!skippedIndices.Contains(Index))
+                // prepare stack for successor nodes
+                foreach (var successor in node.Successors)
                 {
-                    instruction.Accept(this);
+                    stackSizeAtNodeEntry[successor.Id] = stackSize.CurrentStackSize;
                 }
             }
 
@@ -70,6 +98,30 @@ namespace MetadataGenerator.Generation.Methods.Body
 
             maxStack = stackSize.MaxStackSize;
             return instructionEncoder;
+        }
+
+        private IList<CFGNode> PerformControlFlowAnalysis(out int[] stackSizeAtNodeEntry)
+        {
+            var controlFlowGraph = new ControlFlowAnalysis(body).GenerateExceptionalControlFlow();
+
+            var instructionToIndex = body.Instructions
+                .Select((instruction, index) => new KeyValuePair<IInstruction, int>(instruction, index))
+                .ToDictionary(pair => pair.Key, pair => pair.Value);
+
+            // not used
+            controlFlowGraph.Nodes.Remove(controlFlowGraph.Entry);
+            controlFlowGraph.Nodes.Remove(controlFlowGraph.Exit);
+
+            // sort nodes as they appear in the method body. Each node is represented with its first instruction and we sort by the
+            // index of that instruction in the method body.
+            var sortedNodes = controlFlowGraph.Nodes.ToList();
+            sortedNodes.Sort((n1, n2) =>
+                instructionToIndex[n1.Instructions.First()].CompareTo(instructionToIndex[n2.Instructions.First()]));
+
+            // each node stack size at entry is initialized to 0. The +2 is for the Entry and Exit nodes. Although they are not processed,
+            // we use node.id to access the stackSizesAtNodeEntry, so it needs all CFG nodes count.
+            stackSizeAtNodeEntry = new int[controlFlowGraph.Nodes.Count + 2];
+            return sortedNodes;
         }
 
         public void Visit(IInstructionContainer container)
@@ -177,7 +229,6 @@ namespace MetadataGenerator.Generation.Methods.Body
                     break;
                 case BasicOperation.Rethrow:
                     instructionEncoder.OpCode(SRM.ILOpCode.Rethrow);
-                    stackSize.Clear();
                     break;
                 case BasicOperation.Not:
                     instructionEncoder.OpCode(SRM.ILOpCode.Not);
@@ -220,6 +271,7 @@ namespace MetadataGenerator.Generation.Methods.Body
                     break;
                 case BasicOperation.Return:
                     instructionEncoder.OpCode(SRM.ILOpCode.Ret);
+                    if (stackSize.CurrentStackSize > 0) stackSize.Decrement(); // value to be returned (not always present)
                     break;
                 default:
                     throw instruction.Operation.ToUnknownValueException();
@@ -281,9 +333,11 @@ namespace MetadataGenerator.Generation.Methods.Body
                             stackSize.Increment();
 
                             if (
-                                body.Instructions.Count > Index + 2 &&
-                                body.Instructions[Index + 1] is BasicInstruction i1 && i1.Operation == BasicOperation.Eq &&
-                                body.Instructions[Index + 2] is BasicInstruction i2 && i2.Operation == BasicOperation.Neg
+                                CurrentNode.Instructions.Count > NodeInstructionIndex + 2 &&
+                                CurrentNode.Instructions[NodeInstructionIndex + 1] is BasicInstruction i1 &&
+                                i1.Operation == BasicOperation.Eq &&
+                                CurrentNode.Instructions[NodeInstructionIndex + 2] is BasicInstruction i2 &&
+                                i2.Operation == BasicOperation.Neg
                             )
                             {
                                 // cgt_un is used as a compare-not-equal with null.
@@ -292,8 +346,8 @@ namespace MetadataGenerator.Generation.Methods.Body
                                 stackSize.Decrement();
 
                                 // skip processing next 2 instructions
-                                skippedIndices.Add(Index + 1);
-                                skippedIndices.Add(Index + 2);
+                                skippedIndices.Add(NodeInstructionIndex + 1);
+                                skippedIndices.Add(NodeInstructionIndex + 2);
                             }
 
                             break;
@@ -409,13 +463,20 @@ namespace MetadataGenerator.Generation.Methods.Body
 
         public void Visit(LoadMethodAddressInstruction instruction)
         {
-            var isVirtual = instruction.Method.IsVirtual;
-            instructionEncoder.OpCode(isVirtual ? SRM.ILOpCode.Ldvirtftn : SRM.ILOpCode.Ldftn);
-            instructionEncoder.Token(handleResolver.HandleOf(instruction.Method));
-            if (!isVirtual)
+            switch (instruction.Operation)
             {
-                stackSize.Increment();
+                case LoadMethodAddressOperation.Virtual:
+                    instructionEncoder.OpCode(SRM.ILOpCode.Ldvirtftn);
+                    break;
+                case LoadMethodAddressOperation.Static:
+                    instructionEncoder.OpCode(SRM.ILOpCode.Ldftn);
+                    stackSize.Increment();
+                    break;
+                default:
+                    throw instruction.Operation.ToUnknownValueException();
             }
+
+            instructionEncoder.Token(handleResolver.HandleOf(instruction.Method));
         }
 
         public void Visit(StoreIndirectInstruction instruction)
@@ -480,10 +541,18 @@ namespace MetadataGenerator.Generation.Methods.Body
 
         public void Visit(StoreFieldInstruction instruction)
         {
-            var isStatic = instruction.Field.IsStatic;
-            instructionEncoder.OpCode(isStatic ? SRM.ILOpCode.Stsfld : SRM.ILOpCode.Stfld);
+            if (instruction.Field.IsStatic)
+            {
+                instructionEncoder.OpCode(SRM.ILOpCode.Stsfld);
+                stackSize.Decrement();
+            }
+            else
+            {
+                instructionEncoder.OpCode(SRM.ILOpCode.Stfld);
+                stackSize.Decrement(2);
+            }
+
             instructionEncoder.Token(handleResolver.HandleOf(instruction.Field));
-            stackSize.Decrement(isStatic ? 1 : 2);
         }
 
         public void Visit(ConvertInstruction instruction)
@@ -669,9 +738,11 @@ namespace MetadataGenerator.Generation.Methods.Body
             {
                 case BranchOperation.False:
                     opCode = SRM.ILOpCode.Brfalse;
+                    stackSize.Decrement();
                     break;
                 case BranchOperation.True:
                     opCode = SRM.ILOpCode.Brtrue;
+                    stackSize.Decrement();
                     break;
                 case BranchOperation.Eq:
                     opCode = SRM.ILOpCode.Beq;
@@ -751,32 +822,28 @@ namespace MetadataGenerator.Generation.Methods.Body
                 case MethodCallOperation.Virtual:
                     instructionEncoder.OpCode(SRM.ILOpCode.Callvirt);
                     instructionEncoder.Token(handleResolver.HandleOf(instruction.Method));
-                    stackSize.Decrement(instruction.Method.Parameters.Count + 1);
+                    break;
+                case MethodCallOperation.Jump:
+                    instructionEncoder.OpCode(SRM.ILOpCode.Jmp);
+                    instructionEncoder.Token(handleResolver.HandleOf(instruction.Method));
                     break;
                 case MethodCallOperation.Static:
-                case MethodCallOperation.Jump:
                     instructionEncoder.Call(handleResolver.HandleOf(instruction.Method));
-                    stackSize.Decrement(instruction.Method.Parameters.Count);
                     break;
                 default:
                     throw instruction.Operation.ToUnknownValueException();
             }
 
-            if (!instruction.Method.ReturnType.Equals(PlatformTypes.Void))
-            {
-                stackSize.Increment();
-            }
+            stackSize.Decrement(StackSize.MethodCallDecrement(instruction.Method));
+            if (!instruction.Method.ReturnType.Equals(PlatformTypes.Void)) stackSize.Increment();
         }
 
         public void Visit(IndirectMethodCallInstruction instruction)
         {
             var methodSignature = handleResolver.HandleOf(instruction.Function);
             instructionEncoder.CallIndirect((SRM.StandaloneSignatureHandle) methodSignature);
-            stackSize.Decrement(instruction.Function.Parameters.Count + 1);
-            if (!instruction.Function.ReturnType.Equals(PlatformTypes.Void))
-            {
-                stackSize.Increment();
-            }
+            stackSize.Decrement(StackSize.MethodCallDecrement(instruction.Function));
+            if (!instruction.Function.ReturnType.Equals(PlatformTypes.Void)) stackSize.Increment();
         }
 
         public void Visit(CreateObjectInstruction instruction)
@@ -810,8 +877,8 @@ namespace MetadataGenerator.Generation.Methods.Body
             if (instruction.Method != null)
             {
                 instructionEncoder.Call(handleResolver.HandleOf(instruction.Method));
-                stackSize.Decrement(instruction.Method.Parameters.Count);
-                stackSize.Increment();
+                stackSize.Decrement(StackSize.MethodCallDecrement(instruction.Method));
+                stackSize.Increment(); // not void
             }
             else
             {
@@ -866,15 +933,13 @@ namespace MetadataGenerator.Generation.Methods.Body
                         else
                         {
                             instructionEncoder.OpCode(SRM.ILOpCode.Ldelem);
-                            instructionEncoder.Token(
-                                handleResolver.HandleOf(instruction.Array.ElementsType));
+                            instructionEncoder.Token(handleResolver.HandleOf(instruction.Array.ElementsType));
                         }
 
                         break;
                     case LoadArrayElementOperation.Address:
                         instructionEncoder.OpCode(SRM.ILOpCode.Ldelema);
-                        instructionEncoder.Token(
-                            handleResolver.HandleOf(instruction.Array.ElementsType));
+                        instructionEncoder.Token(handleResolver.HandleOf(instruction.Array.ElementsType));
                         break;
 
                     default:
@@ -890,7 +955,8 @@ namespace MetadataGenerator.Generation.Methods.Body
             if (instruction.Method != null)
             {
                 instructionEncoder.Call(handleResolver.HandleOf(instruction.Method));
-                stackSize.Decrement(instruction.Method.Parameters.Count);
+                stackSize.Decrement(StackSize.MethodCallDecrement(instruction.Method));
+                // void, so no stack increment
             }
             else
             {
@@ -977,34 +1043,38 @@ namespace MetadataGenerator.Generation.Methods.Body
 
         private class StackSize
         {
-            private int currentStackSize;
+            public int CurrentStackSize { get; set; }
             public int MaxStackSize { get; private set; }
 
             public StackSize()
             {
-                currentStackSize = 0;
+                CurrentStackSize = 0;
                 MaxStackSize = 0;
             }
 
             public void Increment()
             {
-                currentStackSize += 1;
-                if (currentStackSize > MaxStackSize)
+                CurrentStackSize += 1;
+                if (CurrentStackSize > MaxStackSize)
                 {
-                    MaxStackSize = currentStackSize;
+                    MaxStackSize = CurrentStackSize;
                 }
             }
 
             public void Decrement(int times = 1)
             {
-                if (currentStackSize < times) throw new Exception("Stack size cannot be less than 0");
-                currentStackSize -= times;
+                if (CurrentStackSize < times) throw new Exception("Stack size cannot be less than 0");
+                CurrentStackSize -= times;
             }
 
             public void Clear()
             {
-                currentStackSize = 0;
+                CurrentStackSize = 0;
             }
+
+            // this (if any) + parameters
+            public static int MethodCallDecrement(IMethodReference method) => (method.IsStatic ? 0 : 1) + method.Parameters.Count;
+            public static int MethodCallDecrement(FunctionPointerType method) => (method.IsStatic ? 0 : 1) + method.Parameters.Count;
         }
     }
 }
