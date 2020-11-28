@@ -672,7 +672,6 @@ namespace Console
 			}
 		});
 
-		// TODO hacerlo generico y ver como darle sentido para los casos de estudio (ya que al ser libs van a tener metodos que no se usan).
 		private static void RemoveUnusedMethodFromSimpleExecutable()
 		{
 			var input = "../../../ExamplesEXE/bin/Debug/ExamplesEXE.exe";
@@ -688,6 +687,7 @@ namespace Console
 			var allDefinedMethods = (from a in host.Assemblies
 				from t in a.RootNamespace.GetAllTypes()
 				from m in t.Members.OfType<MethodDefinition>()
+				where m.HasBody
 				select m).ToList();
 
 			// convert bodies to typed tac
@@ -714,6 +714,17 @@ namespace Console
 			var classHierarchyAnalysis = new ClassHierarchyAnalysis(classHierarchy);
 			var roots = host.GetRootMethods();
 			var callGraph = classHierarchyAnalysis.Analyze(host, roots);
+			
+			// remove unused method
+			var unusedMethods = allDefinedMethods
+				.Except(callGraph.Methods.OfType<MethodDefinition>())
+				.ToList();
+			foreach (var unusedMethod in unusedMethods)
+			{
+				unusedMethod.ContainingType.Methods.Remove(unusedMethod);
+			}
+			
+			System.Console.WriteLine($"File: {input} - Unused methods removed: {unusedMethods.Count}");
 
 			// convert back to bytecode for generation
 			foreach (var method in allDefinedMethods)
@@ -721,18 +732,6 @@ namespace Console
 				var bytecode = new Backend.Transformations.Assembly.Assembler(method).Execute();
 				method.Body = bytecode;
 			}
-			
-			// remove unused method
-			var unusedPrivateMethods = allDefinedMethods
-				.Except(callGraph.Methods.Cast<MethodDefinition>())
-				.Where(method => method.Visibility == VisibilityKind.Private)
-				.ToList();
-			foreach (var unusedMethods in unusedPrivateMethods)
-			{
-				unusedMethods.ContainingType.Methods.Remove(unusedMethods);
-			}
-			
-			System.Console.WriteLine($"File: {input} - Unused methods removed: {unusedPrivateMethods.Count}");
 
 			// generate
 			var generator = new MetadataGenerator.Generator();
@@ -778,16 +777,16 @@ namespace Console
 			
 		}
 
+         
 		static void Main(string[] args)
 		{
 		// generation
-			 ReadAndGenerateDll(transformToTacAndBackToBytecode: false); 
+			  ReadAndGenerateDll(transformToTacAndBackToBytecode: false); 
 			// ReadAndGenerateDll(transformToTacAndBackToBytecode: true);
 		//
 		
 		// instrumentation
 		//	TacInstrumentation();
-			// TODO instrument tests by printing the name of the test running.
 		//
 		
 		// programmatic generation
