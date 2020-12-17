@@ -129,6 +129,8 @@ namespace MetadataProvider
 				Culture = metadata.GetString(assemblydef.Culture),
 				PublicKey = metadata.GetBlobBytes(assemblydef.PublicKey)
 			};
+			
+			ExtractAttributes(assembly, assemblydef.GetCustomAttributes());
 
 			foreach (var handle in metadata.AssemblyReferences)
 			{

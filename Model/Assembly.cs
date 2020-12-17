@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Model
 {
-	public interface IAssemblyReference
+	public interface IAssemblyReference : IMetadataReference
 	{
 		string Name { get; }
 		Version Version { get; }
@@ -23,10 +23,11 @@ namespace Model
 		public Version Version { get; set; }
 		public string Culture { get; set; }
 		public byte[] PublicKey { get; set; }
-
+		public ISet<CustomAttribute> Attributes { get; private set; }
 		public AssemblyReference(string name)
 		{
 			this.Name = name;
+			this.Attributes = new HashSet<CustomAttribute>();
 		}
 
 		public override string ToString()
@@ -58,10 +59,12 @@ namespace Model
 		public Version Version { get; set; }
 		public string Culture { get; set; }
 		public byte[] PublicKey { get; set; }
+		public ISet<CustomAttribute> Attributes { get; private set; }
 		public Assembly(string name)
 		{
 			this.Name = name;
 			this.References = new List<IAssemblyReference>();
+			this.Attributes = new HashSet<CustomAttribute>();
 		}
 
 		public bool MatchReference(IAssemblyReference reference)
