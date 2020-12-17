@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using MetadataGenerator.Generation.CustomAttributes;
 using MetadataGenerator.Generation.Types;
 using Model;
 using Model.Types;
@@ -12,10 +13,10 @@ namespace MetadataGenerator.Generation
         private readonly MetadataContainer metadataContainer;
         private readonly TypeGenerator typeGenerator;
 
-        public NamespaceGenerator(MetadataContainer metadataContainer)
+        public NamespaceGenerator(MetadataContainer metadataContainer, CustomAttributeGenerator customAttributeGenerator)
         {
             this.metadataContainer = metadataContainer;
-            typeGenerator = new TypeGenerator(metadataContainer);
+            typeGenerator = new TypeGenerator(metadataContainer, customAttributeGenerator);
         }
 
         public void Generate(Namespace namezpace)

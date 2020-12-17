@@ -22,10 +22,10 @@ namespace MetadataGenerator.Generation.Types
         private readonly FieldGenerator fieldGenerator;
         private readonly PropertyGenerator propertyGenerator;
 
-        public TypeGenerator(MetadataContainer metadataContainer)
+        public TypeGenerator(MetadataContainer metadataContainer, CustomAttributeGenerator customAttributeGenerator)
         {
             this.metadataContainer = metadataContainer;
-            customAttributeGenerator = new CustomAttributeGenerator(metadataContainer);
+            this.customAttributeGenerator = customAttributeGenerator;
             methodGenerator = new MethodGenerator(metadataContainer, customAttributeGenerator);
             fieldGenerator = new FieldGenerator(metadataContainer, customAttributeGenerator);
             propertyGenerator = new PropertyGenerator(metadataContainer, customAttributeGenerator);
